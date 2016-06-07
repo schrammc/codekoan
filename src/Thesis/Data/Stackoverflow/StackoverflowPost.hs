@@ -88,7 +88,7 @@ ratingAndLength p = do
 -- Conduit helpers
     
 filterAnswers :: Monad m => Conduit StackoverflowPost m Answer
-filterAnswers =  CL.filter isQuestion =$= CL.map (\(PostAnswer a) -> a)
+filterAnswers =  CL.filter isAnswer =$= CL.map (\(PostAnswer a) -> a)
 
 
 filterQuestions :: Monad m => Conduit StackoverflowPost m Question
@@ -119,8 +119,8 @@ parsePost = tagName "row" parseAttributes $ return
       postType <- readPostType <$> requireAttr "PostTypeId"
       postBody <- requireAttr "Body"
       content <- case postType of
-        AnswerType -> PostQuestion <$> parseQuestion rowId postBody
-        QuestionType -> PostAnswer <$> parseAnswer rowId postBody
+        AnswerType -> PostAnswer <$> parseAnswer rowId postBody
+        QuestionType -> PostQuestion <$> parseQuestion rowId postBody
         OtherType -> return PostUnknown
       ignoreAttrs
       return content
