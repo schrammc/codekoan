@@ -17,6 +17,12 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib
                      , Thesis.CodeAnalysis.StackoverflowBodyParser
+
+                     , Thesis.Data.Stackoverflow.XML.Helpers
+                     , Thesis.Data.Stackoverflow.Answer
+                     , Thesis.Data.Stackoverflow.Question
+                     , Thesis.Data.Stackoverflow.StackoverflowPost
+                     , Thesis.Data.Stackoverflow.Dictionary
                      , Thesis.Levenstein
                      , Thesis.Tokenizer
                      , Thesis.Trie

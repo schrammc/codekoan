@@ -51,121 +51,16 @@ import           Thesis.CodeAnalysis.StackoverflowBodyParser
 import           Thesis.Tokenizer
 import           Thesis.Trie
 import           Thesis.Levenstein
+import Thesis.Data.Stackoverflow.StackoverflowPost
+import Thesis.Data.Stackoverflow.Answer
+import Thesis.Data.Stackoverflow.Question
+import Thesis.Data.Stackoverflow.Dictionary
+  
 
 import System.IO
 
 import Data.Monoid
 
-parseTags :: Parser (Vector Text)
-parseTags = V.fromList <$> AP.many' tag
-  where
-    tag = do
-      char '<'
-      content <- AP.takeWhile (/= '>')
-      char '>'
-      return content
-
-data StackoverflowPost = PostQuestion !Question
-                       | PostAnswer !Answer
-                       | PostUnknown
-                       deriving (Show, Eq)
-
-isQuestion :: StackoverflowPost -> Bool
-isQuestion (PostQuestion _) = True
-isQuestion _ = False
-
-isAnswer :: StackoverflowPost -> Bool
-isAnswer (PostAnswer _) = True
-isAnswer _ = False
-
-questionOrAnswer :: StackoverflowPost -> Bool
-questionOrAnswer PostUnknown = False
-questionOrAnswer _           = True
-
-codeLength (PostQuestion Question{..}) =
-  case readCodeFromHTMLPost questionBody of
-    [] -> Nothing
-    _ -> Just $ (foldl1 max) $ Text.length <$> readCodeFromHTMLPost questionBody
-codeLength (PostAnswer Answer{..}) =
-  case readCodeFromHTMLPost answerBody of
-    [] -> Nothing
-    _ -> Just $ (foldl1 max) $ Text.length <$> readCodeFromHTMLPost answerBody
-codeLength _ = Nothing
-
-rating (PostQuestion Question{..}) = Just questionRating
-rating (PostAnswer Answer{..}) = Just answerRating
-rating _ = Nothing
-
--- | For a post that has code, this function yields the post's rating and the
--- length of it's longest code fragment
-ratingAndLength :: StackoverflowPost -> Maybe (Integer, Integer)
-ratingAndLength p = do
-  l <- codeLength p
-  r <- rating p
-  return (r,fromIntegral l)
-
-lengthAndRating = (,) <$> codeLength <*> rating
-
-data PostType = AnswerType | QuestionType | OtherType
-              deriving (Show, Eq)
-
-data Question = Question { questionId :: !QuestionId
-                         , questionBody :: !Text
-                         , questionTitle :: !Text
-                         , questionRating :: !Integer
-                         , questionTags :: !(V.Vector Text)
-                         }
-              deriving (Show, Eq)
-                       
-newtype QuestionId = QuestionId {questionIdInt :: Int}
-                   deriving (Show, Eq)
-
-data Answer = Answer { answerId :: !AnswerId
-                     , answerBody :: !Text
-                     , answerRating :: !Integer
-                     , answerParent :: !Int
-                     }
-            deriving (Show, Eq)
-
-newtype AnswerId = AnswerId {answerIdInt :: Int}
-                 deriving (Show, Eq)
-
-readPostType "1" = QuestionType
-readPostType "2" = AnswerType
-readPostType _ = OtherType
-
-parsePost :: ConduitM Event o (ResourceT IO) (Maybe StackoverflowPost)
-parsePost = tagName "row" parseAttributes $ return
-  where
-    parseAttributes = do
-      rowId <- readAttribute "Id"
-      postType <- readPostType <$> requireAttr "PostTypeId"
-      postBody <- requireAttr "Body"
-      content <- case postType of
-        AnswerType -> do
-          score <- readAttribute "Score"
-          parent <- readAttribute "ParentId"
-          return $ PostAnswer (Answer (AnswerId rowId) postBody score parent)
-        QuestionType -> do
-          questionTitle <- requireAttr "Title"
-          score <- readAttribute "Score"
-          tags <- parseWithDefault V.empty parseTags <$> requireAttr "Tags"
-          return $ PostQuestion (Question (QuestionId rowId)
-                                           postBody
-                                           questionTitle
-                                           score
-                                           tags
-                                )
-        OtherType -> return PostUnknown
-      ignoreAttrs
-      return content
-    readAttribute x = (read . Text.unpack) <$> requireAttr x
-
-parseWithDefault :: a -> Parser a -> Text -> a
-parseWithDefault def p t = (either (const def) (id)) $ parseOnly p t
-
-parsePosts :: ConduitM Event StackoverflowPost (ResourceT IO) ()
-parsePosts = void $ tagNoAttr "posts" $ manyYield parsePost
 
 xmlFilePath :: String
 --xmlFilePath = "/home/kryo/posts_abridged.xml"
@@ -190,21 +85,9 @@ writePost (PostAnswer Answer{..}) =
             , "}"
             ]
 
-data DataDictionary = DataDictionary { dictAnswerParents :: !(IntMap Int)
-                                     , dictQuestionTags :: !(IntMap (S.Set Int))
-                                     , dictTagTable :: !(IntMap Text)
-                                     }
-                      deriving Generic
 
--- | Get the text tags for an answer's parent question
-answerRootTags :: DataDictionary -> AnswerId -> Maybe (S.Set Text)
-answerRootTags (DataDictionary{..}) (AnswerId aid) = do
-  parent <- IM.lookup aid dictAnswerParents
-  tags <- IM.lookup parent dictQuestionTags
-  tagStrings <- mapM (\tag -> IM.lookup tag dictTagTable) (S.toList tags)
-  return $ S.fromList tagStrings
 
-instance Binary DataDictionary
+
 
 someFunc :: IO ()
 someFunc = do
@@ -272,13 +155,6 @@ writeAnswerRoots v = CL.iterM $ \p ->
     (PostAnswer !Answer{..}) -> lift $ modifyMVar_ v $ \mp ->
       return $! IM.insert (answerIdInt answerId) answerParent mp
     _ -> return ()
-
-filterQuestions :: Monad m => Conduit StackoverflowPost m Question
-filterQuestions =  CL.filter isQuestion =$= CL.map (\(PostQuestion q) -> q)
-
-filterAnswers :: Monad m => Conduit StackoverflowPost m Answer
-filterAnswers =  CL.filter isQuestion =$= CL.map (\(PostAnswer a) -> a)
-
 
 filterTags :: Monad m => S.Set Text -> Conduit Question m Question
 filterTags tgs = CL.filter $ \Question{..} ->
