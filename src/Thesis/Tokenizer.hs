@@ -72,6 +72,7 @@ data Token = TokenLT
            | TokenKeyword
            | TokenIdentifier
            | TokenNumber
+           | TokenStringLiteral
            deriving (Show,Eq, Ord)
 
 token :: Parser Token
@@ -102,6 +103,7 @@ token = "<" *> pure TokenLT
         <|> keyword
         <|> identifier
         <|> tokenNumber
+        <|> stringLiteral
         
 
 keyword :: Parser Token
@@ -149,3 +151,17 @@ javaComment = lineComment <|> blockComment
                         if xs == "" then return () else content)
       content
       return ()
+
+stringLiteral :: Parser Token
+stringLiteral = do
+  char '\"'
+  literalContent
+  return TokenStringLiteral
+  where
+    literalContent = do
+      AP.takeWhile (\c -> not $ c `elem` ['\\','\"'])
+      (char '\"' *> pure ())
+        <|> (string "\\\"" *> literalContent)
+        <|> (anyChar *> literalContent)
+
+      
