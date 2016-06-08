@@ -3,7 +3,7 @@
 module Thesis.Data.Stackoverflow.Dictionary where
 
 import Data.Text
-
+import Data.Maybe
 import Data.Binary
 import GHC.Generics (Generic)
 
@@ -37,3 +37,6 @@ answerRootTags (DataDictionary{..}) (AnswerId aid) = do
   tagStrings <- mapM (\tag -> IM.lookup tag dictTagTable) (S.toList tags)
   return $ S.fromList tagStrings
 
+-- | See if the answer's parent question is tagged with the given tag
+answerWithTag :: DataDictionary -> Text -> AnswerId -> Bool
+answerWithTag dict tag i = maybe False (S.member tag) (answerRootTags dict i)

@@ -7,38 +7,40 @@
 --
 module Thesis.Trie where
 
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 
 import Data.Foldable
 
 
 data Trie a v where
-  LeafNode :: (Ord a) => v -> Trie a v
-  InnerNode :: (Ord a) => M.Map a (Trie a v) -> Trie a v
+  TrieNode :: (Ord a) => M.Map a (Trie a v) -> Maybe v -> Trie a v
 
 deriving instance (Show a, Show v) => Show (Trie a v)
 
 deriving instance (Ord a, Eq v) => Eq (Trie a v)
 
 empty :: (Ord a) => Trie a v
-empty = InnerNode M.empty
+empty = TrieNode M.empty Nothing
 
 linearTrie :: (Foldable f, Ord a) => f a -> v -> Trie a v
 linearTrie = linearTrie' . toList
 
 -- | Helper function for 'linearTrie' that works with lists
 linearTrie' :: (Ord a) => [a] -> v -> Trie a v
-linearTrie' [] v = LeafNode v
-linearTrie' (x:xs) v = InnerNode $ M.singleton x (linearTrie' xs v)
+linearTrie' [] v = TrieNode M.empty (Just v)
+linearTrie' (x:xs) v = TrieNode (M.singleton x (linearTrie' xs v)) Nothing
 
 -- | Merge two tries with a merging function if two values are at the end of the
 -- same path
 mergeTriesWith :: (Eq v) => (v -> v -> v) -> Trie a v -> Trie a v -> Trie a v
-mergeTriesWith f (LeafNode a) (LeafNode b) = LeafNode $ f a b
-mergeTriesWith f (LeafNode _) (InnerNode _) = error "Trie.merge"
-mergeTriesWith f (InnerNode _) (LeafNode _) = error "Trie.merge"
-mergeTriesWith f a@(InnerNode ma) b@(InnerNode mb) =
-  InnerNode $ M.unionWith (mergeTriesWith f) ma mb
+mergeTriesWith f a@(TrieNode ma va) b@(TrieNode mb vb) =
+  TrieNode (M.unionWith (mergeTriesWith f) ma mb) $! v
+  where
+    v = case (va, vb) of
+      (Nothing, v') -> v'
+      (Just v', Nothing) -> Just v'
+      (Just v', Just v'') -> let val = f v' v''
+                             in val `seq` (Just val)
 
 -- | Discards the value from the right trie in case of conflicts
 mergeTries :: (Eq v) => Trie a v -> Trie a v -> Trie a v
@@ -59,11 +61,8 @@ buildTrie = buildTrieWith const
 -- | If the given sequence of things is in the trie, we return the value at it's
 -- leaf
 searchTrie :: (Foldable f) => Trie a v -> f a -> Maybe v
-searchTrie (LeafNode v) xs | null xs = Just v
-searchTrie n xs = case foldlM f n xs of
-  Just (LeafNode v) -> Just v
-  _ -> Nothing
-  where
-    f (InnerNode mp) x = M.lookup x mp
-    f _ _ = Nothing
+searchTrie tr = searchTrie' tr . toList
 
+searchTrie' :: Trie a v -> [a] -> Maybe v
+searchTrie' (TrieNode mp v) [] = v
+searchTrie' (TrieNode mp v) (x:xs) = M.lookup x mp >>= \n -> searchTrie' n xs

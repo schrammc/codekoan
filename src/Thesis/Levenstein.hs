@@ -1,10 +1,12 @@
-{-# LANGUAGE TupleSections #-}
+ {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Levenstein where
 
+import Data.Foldable (toList)
+
 import Thesis.Trie
 
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 
 --------------------------------------------------------------------------------
 --
@@ -91,10 +93,8 @@ lookupL aut t | t == empty = []
 
 -- | Helper function for 'lookupL'
 lookupL' :: (Ord a, Eq v) => LevensteinAutomaton a -> Trie a v -> LevenState -> [([a], v, Int)]
-lookupL' aut (LeafNode v) s = maybe [] ((:[]) . ([], v,)) (acceptScoreL aut s)
-lookupL' aut (InnerNode mp) s | (not $ canAcceptL aut s) = []
-                              | otherwise = do
-                                              (c,t') <- M.toList mp
-                                              (app c) <$> lookupL' aut t' (stepL aut s c)
+lookupL' aut (TrieNode mp v) st = cur ++ (concat $ f <$> M.toList mp)
   where
-    app c (str, val, score) = (c:str, val, score)
+    f (c, nd) = extend c <$> lookupL' aut nd (stepL aut st c)
+    cur = toList ( ([],,) <$> v <*> acceptScoreL aut st)
+    extend c (cs, v, s) = (c:cs, v, s)

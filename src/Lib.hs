@@ -27,7 +27,7 @@ import qualified Data.Conduit.List as CL
 
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
-import           Data.Maybe (catMaybes)
+import           Data.Maybe (catMaybes, fromJust)
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
@@ -49,7 +49,7 @@ import           Text.XML.Stream.Parse
 
 import           Thesis.CodeAnalysis.StackoverflowBodyParser
 import           Thesis.Tokenizer
-import           Thesis.Trie
+import           Thesis.Trie as Trie
 import           Thesis.Levenstein
 import Thesis.Data.Stackoverflow.StackoverflowPost
 import Thesis.Data.Stackoverflow.Answer
@@ -85,48 +85,34 @@ writePost (PostAnswer Answer{..}) =
             , "}"
             ]
 
-
-
-
+buildTrieForAnswersWithTag :: Text -> IO (Trie Token AnswerId)
+buildTrieForAnswersWithTag tag = do
+  dict <- decodeFile "/home/kryo/data_dictionary" :: IO DataDictionary
+  print "Done with dictionary"
+  runResourceT $ do
+    postSource
+      =$= filterAnswers
+      =$= (CL.filter $ \Answer{..} -> answerWithTag dict tag answerId)
+      =$= (CL.map $ \Answer{..} -> (,answerId) <$> readCodeFromHTMLPost answerBody)
+      =$= CL.concat
+      =$= (CL.map $ \(c, aId) -> (,aId) <$> processAndTokenize java c)
+      =$= CL.catMaybes
+      =$= CL.map (uncurry linearTrie)
+      $$ (CL.fold mergeTries Trie.empty)
 
 someFunc :: IO ()
 someFunc = do
-  answerRootsVar <- newMVar IM.empty :: IO (MVar (IntMap Int))
-  questionTagsVar <- newMVar IM.empty
-  tagsMapVar <- newMVar (M.empty, 0)
-  counterVar <- newMVar (0 :: Integer)
+  trie <- buildTrieForAnswersWithTag (Text.pack "java")
+  let tks = fromJust $ processAndTokenize java "class Foo {}"
+      aut = LevensteinAutomaton (length tks)
+                                1
+                                (tks !!)
+      res = lookupL aut trie
+  print res
 
-  runResourceT $ do
-    (_, handle) <- allocate (openFile outfile WriteMode)
-                            (hFlush >> hClose)
-    (_, qStatH) <- allocate (openFile questionStatfile WriteMode)
-                            (hFlush >> hClose)
-    (_, aStatH) <- allocate (openFile answerStatfile WriteMode)
-                            (hFlush >> hClose)
-                   
-    parseFile def xmlFilePath $$ parsePosts
-      =$= CL.filter questionOrAnswer
-      =$= writeAnswerRoots answerRootsVar
-      =$= writeQuestionTags tagsMapVar questionTagsVar
-      =$ (awaitForever (\_ -> return ()))
 
-  roots <- readMVar answerRootsVar
-  qtags <- readMVar questionTagsVar
-  (tagsMap, _) <- readMVar tagsMapVar
-  let swap (a,b) = (b,a)
-      revTagsMap = IM.fromList (swap <$> M.toList tagsMap)
-      dict = DataDictionary roots qtags revTagsMap
-
-  encodeFile "/home/kryo/data_dictionary" dict
-
-  where
-    savePost h p =
-      case p of
-        PostUnknown -> return ()
-        _ -> TextIO.hPutStrLn h $ writePost p
-
-    saveStat h s = do
-      hPutStrLn h $ (show $ fst s) ++ " " ++ (show $ snd s)
+postSource :: Source (ResourceT IO) StackoverflowPost
+postSource = parseFile def xmlFilePath =$= parsePosts
 
 tagValue :: MVar (M.Map Text Int, Int) -> Text -> IO Int
 tagValue mpVar t = do
