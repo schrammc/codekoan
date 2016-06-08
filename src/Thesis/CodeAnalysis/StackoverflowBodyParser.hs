@@ -12,5 +12,12 @@ readCodeFromHTMLPost :: Text -> [Text]
 readCodeFromHTMLPost t = readData <$> (fromDocument htmlDoc $// findCode)
   where
     readData = Text.concat . content
-    htmlDoc = parseSTChunks [t]
-    findCode = element "code" >=> child
+    htmlDoc = parseSTChunks [removeBreaks t]
+    findCode = element "code" >=> descendant
+    -- TODO: Find out what happens if there is HTML in the code.
+    -- TODO: How is that then escaped ?
+    -- TODO: Maybe it's inconsistent for different times...
+    
+    -- | Ridiculously sometimes <br> is used in code tags as a linebreak.  In order
+    -- to not mess up our result we replace it with an actual linebreak.
+    removeBreaks = Text.replace "<br>" "\n"
