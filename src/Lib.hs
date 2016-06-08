@@ -32,7 +32,7 @@ import           Data.Maybe (catMaybes, fromJust)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 
-import           Data.List (foldl')
+import           Data.List (foldl', sortOn)
 
 import           Data.Text (Text)
 import qualified Data.Text as Text
@@ -63,8 +63,8 @@ import Data.Monoid
 
 
 xmlFilePath :: String
---xmlFilePath = "/home/kryo/posts_abridged.xml"
-xmlFilePath = "/home/kryo/stackoverflow_dump/Posts.xml"
+xmlFilePath = "/home/kryo/posts_abridged.xml"
+--xmlFilePath = "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
 
 outfile = "/home/kryo/out"
 
@@ -87,10 +87,19 @@ writePost (PostAnswer Answer{..}) =
 
 buildTrieForAnswersWithTag :: Text -> IO (Trie Token AnswerId)
 buildTrieForAnswersWithTag tag = do
-  dict <- decodeFile "/home/kryo/data_dictionary" :: IO DataDictionary
-  print "Done with dictionary"
+  content <- BS.readFile "/home/kryo/data/stackoverflow_dump/data_dictionary"
+  let dict = decode (BL.fromChunks [content]):: DataDictionary
+  dict `seq` print "Done with dictionary"
+  nVar <- newMVar (0 :: Integer)
+  
   runResourceT $ do
     postSource
+      $$ (CL.iterM $ \_ -> lift $ do -- Print a message every 25000 posts to
+                                     -- show progress
+              n <- takeMVar nVar
+              putMVar nVar $! (n+1)
+              when (n `mod` 25000 == 0) $ putStrLn $ show n
+          )
       =$= filterAnswers
       =$= (CL.filter $ \Answer{..} -> answerWithTag dict tag answerId)
       =$= (CL.map $ \Answer{..} -> (,answerId) <$> readCodeFromHTMLPost answerBody)
@@ -98,17 +107,30 @@ buildTrieForAnswersWithTag tag = do
       =$= (CL.map $ \(c, aId) -> (,aId) <$> processAndTokenize java c)
       =$= CL.catMaybes
       =$= CL.map (uncurry linearTrie)
-      $$ (CL.fold mergeTries Trie.empty)
+      =$ (CL.fold mergeTries Trie.empty)
 
 someFunc :: IO ()
 someFunc = do
   trie <- buildTrieForAnswersWithTag (Text.pack "java")
-  let tks = fromJust $ processAndTokenize java "class Foo {}"
-      aut = LevensteinAutomaton (length tks)
-                                1
-                                (tks !!)
-      res = lookupL aut trie
-  print res
+  
+  putStrLn "Trie is built"
+  go trie
+  where
+    go trie = do
+      putStrLn "Enter query:"
+      str <- getLine
+      putStrLn "Sensitivity: "
+      n <- read <$> getLine
+      let tks = fromJust $ processAndTokenize java (Text.pack str)
+          aut = LevensteinAutomaton (length tks)
+                                    n
+                                    (tks V.!)
+          res = sortOn (\(_,_,similarity) -> similarity) $  lookupL aut trie
+      putStrLn "Result: "
+      print $ (\(_,id, similarity) -> (id, similarity)) <$> res
+      putStrLn ""
+      go trie
+  
 
 
 postSource :: Source (ResourceT IO) StackoverflowPost
