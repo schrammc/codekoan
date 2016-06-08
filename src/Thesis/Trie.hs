@@ -13,7 +13,7 @@ import Data.Foldable
 
 
 data Trie a v where
-  TrieNode :: (Ord a) => M.Map a (Trie a v) -> Maybe v -> Trie a v
+  TrieNode :: (Ord a) => !(M.Map a (Trie a v)) -> !(Maybe v) -> Trie a v
 
 deriving instance (Show a, Show v) => Show (Trie a v)
 
@@ -39,8 +39,7 @@ mergeTriesWith f a@(TrieNode ma va) b@(TrieNode mb vb) =
     v = case (va, vb) of
       (Nothing, v') -> v'
       (Just v', Nothing) -> Just v'
-      (Just v', Just v'') -> let val = f v' v''
-                             in val `seq` (Just val)
+      (Just v', Just v'') -> Just $! f v' v''
 
 -- | Discards the value from the right trie in case of conflicts
 mergeTries :: (Eq v) => Trie a v -> Trie a v -> Trie a v

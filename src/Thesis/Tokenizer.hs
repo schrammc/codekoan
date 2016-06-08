@@ -7,9 +7,12 @@ module Thesis.Tokenizer where
 import Prelude
 
 import Control.Applicative ((<|>))
+import Control.Monad((>=>))
 
 import Data.Char
 import Data.Maybe (catMaybes)
+
+import qualified Data.Vector as V
 
 import Data.Text
 import Data.Attoparsec.Text as AP hiding (empty)
@@ -20,8 +23,11 @@ data Language t l where
                                  , tokenize :: LanguageText l -> Maybe [t]
                                  } -> Language t l
 
-processAndTokenize :: Language t l -> Text -> Maybe [t]
-processAndTokenize Language{..} = tokenize . normalize . removeComments
+processAndTokenize :: Language t l -> Text -> Maybe (V.Vector t)
+processAndTokenize Language{..} = buildTokens >=> toVector
+  where
+    buildTokens = tokenize . normalize . removeComments
+    toVector = return . V.fromList
 
 data Java
 
