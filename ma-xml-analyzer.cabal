@@ -17,7 +17,6 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib
                      , Thesis.CodeAnalysis.StackoverflowBodyParser
-
                      , Thesis.Data.Stackoverflow.XML.Helpers
                      , Thesis.Data.Stackoverflow.Answer
                      , Thesis.Data.Stackoverflow.Question
@@ -75,6 +74,7 @@ test-suite ma-xml-analyzer-test
                      , transformers >= 0.4.2.0
                      , vector >= 0.11.0.0
                      , xml-types >= 0.3.6
+                     , hspec >= 2.2.3
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -O2
   default-language:    Haskell2010
 
