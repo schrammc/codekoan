@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RankNTypes #-}
@@ -14,6 +15,7 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Resource
+import           Control.Exception
 
 import           Control.Concurrent.MVar
 
@@ -117,20 +119,28 @@ someFunc = do
   go trie
   where
     go trie = do
-      putStrLn "Enter query:"
-      str <- getLine
-      putStrLn "Sensitivity: "
-      n <- read <$> getLine
-      let tks = fromJust $ processAndTokenize java (Text.pack str)
+      putStrLn "Enter query: "
+      str <- Text.pack <$> getLine
+      print str
+      n <- readPrompt "Sensitivity: "
+      let tks = fromJust $ processAndTokenize java str
           aut = LevensteinAutomaton (length tks)
                                     n
                                     (tks V.!)
           res = sortOn (\(_,_,similarity) -> similarity) $  lookupL aut trie
       putStrLn "Result: "
-      print $ (\(_,id, similarity) -> (id, similarity)) <$> res
+      print res
       putStrLn ""
       go trie
-  
+
+-- | Try to read something and reprompt if the user puts in something that we
+-- can't understand until we have a valid result
+readPrompt :: (Read a) => String -> IO a
+readPrompt str = do
+  putStrLn str
+  catch readLn $ \(e :: IOException) -> do
+                                          putStrLn "Sorry, what?\n"
+                                          readPrompt str
 
 
 postSource :: Source (ResourceT IO) StackoverflowPost
