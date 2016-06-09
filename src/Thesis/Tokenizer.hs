@@ -1,3 +1,6 @@
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -7,41 +10,53 @@ module Thesis.Tokenizer where
 import Prelude
 
 import Control.Applicative ((<|>))
-import Control.Monad((>=>))
+
+
+import GHC.Generics (Generic)
 
 import Data.Char
-import Data.Maybe (catMaybes)
+
+import Data.Conduit
+import Data.Conduit.Attoparsec
+import qualified Data.Conduit.List as CL
 
 import qualified Data.Vector as V
 
+import Data.Hashable (Hashable)
+
 import Data.Text
-import Data.Attoparsec.Text as AP hiding (empty)
+import Data.Attoparsec.Text as AP
 
 data Language t l where
-  Language :: (Ord t, Show t) => { removeComments :: Text -> LanguageText l
-                                 , normalize :: LanguageText l -> LanguageText l
-                                 , tokenize :: LanguageText l -> Maybe [t]
-                                 } -> Language t l
+  Language :: (Ord t, Show t, Hashable t) =>
+              { removeComments :: Text -> LanguageText l
+              , normalize :: LanguageText l -> LanguageText l
+              , tokenize ::Conduit (LanguageText l) Maybe (PositionRange, t)
+              } -> Language t l
 
-processAndTokenize :: Language t l -> Text -> Maybe (V.Vector t)
-processAndTokenize Language{..} = buildTokens >=> toVector
-  where
-    buildTokens = tokenize . normalize . removeComments
-    toVector = return . V.fromList
+
+buildTokenVector :: Language t l -> LanguageText l -> Maybe (V.Vector t)
+buildTokenVector l t = (V.fromList . (fmap snd)) <$> processAndTokenize l t
+
+processAndTokenize :: Language t l -> LanguageText l-> Maybe [(PositionRange, t)]
+processAndTokenize Language{..} t =
+  (yield t $$ tokenize =$ CL.consume)
 
 data Java
 
-java :: Language Token Java
+java :: Language Token Java 
 java = Language { removeComments = LanguageText
                 , normalize = id
                 , tokenize = tokenizeJ
                 }
 
-tokenizeJ t = case parseOnly (many' ((AP.takeWhile isHorizontalSpace) *> tokenOrComment)) (langText t) of
-  Right r -> Just $ catMaybes r
-  _ -> Nothing
+tokenizeJ :: Conduit (LanguageText Java) Maybe (PositionRange, Token)
+tokenizeJ = (CL.map langText) =$= conduitParser completeParser =$= filterNothings
   where
+    completeParser = (AP.takeWhile isHorizontalSpace) *> tokenOrComment
     tokenOrComment = ((const Nothing) <$> (javaComment <|> endOfLine)) <|>(Just <$> token)
+    filterNothings = awaitForever $ \(pos, x) -> do
+      mapM_ (yield . (pos, )) x
 
 newtype LanguageText l = LanguageText {langText :: Text}
 
@@ -73,7 +88,9 @@ data Token = TokenLT
            | TokenIdentifier
            | TokenNumber
            | TokenStringLiteral
-           deriving (Show,Eq, Ord)
+           deriving (Show,Eq, Ord, Generic)
+
+instance Hashable Token
 
 token :: Parser Token
 token = "<" *> pure TokenLT

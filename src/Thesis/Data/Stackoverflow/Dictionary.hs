@@ -3,7 +3,7 @@
 module Thesis.Data.Stackoverflow.Dictionary where
 
 import Data.Text
-import Data.Maybe
+
 import Data.Binary
 import GHC.Generics (Generic)
 

@@ -20,13 +20,13 @@ module Thesis.Data.Stackoverflow.StackoverflowPost
 
 import           Control.Monad (void)
 import           Control.Monad.Trans.Resource
-import           Data.Attoparsec.Text as AP
+
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
-import           Data.Text (Text)
+
 import qualified Data.Text as Text
-import           Data.Vector (Vector)
-import qualified Data.Vector as V
+
+
 import           Data.XML.Types (Event)
 import           Text.XML.Stream.Parse
 import           Thesis.Data.Stackoverflow.Answer
@@ -103,7 +103,8 @@ data PostType = AnswerType | QuestionType | OtherType
               deriving (Show, Eq)
 
 
-                       
+
+readPostType :: Text.Text -> PostType
 readPostType "1" = QuestionType
 readPostType "2" = AnswerType
 readPostType _ = OtherType

@@ -5,125 +5,49 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-module Lib
-    ( someFunc
-    ) where
+module Lib where
 
-import           Data.Binary
-
-import           Control.DeepSeq
-import           Control.Monad
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Resource
 import           Control.Exception
-
 import           Control.Concurrent.MVar
-
-import           Data.Attoparsec.Text as AP
-
 import           Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap.Strict as IM
-
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
-
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
-import           Data.Maybe (catMaybes, fromJust)
-
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
-
-import           Data.List (foldl', sortOn)
-
+import           Data.Maybe (fromJust)
+import           Data.List (sortOn)
 import           Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.IO as TextIO
-
-import           Data.Vector (Vector)
-import           Data.Vector.Binary
 import qualified Data.Vector as V
-
-import GHC.Generics (Generic)
-
-import           Data.XML.Types (Event)
-import           Text.XML.Stream.Parse
-
-import           Thesis.CodeAnalysis.StackoverflowBodyParser
 import           Thesis.Tokenizer
-import           Thesis.Trie as Trie
 import           Thesis.Levenstein
 import Thesis.Data.Stackoverflow.StackoverflowPost
 import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
-import Thesis.Data.Stackoverflow.Dictionary
-  
+import Thesis.Search
 
-import System.IO
-
-import Data.Monoid
-
+dictPath :: String
+dictPath = "/home/kryo/data/stackoverflow_dump/data_dictionary"
 
 xmlFilePath :: String
 xmlFilePath = "/home/kryo/posts_abridged.xml"
 --xmlFilePath = "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
 
-outfile = "/home/kryo/out"
-
-questionStatfile = "/home/kryo/question_stats"
-answerStatfile = "/home/kryo/answer_stats"
-
-writePost (PostQuestion Question{..}) =
-  mconcat [ "{\"type\":\"question\""
-          , ",\"id\":" <> (Text.pack $ show $ questionIdInt questionId)
-          , ",\"code\":" <> (Text.pack . show $ readCodeFromHTMLPost questionBody)
-          , ",\"tags\":" <> (Text.pack $ show questionTags)
-          , "}"
-          ]
-writePost (PostAnswer Answer{..}) =
-    mconcat [ "{\"type\":\"answer\""
-            , ",\"id\":" <> (Text.pack $ show $ answerIdInt answerId)
-            , ",\"code\":" <> (Text.pack . show $ readCodeFromHTMLPost answerBody)
-            , "}"
-            ]
-
-buildTrieForAnswersWithTag :: Text -> IO (Trie Token AnswerId)
-buildTrieForAnswersWithTag tag = do
-  content <- BS.readFile "/home/kryo/data/stackoverflow_dump/data_dictionary"
-  let dict = decode (BL.fromChunks [content]):: DataDictionary
-  dict `seq` print "Done with dictionary"
-  nVar <- newMVar (0 :: Integer)
-  
-  runResourceT $ do
-    postSource
-      $$ (CL.iterM $ \_ -> lift $ do -- Print a message every 25000 posts to
-                                     -- show progress
-              n <- takeMVar nVar
-              putMVar nVar $! (n+1)
-              when (n `mod` 25000 == 0) $ putStrLn $ show n
-          )
-      =$= filterAnswers
-      =$= (CL.filter $ \Answer{..} -> answerWithTag dict tag answerId)
-      =$= (CL.map $ \Answer{..} -> (,answerId) <$> readCodeFromHTMLPost answerBody)
-      =$= CL.concat
-      =$= (CL.map $ \(c, aId) -> (,aId) <$> processAndTokenize java c)
-      =$= CL.catMaybes
-      =$= CL.map (uncurry linearTrie)
-      =$ (CL.fold mergeTries Trie.empty)
-
 someFunc :: IO ()
 someFunc = do
-  trie <- buildTrieForAnswersWithTag (Text.pack "java")
+  index <- buildIndexForJava dictPath xmlFilePath 10
   
-  putStrLn "Trie is built"
-  go trie
+  putStrLn "Index construction completed."
+  go (indexTrie index)
   where
     go trie = do
       putStrLn "Enter query: "
       str <- Text.pack <$> getLine
       print str
       n <- readPrompt "Sensitivity: "
-      let tks = fromJust $ processAndTokenize java str
+      let tks = fromJust $ buildTokenVector java (LanguageText str)
           aut = LevensteinAutomaton (length tks)
                                     n
                                     (tks V.!)
@@ -141,10 +65,6 @@ readPrompt str = do
   catch readLn $ \(e :: IOException) -> do
                                           putStrLn "Sorry, what?\n"
                                           readPrompt str
-
-
-postSource :: Source (ResourceT IO) StackoverflowPost
-postSource = parseFile def xmlFilePath =$= parsePosts
 
 tagValue :: MVar (M.Map Text Int, Int) -> Text -> IO Int
 tagValue mpVar t = do

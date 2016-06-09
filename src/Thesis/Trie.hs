@@ -33,7 +33,7 @@ linearTrie' (x:xs) v = TrieNode (M.singleton x (linearTrie' xs v)) Nothing
 -- | Merge two tries with a merging function if two values are at the end of the
 -- same path
 mergeTriesWith :: (Eq v) => (v -> v -> v) -> Trie a v -> Trie a v -> Trie a v
-mergeTriesWith f a@(TrieNode ma va) b@(TrieNode mb vb) =
+mergeTriesWith f (TrieNode ma va) (TrieNode mb vb) =
   TrieNode (M.unionWith (mergeTriesWith f) ma mb) $! v
   where
     v = case (va, vb) of
@@ -51,7 +51,7 @@ buildTrieWith :: (Foldable f, Foldable f', Ord a, Eq v)
               -> Trie a v
 buildTrieWith f xs = foldl' merge empty xs
   where
-    merge t (xs, v) = mergeTriesWith f (linearTrie xs v) t
+    merge t (ys, v) = mergeTriesWith f (linearTrie ys v) t
 
 -- | Only uses the last value in the given sequence in case of conflict
 buildTrie :: (Foldable f, Foldable f', Ord a, Eq v) => f (f' a,v) -> Trie a v
@@ -63,5 +63,5 @@ searchTrie :: (Foldable f) => Trie a v -> f a -> Maybe v
 searchTrie tr = searchTrie' tr . toList
 
 searchTrie' :: Trie a v -> [a] -> Maybe v
-searchTrie' (TrieNode mp v) [] = v
-searchTrie' (TrieNode mp v) (x:xs) = M.lookup x mp >>= \n -> searchTrie' n xs
+searchTrie' (TrieNode _ v) [] = v
+searchTrie' (TrieNode mp _) (x:xs) = M.lookup x mp >>= \n -> searchTrie' n xs

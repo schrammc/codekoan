@@ -27,7 +27,7 @@ newtype LevenState = LevenState {stateList :: [(Int,Int)]}
 
 -- | The start state of the given levenstein automaton
 startL :: Eq a => LevensteinAutomaton a -> LevenState
-startL aut@(LevensteinAutomaton{..}) = LevenState $ values
+startL (LevensteinAutomaton{..}) = LevenState $ values
   where
     n = min levenSize levenN
     values = zip [0..n] [0..n]
@@ -51,25 +51,24 @@ stepL LevensteinAutomaton{..} LevenState{..} x =
       (i,v) | v < levenN -> [(i, v+1)]
       _                  -> []
 
-    f l ((i,v), succ) = let cost = if levenIndex i == x then 0 else 1
-                            fromLeft = case l of
-                              (_,v'):_ -> ((v'+1):)
-                              _        -> id
-                            fromTop = case succ of
-                              Just (i',v') | i' == i+1 -> ((v'+1):)
-                              _                        -> id
-                            val = foldl1 min (fromTop $ fromLeft [v + cost])
+    f l ((i,v), suc) = let cost = if levenIndex i == x then 0 else 1
+                           fromLeft = case l of
+                             (_,v'):_ -> ((v'+1):)
+                             _        -> id
+                           fromTop = case suc of
+                             Just (i',v') | i' == i+1 -> ((v'+1):)
+                             _                        -> id
+                           val = foldl1 min (fromTop $ fromLeft [v + cost])
                         in if i < levenSize && val <= levenN
                            then ((i+1),val):l
                            else l
-
 
 -- | Predicate to determine if the given automaton state is accepting
 acceptL :: LevensteinAutomaton a -> LevenState -> Bool
 acceptL LevensteinAutomaton{..} LevenState{..} =
   case reverse stateList of
     [] -> False
-    (i,v):_ -> i == levenSize
+    (i,_):_ -> i == levenSize
 
 -- | Returns if the given levenstein state is an accepting state of the given
 -- automaton
@@ -97,4 +96,4 @@ lookupL' aut (TrieNode mp v) st = cur ++ (concat $ f <$> M.toList mp)
   where
     f (c, nd) = extend c <$> lookupL' aut nd (stepL aut st c)
     cur = toList ( ([],,) <$> v <*> acceptScoreL aut st)
-    extend c (cs, v, s) = (c:cs, v, s)
+    extend c (cs, v', s) = (c:cs, v', s)
