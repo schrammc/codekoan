@@ -81,6 +81,7 @@ data Token = TokenLT
            | TokenLParen
            | TokenRParen
            | TokenDot
+           | TokenComma
            | TokenColon
            | TokenQuestion
            | TokenSemicolon
@@ -114,6 +115,7 @@ token = "<" *> pure TokenLT
         <|> "{" *> pure TokenLBrace
         <|> "}" *> pure TokenRBrace
         <|> "." *> pure TokenDot
+        <|> "," *> pure TokenComma
         <|> ":" *> pure TokenColon
         <|> "?" *> pure TokenQuestion
         <|> ";" *> pure TokenSemicolon
