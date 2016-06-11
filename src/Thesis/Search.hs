@@ -24,11 +24,11 @@ import Thesis.Levenstein
 import Thesis.NGrams
 import Thesis.Tokenizer
 import Thesis.Trie as Trie
+import Thesis.Data.Text.PositionRange
 
 import Data.Conduit
 import qualified Data.Conduit.List as CL
 
-import Data.Conduit.Attoparsec (PositionRange(..))
 import qualified Data.Vector as V
 
 data SearchIndex t l where
@@ -72,15 +72,26 @@ buildIndexForJava dictPath postsFile ngramSize = do
 
   return $ SearchIndex java tr bf ngramSize
 
-findMatches :: (Hashable t) => SearchIndex t l -> LanguageText l -> Maybe [(PositionRange, AnswerId)]
-findMatches SearchIndex{..} t = do
+findMatches :: (Ord t, Hashable t)
+               => SearchIndex t l 
+               -> Int             -- ^ The tolerated levenstein distance
+               -> LanguageText l  -- ^ The submitted code to be searched
+               -> Maybe [(PositionRange, AnswerId, Int)]
+findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
   let tokenNGrams = ngrams indexNGramSize tokens
       relevantNGrams = filter ngramRelevant tokenNGrams
-  return []
+  return (concat $ searchNGram <$> relevantNGrams)
   where
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (snd <$> tks)
+    searchNGram ngram = 
+      case ngramWithRange ngram of
+        Nothing -> []
+        Just (wholeRange, _) ->
+              let tokenVector = V.fromList $ snd <$> ngram
+                  result = search index n tokenVector
+              in (\(aId, score) -> (wholeRange, aId, score)) <$> result
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
@@ -90,7 +101,7 @@ mergePositionRanges (PositionRange start _) (PositionRange _ end) =
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
-ngramWithRange :: [(PositionRange, Token)] -> Maybe (PositionRange, [Token])
+ngramWithRange :: [(PositionRange, t)] -> Maybe (PositionRange, [t])
 ngramWithRange [] = Nothing
 ngramWithRange xs = let (rs, ts) = unzip xs
                     in Just (foldl1 mergePositionRanges rs, ts)

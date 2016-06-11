@@ -23,6 +23,7 @@ library
                      , Thesis.Data.Stackoverflow.StackoverflowPost
                      , Thesis.Data.Stackoverflow.Dictionary
                      , Thesis.Data.Stackoverflow.Dump
+                     , Thesis.Data.Text.PositionRange
                      , Thesis.Levenstein
                      , Thesis.Tokenizer
                      , Thesis.Search
