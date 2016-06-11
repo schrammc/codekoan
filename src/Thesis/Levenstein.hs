@@ -84,16 +84,45 @@ acceptScoreL LevensteinAutomaton{..} LevenState{..} =
     (i,v):_ | i == levenSize -> Just v
     _ -> Nothing
 
+-- | If the state is a non - rejecting state return the minimum levenstein distance
+acceptAllScoreL :: LevensteinAutomaton a -> LevenState -> Maybe Int
+acceptAllScoreL LevensteinAutomaton{..} LevenState{..} =
+  let x = minimum $ snd <$> stateList
+  in if null stateList || x > levenN
+     then Nothing
+     else Just x
+
 -- | Find all words accepted by the given levenstein automaton in the trie. The
 -- number for each word is the word's levenstein distance to the given word.
 lookupL :: (Ord a, Eq v) => LevensteinAutomaton a -> Trie a v -> [([a], v,Int)]
 lookupL aut t | t == empty = []
-              | otherwise = lookupL' aut t (startL aut)
+              | otherwise = lookupWithL' acceptScoreL aut t (startL aut)
+
+-- | Find all words in the given trie, that are not rejected by the levenstein
+-- automaton. Not that this is drastically different from 'lookupL' in that it
+-- will not only yield words of approximately 'levenSize' but also all shorter
+-- words, i.e. that are a prefix of the word for which the levenstein automaton
+-- is constructed if the levenstein distance to a prefix of the levenstein word
+-- is no larger then 'levenN'.
+--
+-- In this function the levenstein automaton is transformed, so that all
+-- non-rejecting states are accepting.
+lookupAllL :: (Ord a, Eq v) => LevensteinAutomaton a -> Trie a v -> [([a], v,Int)]
+lookupAllL aut t | t == empty = []
+              | otherwise = lookupWithL' acceptAllScoreL aut t (startL aut)
 
 -- | Helper function for 'lookupL'
-lookupL' :: (Ord a, Eq v) => LevensteinAutomaton a -> Trie a v -> LevenState -> [([a], v, Int)]
-lookupL' aut (TrieNode mp v) st = cur ++ (concat $ f <$> M.toList mp)
+lookupWithL' :: (Ord a, Eq v)
+                => (LevensteinAutomaton a -> LevenState -> Maybe Int)
+             ->  LevensteinAutomaton a
+             -> Trie a v
+             -> LevenState
+             -> [([a], v, Int)]
+lookupWithL' acceptScore aut (TrieNode mp v) st = cur ++ (concat $ f <$> M.toList mp)
   where
-    f (c, nd) = extend c <$> lookupL' aut nd (stepL aut st c)
-    cur = toList ( ([],,) <$> v <*> acceptScoreL aut st)
+    -- Lookup all hits in subtrees and extend them by the subtee's edge's key
+    f (c, nd) = extend c <$> lookupWithL' acceptScore aut nd (stepL aut st c)
+    -- Hits that are new in the current node
+    cur = toList ( ([],,) <$> v <*> acceptScore aut st)
+    -- Use a key to extend a hit
     extend c (cs, v', s) = (c:cs, v', s)
