@@ -2,11 +2,11 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search where
 
 import Control.Monad.Trans.Class
 import Control.Monad
-
 import Data.Hashable (Hashable)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
@@ -79,19 +79,21 @@ findMatches :: (Ord t, Hashable t)
                -> Maybe [(PositionRange, AnswerId, Int)]
 findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
-  let tokenNGrams = ngrams indexNGramSize tokens
-      relevantNGrams = filter ngramRelevant tokenNGrams
-  return (concat $ searchNGram <$> relevantNGrams)
+  let ngramsWithTails = ngramTails indexNGramSize tokens
+      relevantNGramTails = filter (ngramRelevant . fst) ngramsWithTails
+      relevantTails = snd <$> relevantNGramTails
+  return (concat $ searchFor <$> relevantTails)
   where
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (snd <$> tks)
-    searchNGram ngram = 
-      case ngramWithRange ngram of
+
+    searchFor ts  = 
+      let tokenVector = V.fromList $ snd <$> ts
+          result = search index n tokenVector
+      in case ngramWithRange ts of
+        Just (range, _) ->
+              (\(_, aId, score) -> (range, aId, score)) <$> result
         Nothing -> []
-        Just (wholeRange, _) ->
-              let tokenVector = V.fromList $ snd <$> ngram
-                  result = search index n tokenVector
-              in (\(aId, score) -> (wholeRange, aId, score)) <$> result
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
@@ -106,9 +108,9 @@ ngramWithRange [] = Nothing
 ngramWithRange xs = let (rs, ts) = unzip xs
                     in Just (foldl1 mergePositionRanges rs, ts)
 
-search :: (Ord t) => SearchIndex t l -> Int -> V.Vector t -> [(AnswerId, Int)]
+search :: (Ord t) => SearchIndex t l -> Int -> V.Vector t -> [([t],AnswerId, Int)]
 search SearchIndex{..} n xs =
-  [(aId, score) | (_, aId, score) <- lookupL aut indexTrie]
+  lookupAllL aut indexTrie
   where
     aut = LevensteinAutomaton (V.length xs) n (xs V.!)
 
