@@ -1,9 +1,14 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.CompressedTrie where
+
+import Data.Binary
 
 import Data.Vector (Vector)
 import qualified Data.Vector as V
+import Data.Vector.Binary ()
+
 import qualified Data.Map.Strict as M
 import Data.Foldable
 
@@ -18,6 +23,12 @@ data CompressedTrie a v where
 deriving instance (Show a, Show v) => Show (CompressedTrie a v)
 
 deriving instance (Ord a, Eq v) => Eq (CompressedTrie a v)
+
+instance (Ord a, Binary a, Eq v, Binary v) => Binary (CompressedTrie a v) where
+  put = put . wordsInTrie
+  get = do
+    wordsVector <- get :: Get (V.Vector (V.Vector a, v))
+    return $! buildTrie wordsVector
 
 empty :: (Ord a) => CompressedTrie a v
 empty = CTrieNode M.empty Nothing
