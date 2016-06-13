@@ -1,0 +1,20 @@
+<h1>
+  Submit your java code for analysis
+
+<form method=post action=@{SubmitR}#form enctype=#{formEnctype}>
+  ^{formWidget}
+    <button type="submit">
+      Submit my code
+
+$maybe (tokensMaybe,resultWidgetMaybe) <- result
+  <div>
+    <h2> Search results:
+    $maybe resultWidget <- resultWidgetMaybe
+      ^{resultWidget}
+    $nothing
+      Search failure!
+    <h2> Tokens:
+    $maybe tokens <- tokensMaybe
+      The tokens are #{tokens}
+    $nothing
+      Tokenizer failure!
