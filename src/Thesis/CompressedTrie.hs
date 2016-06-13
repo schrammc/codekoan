@@ -11,8 +11,10 @@ import Data.Vector.Binary ()
 
 import qualified Data.Map.Strict as M
 import Data.Foldable
+import Data.Maybe
 
 import Control.Applicative ((<|>))
+-- import Debug.Trace
 
 data CompressedTrie a v where
   CTrieNode :: Ord a => !(M.Map a (Vector a, CompressedTrie a v))
@@ -24,7 +26,7 @@ deriving instance (Show a, Show v) => Show (CompressedTrie a v)
 
 deriving instance (Ord a, Eq v) => Eq (CompressedTrie a v)
 
-instance (Ord a, Binary a, Eq v, Binary v) => Binary (CompressedTrie a v) where
+instance (Show a, Show v, Ord a, Binary a, Eq v, Binary v) => Binary (CompressedTrie a v) where
   put = put . wordsInTrie
   get = do
     wordsVector <- get :: Get (V.Vector (V.Vector a, v))
@@ -47,7 +49,7 @@ linearTrie' xs@(x:_) v = CTrieNode mp Nothing
 
 -- | Merge two tries with a merging function if two values are at the end of the
 -- same path
-mergeTriesWith :: (Eq v) => (v -> v -> v)
+mergeTriesWith :: (Show a, Show v, Eq v) => (v -> v -> v)
                -> CompressedTrie a v
                -> CompressedTrie a v
                -> CompressedTrie a v
@@ -61,25 +63,33 @@ mergeTriesWith f (CTrieNode mp v) (CTrieNode mp' v') =
     merge (va, ta) (vb, tb) | va == vb = (va, mergeTriesWith f ta tb)
                             | otherwise =
       let (common, ra, rb) = pref va vb
-          nd | ra == V.empty = CTrieNode (M.singleton (V.head rb) (rb, tb))(g ta)
-             | rb == V.empty = CTrieNode (M.singleton (V.head ra) (ra, ta))(g tb)
+          nd | ra == V.empty =
+            let new = CTrieNode (M.singleton (V.head rb) (rb, tb)) (g ta)
+                other = snd $ fromJust $ M.lookup (V.head common) mp
+            in mergeTriesWith f new other
+             | rb == V.empty =
+            let new = CTrieNode (M.singleton (V.head ra) (ra, ta)) (g tb)
+                other = snd $ fromJust $ M.lookup (V.head common) mp'
+            in mergeTriesWith f new other
              | otherwise = CTrieNode (M.fromList $ [(V.head ra, (ra,ta))
                                                    ,(V.head rb, (rb,tb))]) Nothing
       in (common, nd)
-    pref va vb = let (commons, rest) = V.span (\(a,b) -> a == b) (V.zip va vb)
-                     common = fst $ V.unzip commons
-                     (ra, rb) = V.unzip rest
+    pref va vb = let commons  = V.takeWhile (\(a,b) -> a == b) (V.zip va vb)
+                     common   = fst $ V.unzip commons
+                     n        = V.length common
+                     (ra, rb) = (V.drop n va, V.drop n vb)
                  in (common, ra, rb)
     g (CTrieLeaf x)  = Just x
     g (CTrieNode _ x) = x
+    
 
 -- | Discards the value from the right trie in case of conflicts
-mergeTries :: (Eq v) => CompressedTrie a v
+mergeTries :: (Show a, Show v, Eq v) => CompressedTrie a v
            -> CompressedTrie a v
            -> CompressedTrie a v
 mergeTries = mergeTriesWith const
 
-buildTrieWith :: (Foldable f, Foldable f', Ord a, Eq v)
+buildTrieWith :: (Show a, Show v,Foldable f, Foldable f', Ord a, Eq v)
                  => (v -> v -> v)
               -> f (f' a,v)
               -> CompressedTrie a v
@@ -88,7 +98,7 @@ buildTrieWith f xs = foldl' merge empty xs
     merge t (ys, v) = mergeTriesWith f (linearTrie ys v) t
 
 -- | Only uses the last value in the given sequence in case of conflict
-buildTrie :: (Foldable f, Foldable f', Ord a, Eq v) => f (f' a,v)
+buildTrie :: (Show a, Show v, Foldable f, Foldable f', Ord a, Eq v) => f (f' a,v)
           -> CompressedTrie a v
 buildTrie = buildTrieWith const
 
