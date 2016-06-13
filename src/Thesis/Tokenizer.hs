@@ -90,6 +90,7 @@ data Token = TokenLT
            | TokenPrimitive
            | TokenNumber
            | TokenStringLiteral
+           | TokenCharacterLiteral
            | TokenModifier
            | TokenAnnotation
            deriving (Show,Eq, Ord, Generic)
@@ -130,6 +131,7 @@ token = "<" *> pure TokenLT
         <|> identifier
         <|> tokenNumber
         <|> stringLiteral
+        <|> characterLiteral
         <|> annotation
         
 
@@ -220,6 +222,18 @@ javaComment = lineComment <|> blockComment
                         if xs == "" then return () else content)
       content
       return ()
+
+characterLiteral :: Parser Token
+characterLiteral = do
+  char '\''
+  literalContent
+  return TokenCharacterLiteral
+  where
+    literalContent = do
+      AP.takeWhile (\c -> not $ c `elem` ['\\','\''])
+      (char '\'' *> pure ())
+        <|> (string "\\\'" *> literalContent)
+        <|> (anyChar *> literalContent)
 
 stringLiteral :: Parser Token
 stringLiteral = do
