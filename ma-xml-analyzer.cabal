@@ -1,5 +1,5 @@
 name:                ma-xml-analyzer
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Initial project template from stack
 description:         Please see README.md
 homepage:            https://github.com/githubuser/ma-xml-analyzer#readme
@@ -30,6 +30,7 @@ library
                      , Thesis.NGrams
                      , Thesis.BloomFilter
                      , Thesis.Trie
+                     , Thesis.CompressedTrie
   build-depends:       attoparsec >= 0.13
                      , base >= 4.7 && < 5
                      , binary >= 0.7.5.0

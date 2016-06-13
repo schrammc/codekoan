@@ -23,7 +23,7 @@ import Thesis.CodeAnalysis.StackoverflowBodyParser
 import Thesis.Levenstein
 import Thesis.NGrams
 import Thesis.Tokenizer
-import Thesis.Trie as Trie
+import Thesis.CompressedTrie as Trie
 import Thesis.Data.Text.PositionRange
 
 import Data.Conduit
@@ -33,7 +33,7 @@ import qualified Data.Vector as V
 
 data SearchIndex t l where
   SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)
-                 , indexTrie :: !(Trie t AnswerId)
+                 , indexTrie :: !(CompressedTrie t AnswerId)
                  , indexBF :: !(BloomFilter [t])
                  , indexNGramSize :: !Int
                  } -> SearchIndex t l
@@ -83,8 +83,8 @@ loadIndex lang indexPath ngramSize = do
 buildTrieBloom :: (Hashable t)
                   => Int      -- ^ Length of the ngrams that are stored in the
                               -- bloomfilter
-                  -> Trie t a -- ^ The trie whose word's ngrams we want to store
-                              -- in the bloom filter
+                  -> CompressedTrie t a -- ^ The trie whose word's ngrams we
+                                        -- want to store in the bloom filter
                   -> BloomFilter [t]
 buildTrieBloom n trie = foldl' f emptyBloom (wordsInTrie trie)
   where

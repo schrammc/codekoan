@@ -2,11 +2,11 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Levenstein where
 
-import Data.Foldable (toList)
-
-import Thesis.Trie
+import Thesis.CompressedTrie
 
 import qualified Data.Map.Strict as M
+import Data.Foldable
+import qualified Data.Vector as V
 
 --------------------------------------------------------------------------------
 --
@@ -94,7 +94,9 @@ acceptAllScoreL LevensteinAutomaton{..} LevenState{..} =
 
 -- | Find all words accepted by the given levenstein automaton in the trie. The
 -- number for each word is the word's levenstein distance to the given word.
-lookupL :: (Ord a, Eq v) => LevensteinAutomaton a -> Trie a v -> [([a], v,Int)]
+lookupL :: (Ord a, Eq v) => LevensteinAutomaton a
+        -> CompressedTrie a v
+        -> [([a], v,Int)]
 lookupL aut t | t == empty = []
               | otherwise = lookupWithL' acceptScoreL aut t (startL aut)
 
@@ -107,7 +109,9 @@ lookupL aut t | t == empty = []
 --
 -- In this function the levenstein automaton is transformed, so that all
 -- non-rejecting states are accepting.
-lookupAllL :: (Ord a, Eq v) => LevensteinAutomaton a -> Trie a v -> [([a], v,Int)]
+lookupAllL :: (Ord a, Eq v) => LevensteinAutomaton a
+           -> CompressedTrie a v
+           -> [([a], v,Int)]
 lookupAllL aut t | t == empty = []
               | otherwise = lookupWithL' acceptAllScoreL aut t (startL aut)
 
@@ -115,9 +119,22 @@ lookupAllL aut t | t == empty = []
 lookupWithL' :: (Ord a, Eq v)
                 => (LevensteinAutomaton a -> LevenState -> Maybe Int)
              ->  LevensteinAutomaton a
-             -> Trie a v
+             -> CompressedTrie a v
              -> LevenState
              -> [([a], v, Int)]
+lookupWithL' acceptScore aut (CTrieLeaf v) st =
+  maybe [] (\score -> [([],v,score)]) (acceptScore aut st)
+lookupWithL' acceptScore aut (CTrieNode mp v) st = cur ++ do
+  (_,(xs, t)) <- M.toList mp
+  newState <- toList $ foldlM f st xs
+  extend (V.toList xs) <$> lookupWithL' acceptScore aut t newState
+  where
+   f st c | canAcceptL aut st = Just $! stepL aut st c
+          | otherwise = Nothing
+   extend cs (cs', v', s) = (cs ++ cs', v', s)
+   cur = toList ( ([],,) <$> v <*> acceptScore aut st)
+
+{-
 lookupWithL' acceptScore aut (TrieNode mp v) st = cur ++ (concat $ f <$> M.toList mp)
   where
     -- Lookup all hits in subtrees and extend them by the subtee's edge's key
@@ -126,3 +143,4 @@ lookupWithL' acceptScore aut (TrieNode mp v) st = cur ++ (concat $ f <$> M.toLis
     cur = toList ( ([],,) <$> v <*> acceptScore aut st)
     -- Use a key to extend a hit
     extend c (cs, v', s) = (c:cs, v', s)
+-}
