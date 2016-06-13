@@ -91,6 +91,7 @@ data Token = TokenLT
            | TokenNumber
            | TokenStringLiteral
            | TokenModifier
+           | TokenAnnotation
            deriving (Show,Eq, Ord, Generic)
 
 instance Hashable Token
@@ -129,6 +130,7 @@ token = "<" *> pure TokenLT
         <|> identifier
         <|> tokenNumber
         <|> stringLiteral
+        <|> annotation
         
 
 keyword :: Parser Token
@@ -179,6 +181,9 @@ primitive = ("byte"
              <|> "double"
              <|> "boolean"
              <|> "void") *> pure TokenPrimitive
+
+annotation :: Parser Token
+annotation = char '@' *> identifier *> pure TokenAnnotation
 
 identifier :: Parser Token
 identifier = do
