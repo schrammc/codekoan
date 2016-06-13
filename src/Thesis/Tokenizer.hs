@@ -11,7 +11,7 @@ import Prelude
 
 import Control.Applicative ((<|>))
 
-
+import Data.Binary (Binary)
 import GHC.Generics (Generic)
 
 import Data.Char
@@ -87,11 +87,15 @@ data Token = TokenLT
            | TokenSemicolon
            | TokenKeyword
            | TokenIdentifier
+           | TokenPrimitive
            | TokenNumber
            | TokenStringLiteral
+           | TokenModifier
            deriving (Show,Eq, Ord, Generic)
 
 instance Hashable Token
+
+instance Binary Token
 
 token :: Parser Token
 token = "<" *> pure TokenLT
@@ -119,7 +123,9 @@ token = "<" *> pure TokenLT
         <|> ":" *> pure TokenColon
         <|> "?" *> pure TokenQuestion
         <|> ";" *> pure TokenSemicolon
+        <|> modifier
         <|> keyword
+        <|> primitive
         <|> identifier
         <|> tokenNumber
         <|> stringLiteral
@@ -133,7 +139,46 @@ keyword = ("if"
            <|> "case"
            <|> "class"
            <|> "interface"
-           <|> "null") *> pure TokenKeyword
+           <|> "package"
+           <|> "null"
+           <|> "throw"
+           <|> "catch"
+           <|> "finally"
+           <|> "switch"
+           <|> "case"
+           <|> "throws"
+           <|> "super"
+           <|> "this"
+           <|> "new"
+           <|> "break"
+           <|> "continue"
+           <|> "goto"
+           <|> "synchronized"
+           <|> "package"
+           <|> "do"
+           <|> "while"
+           <|> "enum"
+           <|> "assert"
+          ) *> pure TokenKeyword
+
+modifier :: Parser Token
+modifier = ("public"
+           <|> "private"
+           <|> "protected"
+           <|> "static"
+           <|> "volatile"
+           ) *> pure TokenModifier
+
+primitive :: Parser Token
+primitive = ("byte"
+             <|> "char"
+             <|> "short"
+             <|> "int"
+             <|> "long"
+             <|> "float"
+             <|> "double"
+             <|> "boolean"
+             <|> "void") *> pure TokenPrimitive
 
 identifier :: Parser Token
 identifier = do

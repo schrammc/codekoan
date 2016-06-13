@@ -16,16 +16,20 @@ import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
-import           Data.Maybe (fromJust)
+
+import           Data.Hashable (Hashable)
 import           Data.List (sortOn)
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Vector as V
 import           Thesis.Tokenizer
-import           Thesis.Levenstein
+
 import Thesis.Data.Stackoverflow.StackoverflowPost
 import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
+import Thesis.Data.Stackoverflow.Dictionary
+import Thesis.Data.Text.PositionRange
+
 import Thesis.Search
 
 dictPath :: String
@@ -37,25 +41,39 @@ xmlFilePath = "/home/kryo/posts_abridged.xml"
 
 someFunc :: IO ()
 someFunc = do
-  index <- buildIndexForJava dictPath xmlFilePath 10
-  
+  dict <- readDictionary dictPath
+  index <- buildIndexForJava dict xmlFilePath 10
   putStrLn "Index construction completed."
-  go (indexTrie index)
+  go index
   where
-    go trie = do
+    go :: (Hashable t, Ord t, Show t) => SearchIndex t l -> IO ()
+    go index = do
       putStrLn "Enter query: "
       str <- Text.pack <$> getLine
       print str
       n <- readPrompt "Sensitivity: "
-      let tks = fromJust $ buildTokenVector java (LanguageText str)
-          aut = LevensteinAutomaton (length tks)
-                                    n
-                                    (tks V.!)
-          res = sortOn (\(_,_,similarity) -> similarity) $  lookupL aut trie
+      let res = sortOn (\(_,_,_,similarity) -> similarity) <$> findMatches index n (LanguageText str)
       putStrLn "Result: "
-      print res
-      putStrLn ""
-      go trie
+      case res of
+        Just results@(_:_) -> mapM_ (printOutput str) results
+        _ -> putStrLn "Not a single thing. Sorry."
+      putStrLn "===================================================\n"
+      go index
+
+printOutput :: Show t => Text -> (PositionRange, [t], AnswerId, Int) -> IO ()
+printOutput t (range, tks, aId, score) = do
+  putStrLn "Found a match: "
+  putStrLn $ prettyPrintOutput t (range, tks, aId, score)
+
+prettyPrintOutput :: (Show t) => Text -> (PositionRange, [t], AnswerId, Int) -> String
+prettyPrintOutput t (range, tks, aId, score) = do
+  let res = Text.unpack $ textInRange range t
+  "Distance: " ++ show score
+              ++ " Answer: " ++ show (answerIdInt aId)
+              ++ " In range: " ++  show range
+              ++ " Matched tokens: " ++ show tks ++ "\n"
+              ++ " Source:\n" ++ res
+  
 
 -- | Try to read something and reprompt if the user puts in something that we
 -- can't understand until we have a valid result
