@@ -1,4 +1,5 @@
 {-# LANGUAGE StandaloneDeriving, GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 --------------------------------------------------------------------------------
 -- |
 --
@@ -7,10 +8,13 @@
 --
 module Thesis.Trie where
 
+import Data.Binary
+
 import qualified Data.Map.Strict as M
 
 import Data.Foldable
-
+import qualified Data.Vector as V
+import Data.Vector.Binary ()
 
 data Trie a v where
   TrieNode :: (Ord a) => !(M.Map a (Trie a v)) -> !(Maybe v) -> Trie a v
@@ -18,6 +22,12 @@ data Trie a v where
 deriving instance (Show a, Show v) => Show (Trie a v)
 
 deriving instance (Ord a, Eq v) => Eq (Trie a v)
+
+instance (Ord a, Binary a, Eq v, Binary v) => Binary (Trie a v) where
+  put = put . wordsInTrie
+  get = do
+    wordsVector <- get :: Get (V.Vector (V.Vector a, v))
+    return $! buildTrie wordsVector
 
 empty :: (Ord a) => Trie a v
 empty = TrieNode M.empty Nothing
@@ -65,3 +75,24 @@ searchTrie tr = searchTrie' tr . toList
 searchTrie' :: Trie a v -> [a] -> Maybe v
 searchTrie' (TrieNode _ v) [] = v
 searchTrie' (TrieNode mp _) (x:xs) = M.lookup x mp >>= \n -> searchTrie' n xs
+
+-- | Count the number of entries in a node
+countEntries :: (v -> Int) -> Trie a v -> Int
+countEntries f (TrieNode mp v) = n + (sum $ countEntries f <$> mp)
+  where
+    n = maybe 0 f v
+
+-- | Builds a vector of words with their associated values from a trie.
+-- The following holds @buildTrie (wordsInTrie tr) == tr@
+wordsInTrie :: Trie a v -> V.Vector (V.Vector a, v)
+wordsInTrie t = V.fromList $ do
+  (w,v) <- wordsInTrie' t
+  [(V.fromList w, v)]
+
+wordsInTrie' :: Trie a v -> [([a], v)]
+wordsInTrie' (TrieNode mp v) =
+  let childResults = do
+        (x,child) <- M.toList mp
+        (xs, v') <- wordsInTrie' child
+        return (x:xs, v')
+   in maybe childResults (\v' -> ([],v'):childResults) v

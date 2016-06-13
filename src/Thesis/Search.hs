@@ -8,9 +8,9 @@ module Thesis.Search where
 import Control.Monad.Trans.Class
 import Control.Monad
 import Data.Hashable (Hashable)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
-import Data.Binary (decode)
+
+import Data.Binary
+import Data.Foldable (foldl')
 
 import Control.Concurrent.MVar
 import Control.Monad.Trans.Resource
@@ -32,21 +32,18 @@ import qualified Data.Conduit.List as CL
 import qualified Data.Vector as V
 
 data SearchIndex t l where
-  SearchIndex :: { indexLanguage :: !(Language t l)
+  SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)
                  , indexTrie :: !(Trie t AnswerId)
                  , indexBF :: !(BloomFilter [t])
                  , indexNGramSize :: !Int
                  } -> SearchIndex t l
 
-buildIndexForJava :: FilePath -- ^ Path to the data dictionary
+buildIndexForJava :: DataDictionary -- ^ The data dictionary
                   -> FilePath -- ^ Path to the file with the posts
                   -> Int      -- ^ NGram size
                   -> IO (SearchIndex Token Java)
-buildIndexForJava dictPath postsFile ngramSize = do
-  content <- BS.readFile dictPath
-  let dict = decode (BL.fromChunks [content]):: DataDictionary
-      ngramLength = 5
-  dict `seq` print ("Decoded dictionary" :: String)
+buildIndexForJava dict postsFile ngramSize = do
+  let ngramLength = 5
   nVar <- newMVar (0 :: Integer)
   
   (tr, bf) <- runResourceT $ do
@@ -72,11 +69,32 @@ buildIndexForJava dictPath postsFile ngramSize = do
 
   return $ SearchIndex java tr bf ngramSize
 
+-- | Build a search index from data stored in binary files
+loadIndex :: (Hashable t, Binary t, Ord t) => Language t l
+          -> FilePath -- ^ The index path
+          -> Int      -- ^ NGram size
+          -> IO (SearchIndex t l)
+loadIndex lang indexPath ngramSize = do
+  trie <- decodeFile indexPath
+  return $ SearchIndex lang trie (buildTrieBloom ngramSize trie) ngramSize
+
+-- | Build a bloom filter containing all 'n' - long nonoverllapping ngrams of
+-- words in the given tire
+buildTrieBloom :: (Hashable t)
+                  => Int      -- ^ Length of the ngrams that are stored in the
+                              -- bloomfilter
+                  -> Trie t a -- ^ The trie whose word's ngrams we want to store
+                              -- in the bloom filter
+                  -> BloomFilter [t]
+buildTrieBloom n trie = foldl' f emptyBloom (wordsInTrie trie)
+  where
+    f blf (word, _) = blf `bloomMerge` ngramBloom n (V.toList word)
+
 findMatches :: (Ord t, Hashable t)
                => SearchIndex t l 
                -> Int             -- ^ The tolerated levenstein distance
                -> LanguageText l  -- ^ The submitted code to be searched
-               -> Maybe [(PositionRange, AnswerId, Int)]
+               -> Maybe [(PositionRange, [t], AnswerId, Int)]
 findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
   let ngramsWithTails = ngramTails indexNGramSize tokens
@@ -90,10 +108,17 @@ findMatches index@(SearchIndex{..}) n t = do
     searchFor ts  = 
       let tokenVector = V.fromList $ snd <$> ts
           result = search index n tokenVector
-      in case ngramWithRange ts of
+      in do
+           (foundTokens, aId, score) <- result
+           case ngramWithRange (take (length foundTokens) ts) of
+             Nothing -> []
+             Just x -> return (fst x, foundTokens, aId, score)
+{-             
+      case ngramWithRange ts of
         Just (range, _) ->
-              (\(_, aId, score) -> (range, aId, score)) <$> result
+              (\(tks, aId, score) -> (range, tks, aId, score)) <$> result
         Nothing -> []
+-}
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
