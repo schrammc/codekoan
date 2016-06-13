@@ -26,7 +26,7 @@ deriving instance (Show a, Show v) => Show (CompressedTrie a v)
 
 deriving instance (Ord a, Eq v) => Eq (CompressedTrie a v)
 
-instance (Show a, Show v, Ord a, Binary a, Eq v, Binary v) => Binary (CompressedTrie a v) where
+instance (Ord a, Binary a, Eq v, Binary v) => Binary (CompressedTrie a v) where
   put = put . wordsInTrie
   get = do
     wordsVector <- get :: Get (V.Vector (V.Vector a, v))
@@ -49,7 +49,7 @@ linearTrie' xs@(x:_) v = CTrieNode mp Nothing
 
 -- | Merge two tries with a merging function if two values are at the end of the
 -- same path
-mergeTriesWith :: (Show a, Show v, Eq v) => (v -> v -> v)
+mergeTriesWith :: (Eq v) => (v -> v -> v)
                -> CompressedTrie a v
                -> CompressedTrie a v
                -> CompressedTrie a v
@@ -84,12 +84,12 @@ mergeTriesWith f (CTrieNode mp v) (CTrieNode mp' v') =
     
 
 -- | Discards the value from the right trie in case of conflicts
-mergeTries :: (Show a, Show v, Eq v) => CompressedTrie a v
+mergeTries :: (Eq v) => CompressedTrie a v
            -> CompressedTrie a v
            -> CompressedTrie a v
 mergeTries = mergeTriesWith const
 
-buildTrieWith :: (Show a, Show v,Foldable f, Foldable f', Ord a, Eq v)
+buildTrieWith :: (Foldable f, Foldable f', Ord a, Eq v)
                  => (v -> v -> v)
               -> f (f' a,v)
               -> CompressedTrie a v
@@ -98,7 +98,7 @@ buildTrieWith f xs = foldl' merge empty xs
     merge t (ys, v) = mergeTriesWith f (linearTrie ys v) t
 
 -- | Only uses the last value in the given sequence in case of conflict
-buildTrie :: (Show a, Show v, Foldable f, Foldable f', Ord a, Eq v) => f (f' a,v)
+buildTrie :: (Foldable f, Foldable f', Ord a, Eq v) => f (f' a,v)
           -> CompressedTrie a v
 buildTrie = buildTrieWith const
 

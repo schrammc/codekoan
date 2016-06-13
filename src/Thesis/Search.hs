@@ -113,12 +113,6 @@ findMatches index@(SearchIndex{..}) n t = do
            case ngramWithRange (take (length foundTokens) ts) of
              Nothing -> []
              Just x -> return (fst x, foundTokens, aId, score)
-{-             
-      case ngramWithRange ts of
-        Just (range, _) ->
-              (\(tks, aId, score) -> (range, tks, aId, score)) <$> result
-        Nothing -> []
--}
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
