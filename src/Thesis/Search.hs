@@ -7,10 +7,15 @@ module Thesis.Search where
 
 import Control.Monad.Trans.Class
 import Control.Monad
-import Data.Hashable (Hashable)
+import Control.Monad.ST
+import Data.Hashable (Hashable,hash)
+
+import qualified Data.BloomFilter as BF
+import qualified Data.BloomFilter.Easy as BF.Easy
+import qualified Data.BloomFilter.Hash as BF.Hash
+import qualified Data.BloomFilter.Mutable as BF.Mutable
 
 import Data.Binary
-import Data.Foldable (foldl')
 
 import Control.Concurrent.MVar
 import Control.Monad.Trans.Resource
@@ -30,6 +35,7 @@ import Data.Conduit
 import qualified Data.Conduit.List as CL
 
 import qualified Data.Vector as V
+import Debug.Trace
 
 data SearchIndex t l where
   SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)
@@ -43,10 +49,14 @@ buildIndexForJava :: DataDictionary -- ^ The data dictionary
                   -> Int      -- ^ NGram size
                   -> IO (SearchIndex Token Java)
 buildIndexForJava dict postsFile ngramSize = do
-  let ngramLength = 5
+  let (bloomSize, bloomNumberFs) = BF.Easy.suggestSizing 1000000 0.01
+      hashF = BF.Hash.hashes bloomNumberFs  
+
+  mutableBF <- stToIO $ BF.Mutable.new hashF bloomSize
+  
   nVar <- newMVar (0 :: Integer)
   
-  (tr, bf) <- runResourceT $ do
+  tr <- runResourceT $ do
     postSource postsFile
       $$ (CL.iterM $ \_ -> lift $ do -- Print a message every 25000 posts to
                                      -- show progress
@@ -60,13 +70,15 @@ buildIndexForJava dict postsFile ngramSize = do
       =$= CL.concat
       =$= (CL.map $ \(c, aId) -> (,aId) <$> buildTokenVector java (LanguageText c))
       =$= CL.catMaybes
-      =$ (CL.fold (\(trie, blf) -> \(str, v) ->
-                    let tr = linearTrie str v
-                        blf' = blf `bloomMerge` ngramBloom ngramLength str
-                    in (mergeTries trie tr, blf')
-                  )
-                  (Trie.empty, emptyBloom))
+      =$ (CL.foldM (\trie -> \(str, v) -> do
+                       mapM_ (lift . stToIO . BF.Mutable.insert mutableBF) $ do
+                         (hash <$> ngrams ngramSize (V.toList str))
+                       return $ mergeTries trie (linearTrie str v)
+                   )
+                   Trie.empty
+         )
 
+  bf <- BloomFilter <$> (stToIO $ BF.freeze mutableBF)
   return $ SearchIndex java tr bf ngramSize
 
 -- | Build a search index from data stored in binary files
@@ -86,9 +98,10 @@ buildTrieBloom :: (Hashable t)
                   -> CompressedTrie t a -- ^ The trie whose word's ngrams we
                                         -- want to store in the bloom filter
                   -> BloomFilter [t]
-buildTrieBloom n trie = foldl' f emptyBloom (wordsInTrie trie)
-  where
-    f blf (word, _) = blf `bloomMerge` ngramBloom n (V.toList word)
+buildTrieBloom n trie = buildBloomList $ do
+  (str, _) <- wordsInTrie' trie
+  ngram <- allNGrams n str
+  return ngram
 
 findMatches :: (Ord t, Hashable t)
                => SearchIndex t l 
@@ -97,8 +110,11 @@ findMatches :: (Ord t, Hashable t)
                -> Maybe [(PositionRange, [t], AnswerId, Int)]
 findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
-  let ngramsWithTails = ngramTails indexNGramSize tokens
-      relevantNGramTails = filter (ngramRelevant . fst) ngramsWithTails
+  let ngramsWithTails = allNgramTails indexNGramSize tokens
+      relevantNGramTails = let before = length ngramsWithTails
+                               result = filter (ngramRelevant . fst) ngramsWithTails
+                               after = length result
+                           in traceShow (fromIntegral after / (fromIntegral before :: Double))  result
       relevantTails = snd <$> relevantNGramTails
   return (concat $ searchFor <$> relevantTails)
   where

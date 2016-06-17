@@ -34,6 +34,7 @@ library
   build-depends:       attoparsec >= 0.13
                      , base >= 4.7 && < 5
                      , binary >= 0.7.5.0
+                     , bloomfilter >= 2.0.1.0
                      , bytestring >= 0.10.6.0
                      , conduit >= 1.2.6.6
                      , conduit-extra >= 1.1.13
