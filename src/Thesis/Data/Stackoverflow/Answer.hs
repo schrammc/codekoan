@@ -18,7 +18,7 @@ data Answer = Answer { answerId :: !AnswerId
             deriving (Show, Eq)
 
 newtype AnswerId = AnswerId {answerIdInt :: Int}
-                 deriving (Show, Eq)
+                 deriving (Show, Eq, Ord)
 
 instance Binary AnswerId where
   put AnswerId{..} = put answerIdInt
