@@ -5,37 +5,36 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search where
 
-import Control.Monad.Trans.Class
-import Control.Monad
-import Control.Monad.ST
-import Data.Hashable (Hashable,hash)
+import           Control.Concurrent.MVar
+import           Control.Monad
+import           Control.Monad.ST
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Resource
 
+import           Data.Binary
 import qualified Data.BloomFilter as BF
 import qualified Data.BloomFilter.Easy as BF.Easy
 import qualified Data.BloomFilter.Hash as BF.Hash
 import qualified Data.BloomFilter.Mutable as BF.Mutable
 
-import Data.Binary
-
-import Control.Concurrent.MVar
-import Control.Monad.Trans.Resource
-import Thesis.BloomFilter
-import Thesis.Data.Stackoverflow.Answer
-import Thesis.Data.Stackoverflow.Dictionary
-import Thesis.Data.Stackoverflow.Dump
-import Thesis.Data.Stackoverflow.StackoverflowPost
-import Thesis.CodeAnalysis.StackoverflowBodyParser
-import Thesis.Levenstein
-import Thesis.NGrams
-import Thesis.Tokenizer
-import Thesis.CompressedTrie as Trie
-import Thesis.Data.Text.PositionRange
-
-import Data.Conduit
+import           Data.Conduit
 import qualified Data.Conduit.List as CL
-
+import           Data.Hashable (Hashable,hash)
 import qualified Data.Vector as V
-import Debug.Trace
+
+import           Debug.Trace
+
+import           Thesis.CodeAnalysis.StackoverflowBodyParser
+import           Thesis.CodeAnalysis.Tokenizer
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Dictionary
+import           Thesis.Data.Stackoverflow.Dump
+import           Thesis.Data.Stackoverflow.StackoverflowPost
+import           Thesis.Data.Text.PositionRange
+import           Thesis.Search.BloomFilter
+import           Thesis.Search.CompressedTrie as Trie
+import           Thesis.Search.Levenstein
+import           Thesis.Search.NGrams
 
 data SearchIndex t l where
   SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)

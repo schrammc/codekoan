@@ -2,7 +2,7 @@ module Main where
 
 import Data.Binary
 
-import Thesis.Trie ()
+import Thesis.Search.CompressedTrie ()
 import Thesis.Data.Stackoverflow.Dictionary
 import Thesis.Search
 

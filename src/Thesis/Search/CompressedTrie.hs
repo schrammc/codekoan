@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Thesis.CompressedTrie where
+module Thesis.Search.CompressedTrie where
 
 import Data.Binary
 

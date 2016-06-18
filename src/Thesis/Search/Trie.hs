@@ -6,7 +6,7 @@
 -- This module defines a non compressed trie over any instance of 'Ord', where
 -- the trie's leaves map to given values.
 --
-module Thesis.Trie where
+module Thesis.Search.Trie where
 
 import Data.Binary
 

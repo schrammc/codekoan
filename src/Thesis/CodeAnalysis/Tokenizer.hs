@@ -5,7 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
-module Thesis.Tokenizer where
+module Thesis.CodeAnalysis.Tokenizer where
 
 import Prelude
 

@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib
                      , Thesis.CodeAnalysis.StackoverflowBodyParser
+                     , Thesis.CodeAnalysis.Tokenizer
                      , Thesis.Data.Stackoverflow.XML.Helpers
                      , Thesis.Data.Stackoverflow.Answer
                      , Thesis.Data.Stackoverflow.Question
@@ -24,13 +25,14 @@ library
                      , Thesis.Data.Stackoverflow.Dictionary
                      , Thesis.Data.Stackoverflow.Dump
                      , Thesis.Data.Text.PositionRange
-                     , Thesis.Levenstein
-                     , Thesis.Tokenizer
+
                      , Thesis.Search
-                     , Thesis.NGrams
-                     , Thesis.BloomFilter
-                     , Thesis.Trie
-                     , Thesis.CompressedTrie
+                     , Thesis.Search.BloomFilter
+                     , Thesis.Search.CompressedTrie
+                     , Thesis.Search.Levenstein
+                     , Thesis.Search.NGrams
+                     , Thesis.Search.Trie
+
   build-depends:       attoparsec >= 0.13
                      , base >= 4.7 && < 5
                      , binary >= 0.7.5.0

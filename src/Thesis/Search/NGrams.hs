@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.NGrams where
+module Thesis.Search.NGrams where
 
 import Data.Foldable
 

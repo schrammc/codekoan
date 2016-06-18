@@ -1,8 +1,8 @@
  {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.Levenstein where
+module Thesis.Search.Levenstein where
 
-import Thesis.CompressedTrie
+import Thesis.Search.CompressedTrie
 
 import qualified Data.Map.Strict as M
 import Data.Foldable

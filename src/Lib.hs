@@ -22,7 +22,7 @@ import           Data.List (sortOn)
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Vector as V
-import           Thesis.Tokenizer
+import           Thesis.CodeAnalysis.Tokenizer
 
 import Thesis.Data.Stackoverflow.StackoverflowPost
 import Thesis.Data.Stackoverflow.Answer

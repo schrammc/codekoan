@@ -1,15 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GADTs #-}
-module Thesis.BloomFilter where
-
-import Data.Bits
-import Data.Binary (Binary)
-
-import GHC.Generics (Generic)
+module Thesis.Search.BloomFilter where
 
 import qualified Data.BloomFilter as BF
-import qualified Data.BloomFilter.Hash as BF.Hash
 import qualified Data.BloomFilter.Easy as BF.Easy
 
 import Data.Hashable
