@@ -127,20 +127,9 @@ lookupWithL' acceptScore aut (CTrieLeaf v) st =
 lookupWithL' acceptScore aut (CTrieNode mp v) st = cur ++ do
   (_,(xs, t)) <- M.toList mp
   newState <- toList $ foldlM f st xs
-  extend (V.toList xs) <$> lookupWithL' acceptScore aut t newState
+  extend xs <$> lookupWithL' acceptScore aut t newState
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
    extend cs (cs', v', s) = (cs ++ cs', v', s)
    cur = toList ( ([],,) <$> v <*> acceptScore aut st)
-
-{-
-lookupWithL' acceptScore aut (TrieNode mp v) st = cur ++ (concat $ f <$> M.toList mp)
-  where
-    -- Lookup all hits in subtrees and extend them by the subtee's edge's key
-    f (c, nd) = extend c <$> lookupWithL' acceptScore aut nd (stepL aut st c)
-    -- Hits that are new in the current node
-    cur = toList ( ([],,) <$> v <*> acceptScore aut st)
-    -- Use a key to extend a hit
-    extend c (cs, v', s) = (c:cs, v', s)
--}
