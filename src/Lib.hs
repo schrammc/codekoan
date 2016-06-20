@@ -16,13 +16,14 @@ import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import qualified Data.Set as S
 import qualified Data.Map.Strict as M
-
+import Data.Foldable (toList)
 import           Data.Hashable (Hashable)
 import           Data.List (sortOn)
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Vector as V
-import           Thesis.CodeAnalysis.Tokenizer
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language.Java
 
 import Thesis.Data.Stackoverflow.StackoverflowPost
 import Thesis.Data.Stackoverflow.Answer
@@ -31,6 +32,7 @@ import Thesis.Data.Stackoverflow.Dictionary
 import Thesis.Data.Text.PositionRange
 
 import Thesis.Search
+import Thesis.Search.Index
 
 dictPath :: String
 dictPath = "/home/kryo/data/stackoverflow_dump/data_dictionary"

@@ -5,42 +5,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
-module Thesis.CodeAnalysis.Tokenizer where
+module Thesis.CodeAnalysis.Language.Java where
 
-import Prelude
+import           Control.Applicative ((<|>))
 
-import Control.Applicative ((<|>))
+import           Data.Attoparsec.Text as AP
 
-import Data.Binary (Binary)
-import GHC.Generics (Generic)
+import           Data.Binary (Binary)
 
-import Data.Char
+import           Data.Char
 
-import Data.Conduit
-import Data.Conduit.Attoparsec
+import           Data.Conduit
+import           Data.Conduit.Attoparsec
 import qualified Data.Conduit.List as CL
 
-import qualified Data.Vector as V
+import           Data.Hashable (Hashable)
 
-import Data.Hashable (Hashable)
+import           GHC.Generics (Generic)
 
-import Data.Text
-import Data.Attoparsec.Text as AP
-
-data Language t l where
-  Language :: (Ord t, Show t, Hashable t) =>
-              { removeComments :: Text -> LanguageText l
-              , normalize :: LanguageText l -> LanguageText l
-              , tokenize ::Conduit (LanguageText l) Maybe (PositionRange, t)
-              } -> Language t l
-
-
-buildTokenVector :: Language t l -> LanguageText l -> Maybe (V.Vector t)
-buildTokenVector l t = (V.fromList . (fmap snd)) <$> processAndTokenize l t
-
-processAndTokenize :: Language t l -> LanguageText l-> Maybe [(PositionRange, t)]
-processAndTokenize Language{..} t =
-  (yield t $$ tokenize =$ CL.consume)
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 
 data Java
 
@@ -54,11 +38,9 @@ tokenizeJ :: Conduit (LanguageText Java) Maybe (PositionRange, Token)
 tokenizeJ = (CL.map langText) =$= conduitParser completeParser =$= filterNothings
   where
     completeParser = (AP.takeWhile isHorizontalSpace) *> tokenOrComment
-    tokenOrComment = ((const Nothing) <$> (javaComment <|> endOfLine)) <|>(Just <$> token)
+    tokenOrComment = ((const Nothing) <$> (javaStyleComment <|> endOfLine)) <|>(Just <$> token)
     filterNothings = awaitForever $ \(pos, x) -> do
       mapM_ (yield . (pos, )) x
-
-newtype LanguageText l = LanguageText {langText :: Text}
 
 data Token = TokenLT
            | TokenGT
@@ -130,8 +112,8 @@ token = "<" *> pure TokenLT
         <|> primitive
         <|> identifier
         <|> tokenNumber
-        <|> stringLiteral
-        <|> characterLiteral
+        <|> stringLiteral *> pure TokenStringLiteral
+        <|> characterLiteral *> pure TokenCharacterLiteral
         <|> annotation
         
 
@@ -200,51 +182,3 @@ tokenNumber = do
   scientific
   char 'd' <|> char 'f' <|> pure undefined
   return TokenNumber
-
-javaComment :: Parser ()
-javaComment = lineComment <|> blockComment
-  where
-    lineComment = do
-      string "//"
-      let content = endOfLine <|>
-                    endOfInput <|>
-                    (do
-                        xs <- AP.takeWhile (not . isEndOfLine)
-                        if xs == "" then return () else content )
-      content
-      return ()
-    blockComment = do
-      string "/*"
-      let content = (string "*/" *> return ()) <|>
-                    (char '*' *> content) <|>
-                    (do
-                        xs <- AP.takeWhile (/= '*')
-                        if xs == "" then return () else content)
-      content
-      return ()
-
-characterLiteral :: Parser Token
-characterLiteral = do
-  char '\''
-  literalContent
-  return TokenCharacterLiteral
-  where
-    literalContent = do
-      AP.takeWhile (\c -> not $ c `elem` ['\\','\''])
-      (char '\'' *> pure ())
-        <|> (string "\\\'" *> literalContent)
-        <|> (anyChar *> literalContent)
-
-stringLiteral :: Parser Token
-stringLiteral = do
-  char '\"'
-  literalContent
-  return TokenStringLiteral
-  where
-    literalContent = do
-      AP.takeWhile (\c -> not $ c `elem` ['\\','\"'])
-      (char '\"' *> pure ())
-        <|> (string "\\\"" *> literalContent)
-        <|> (anyChar *> literalContent)
-
-      

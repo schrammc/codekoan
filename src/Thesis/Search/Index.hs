@@ -21,11 +21,13 @@ import qualified Data.BloomFilter.Mutable as BF.Mutable
 
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
-import           Data.Hashable (Hashable,hash)
+import           Data.Hashable (Hashable, hash)
+import qualified Data.Set as S
 import qualified Data.Vector as V
 
 import           Thesis.CodeAnalysis.StackoverflowBodyParser
-import           Thesis.CodeAnalysis.Tokenizer
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language.Java
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Data.Stackoverflow.Dump

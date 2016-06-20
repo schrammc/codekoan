@@ -17,7 +17,10 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib
                      , Thesis.CodeAnalysis.StackoverflowBodyParser
-                     , Thesis.CodeAnalysis.Tokenizer
+                     , Thesis.CodeAnalysis.Language
+                     , Thesis.CodeAnalysis.Language.CommonTokenParsers
+                     , Thesis.CodeAnalysis.Language.Java
+
                      , Thesis.Data.Stackoverflow.XML.Helpers
                      , Thesis.Data.Stackoverflow.Answer
                      , Thesis.Data.Stackoverflow.Question
@@ -27,6 +30,7 @@ library
                      , Thesis.Data.Text.PositionRange
 
                      , Thesis.Search
+                     , Thesis.Search.Index
                      , Thesis.Search.BloomFilter
                      , Thesis.Search.CompressedTrie
                      , Thesis.Search.Levenstein
@@ -45,6 +49,7 @@ library
                      , exceptions >= 0.8.2.1
                      , hashable >= 1.2.4.0
                      , html-conduit >= 1.2
+                     , parallel >= 3.2
                      , resourcet >= 1.1.7.4
                      , text >= 1.2.2.1
                      , transformers >= 0.4.2.0
