@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.CodeAnalysis.Language where
+module Thesis.CodeAnalysis.Language (Language(..), LanguageText(..), processAndTokenize, buildTokenVector, langText) where
 
 import qualified Data.Vector as V
 
@@ -20,10 +20,11 @@ data Language t l where
 
 
 buildTokenVector :: Language t l -> LanguageText l -> Maybe (V.Vector t)
-buildTokenVector l t = (V.fromList . (fmap snd)) <$> processAndTokenize l t
+buildTokenVector l@Language{..} t =
+  V.fromList . (fmap snd) <$> processAndTokenize l t
 
 processAndTokenize :: Language t l -> LanguageText l-> Maybe [(PositionRange, t)]
 processAndTokenize Language{..} t =
-  (yield t $$ tokenize =$ CL.consume)
+  (yield (normalize t) $$ tokenize =$ CL.consume)
 
 newtype LanguageText l = LanguageText {langText :: Text}

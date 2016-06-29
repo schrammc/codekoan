@@ -32,3 +32,7 @@ parseAnswer idInt body= do
   parent <- readAttribute "ParentId"
   return $ Answer (AnswerId idInt) body score parent
 
+data AnswerFragmentId = AnswerFragmentId { fragmentAnswerId :: AnswerId
+                                         , fragmentId :: Int
+                                         }
+                        deriving (Show, Eq, Ord)

@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Thesis.Data.Stackoverflow.Dictionary where
 
 import Data.Text
@@ -18,6 +19,8 @@ import qualified Data.IntMap.Strict as IM
 import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
 
+import Control.DeepSeq
+
 -- | A helper data structure that allows to find tags for all questions in a
 -- stackoverflow data dump somewhat efficiently.
 --
@@ -28,10 +31,7 @@ data DataDictionary = DataDictionary { dictAnswerParents :: !(IntMap Int)
                                      , dictQuestionTags :: !(IntMap (S.Set Int))
                                      , dictTagTable :: !(IntMap Text)
                                      }
-                      deriving Generic
-
-instance Binary DataDictionary
-
+                      deriving (Generic, NFData, Binary)
          
 -- | Get the text tags for an answer's parent question
 answerRootTags :: DataDictionary -> AnswerId -> Maybe (S.Set Text)
@@ -54,4 +54,6 @@ answerWithTag dict tag i = maybe False (S.member tag) (answerRootTags dict i)
 readDictionary :: FilePath -> IO DataDictionary
 readDictionary dictPath = do
   content <- BS.readFile dictPath
-  return $ decode (BL.fromChunks [content])
+  return $!! decode (BL.fromChunks [content])
+
+emptyDictionary = DataDictionary IM.empty IM.empty IM.empty
