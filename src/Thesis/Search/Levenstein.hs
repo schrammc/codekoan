@@ -2,11 +2,13 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Search.Levenstein where
 
+import Data.List
+
 import Thesis.Search.CompressedTrie
 
 import qualified Data.Map.Strict as M
 import Data.Foldable
-import qualified Data.Vector as V
+import qualified Data.Set as S
 
 --------------------------------------------------------------------------------
 --
@@ -113,7 +115,7 @@ lookupAllL :: (Ord a, Eq v) => LevensteinAutomaton a
            -> CompressedTrie a v
            -> [([a], v,Int)]
 lookupAllL aut t | t == empty = []
-              | otherwise = lookupWithL' acceptAllScoreL aut t (startL aut)
+                 | otherwise = lookupWithL' acceptAllScoreL aut t (startL aut)
 
 -- | Helper function for 'lookupL'
 lookupWithL' :: (Ord a, Eq v)
@@ -133,3 +135,72 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur ++ do
           | otherwise = Nothing
    extend cs (cs', v', s) = (cs ++ cs', v', s)
    cur = toList ( ([],,) <$> v <*> acceptScore aut st)
+
+lookupAllSuff :: (Ord a, Eq v) => (v -> v -> v)
+           -> LevensteinAutomaton a
+           -> CompressedTrie a v
+           -> [([a], v,Int)]
+lookupAllSuff aggregate aut t | t == empty = []
+                              | otherwise =
+  lookupSuff acceptAllScoreL aggregate aut t (startL aut) 0
+
+lookupSuff :: (Ord a, Eq v)
+              => (LevensteinAutomaton a -> LevenState -> Maybe Int)
+           -> (v -> v -> v)
+           -> LevensteinAutomaton a
+           -> CompressedTrie a v
+           -> LevenState
+           -> Int -- ^ Depth
+           -> [([a], v, Int)]
+lookupSuff acceptScore _ aut (CTrieLeaf v) st _ =
+  maybe [] (\score -> [([],v,score)]) (acceptScore aut st)
+lookupSuff acceptScore aggResults aut nd@(CTrieNode mp _) st d = cur ++ do
+  (_,(xs, t)) <- M.toList mp
+  newState <- toList $ foldlM f st xs
+  extend xs <$> lookupSuff acceptScore aggResults aut t newState (d + length xs)
+  where
+   f st c | canAcceptL aut st = Just $! stepL aut st c
+          | otherwise = Nothing
+   extend cs (cs', v', s) = (cs ++ cs', v', s)
+   cur = let score = toList $ acceptScore aut st
+             hits = if d > 10
+                    then do
+                      _ <- score
+                      val <- trieLeaves nd
+                      return val
+                    else []
+         in case hits of
+           [] -> []
+           h:hs -> let v = foldl' aggResults h hs
+                   in v `seq` [([],v,)] <*> score
+
+eliminateRedundantHits :: (Ord a, Ord v) =>
+                          [([a], S.Set v, Int)]
+                       -> [([a], S.Set v, Int)]
+eliminateRedundantHits xs =
+  concat $ processGroup <$> distGroups
+  where
+    sortHits = reverse . (sortOn (\(tks,_,_) -> tks))
+    -- Hits grouped by levensteinDistance
+    distGroups = sortHits <$> groupBy (\(_,_,d) -> \(_,_,d') -> d == d') xs
+
+    groupPrefixes [] = []
+    groupPrefixes xs@((tks, _, _):_) =
+       let (group, rest) = span (\(tks',_,_) -> isPrefixOf tks' tks) xs
+       in group : (groupPrefixes rest)
+
+
+    processGroup group = concat $ (processPGroup S.empty) <$> (groupPrefixes group)
+
+    -- This function operates on answers of the same score where every answer's
+    -- tokens are a prefix of it's succesor's tokens
+    --
+    -- The purpose is to let every single hit for an id only occur for the
+    -- longest substring and not for every prefix
+    processPGroup _      [] = []
+    processPGroup aIdSet ((tks, aIds, s):rest) =
+     let diffSet = aIds `S.difference` aIdSet
+         unionSet = aIds `S.union` aIdSet
+     in case diffSet of
+            x | S.null x  ->  processPGroup aIdSet rest
+              | otherwise ->  (tks, diffSet, s):(processPGroup unionSet rest)

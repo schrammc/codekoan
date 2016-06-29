@@ -6,16 +6,13 @@ module Thesis.Search.CompressedTrie where
 
 import           Control.Applicative ((<|>))
 
-import           Data.Binary
 import           Data.Foldable
 import           Data.List (tails)
 import qualified Data.Map.Strict as M
-import qualified Data.Set as S
 import           Data.Maybe
 
 import qualified Data.Vector as V
 import           Data.Vector.Binary ()
--- import Debug.Trace
 
 data CompressedTrie a v where
   CTrieNode :: Ord a => !(M.Map a ([a], CompressedTrie a v))
@@ -120,6 +117,13 @@ wordsInTrie' (CTrieNode mp v) =
         (xs, v) <- wordsInTrie' t
         [(vec ++ xs, v)]
   in maybe childResults (\v' -> ([],v'):childResults) v
+
+-- | Yield the values of this node and all it's children
+trieLeaves :: CompressedTrie a v -> [v]
+trieLeaves (CTrieLeaf v) = [v]
+trieLeaves (CTrieNode mp v) = toList v ++ do
+  (_,(_,nd)) <- M.toList mp
+  trieLeaves nd
 
 -- | A helper function. Applies the given function to both values if both are
 -- defined. If only one of the values is defined, we return it. Nothing if no
