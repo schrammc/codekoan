@@ -7,13 +7,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search where
 
+import qualified Data.Set as S
 import qualified Data.Vector as V
+
+import           Control.Parallel.Strategies
 
 import           Debug.Trace
 
 import           Data.Hashable (Hashable)
 
-import           Thesis.CodeAnalysis.Tokenizer
+import           Thesis.CodeAnalysis.Language
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Text.PositionRange
 import           Thesis.Search.BloomFilter
@@ -25,16 +28,16 @@ findMatches :: (Ord t, Hashable t)
                => SearchIndex t l 
                -> Int             -- ^ The tolerated levenstein distance
                -> LanguageText l  -- ^ The submitted code to be searched
-               -> Maybe [(PositionRange, [t], AnswerId, Int)]
+               -> Maybe [(PositionRange, [t], S.Set AnswerFragmentId, Int)]
 findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
-      relevantNGramTails = let before = length ngramsWithTails
-                               result = filter (ngramRelevant . fst) ngramsWithTails
-                               after = length result
-                           in traceShow (fromIntegral after / (fromIntegral before :: Double))  result
+      relevantNGramTails = filter (ngramRelevant . fst) ngramsWithTails
       relevantTails = snd <$> relevantNGramTails
-  return (concat $ searchFor <$> relevantTails)
+      -- parMap use here is probably not yet optimal
+      searchResults = concat $ parMap rpar searchFor relevantTails
+  return $ searchResults
+      
   where
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (snd <$> tks)
@@ -61,9 +64,12 @@ ngramWithRange [] = Nothing
 ngramWithRange xs = let (rs, ts) = unzip xs
                     in Just (foldl1 mergePositionRanges rs, ts)
 
-search :: (Ord t) => SearchIndex t l -> Int -> V.Vector t -> [([t],AnswerId, Int)]
+search :: (Ord t) => SearchIndex t l
+       -> Int
+       -> V.Vector t
+       -> [([t],S.Set AnswerFragmentId, Int)]
 search SearchIndex{..} n xs =
-  lookupAllL aut indexTrie
+  eliminateRedundantHits $ lookupAllSuff S.union aut indexTrie
   where
     aut = LevensteinAutomaton (V.length xs) n (xs V.!)
 

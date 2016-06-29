@@ -13,7 +13,6 @@ import           Control.Monad.ST
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Resource
 
-import           Data.Binary
 import qualified Data.BloomFilter as BF
 import qualified Data.BloomFilter.Easy as BF.Easy
 import qualified Data.BloomFilter.Hash as BF.Hash
@@ -38,7 +37,7 @@ import           Thesis.Search.NGrams
 
 data SearchIndex t l where
   SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)
-                 , indexTrie :: !(CompressedTrie t AnswerId)
+                 , indexTrie :: !(CompressedTrie t (S.Set AnswerFragmentId))
                  , indexBF :: !(BloomFilter [t])
                  , indexNGramSize :: !Int
                  } -> SearchIndex t l
@@ -65,21 +64,23 @@ buildIndexForJava dict postsFile ngramSize = do
           )
       =$= filterAnswers
       =$= (CL.filter $ \Answer{..} -> answerWithTag dict "java" answerId)
-      =$= (CL.map $ \Answer{..} -> (,answerId) <$> readCodeFromHTMLPost answerBody)
+      =$= (CL.map $ \Answer{..} -> do
+              (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]
+              return $ (code, AnswerFragmentId answerId n))
       =$= CL.concat
       =$= (CL.map $ \(c, aId) -> (,aId) <$> buildTokenVector java (LanguageText c))
       =$= CL.catMaybes
       =$ (CL.foldM (\trie -> \(str, v) -> do
                        mapM_ (lift . stToIO . BF.Mutable.insert mutableBF) $ do
                          (hash <$> ngrams ngramSize (V.toList str))
-                       return $ mergeTries trie (linearTrie str v)
+                       return $ mergeTries trie (buildSuffixTrie str (S.singleton v))
                    )
                    Trie.empty
          )
 
   bf <- BloomFilter <$> (stToIO $ BF.freeze mutableBF)
   return $ SearchIndex java tr bf ngramSize
-
+{-
 -- | Build a search index from data stored in binary files
 loadIndex :: (Hashable t, Binary t, Ord t) => Language t l
           -> FilePath -- ^ The index path
@@ -88,7 +89,7 @@ loadIndex :: (Hashable t, Binary t, Ord t) => Language t l
 loadIndex lang indexPath ngramSize = do
   trie <- decodeFile indexPath
   return $ SearchIndex lang trie (buildTrieBloom ngramSize trie) ngramSize
-
+-}
 -- | Build a bloom filter containing all 'n' - long nonoverllapping ngrams of
 -- words in the given tire
 buildTrieBloom :: (Hashable t)

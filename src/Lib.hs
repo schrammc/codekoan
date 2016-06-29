@@ -44,7 +44,8 @@ xmlFilePath = "/home/kryo/posts_abridged.xml"
 someFunc :: IO ()
 someFunc = do
   dict <- readDictionary dictPath
-  index <- buildIndexForJava dict xmlFilePath 10
+  putStrLn "The dictionary is complete"
+  index <- dict `seq` buildIndexForJava dict xmlFilePath 10
   putStrLn "Index construction completed."
   go index
   where
@@ -57,32 +58,37 @@ someFunc = do
       let res = sortOn (\(_,_,_,similarity) -> similarity) <$> findMatches index n (LanguageText str)
       putStrLn "Result: "
       case res of
-        Just results@(_:_) -> mapM_ (printOutput str) results
+        Just results@(_:_) -> mapM_ (printOutput str) (filter (\(_,ts,_,_) -> length ts > 10) (results))
         _ -> putStrLn "Not a single thing. Sorry."
       putStrLn "===================================================\n"
       go index
 
-printOutput :: Show t => Text -> (PositionRange, [t], AnswerId, Int) -> IO ()
+printOutput :: Show t
+               => Text
+            -> (PositionRange, [t], S.Set AnswerFragmentId, Int)
+            -> IO ()
 printOutput t (range, tks, aId, score) = do
   putStrLn "Found a match: "
   putStrLn $ prettyPrintOutput t (range, tks, aId, score)
 
-prettyPrintOutput :: (Show t) => Text -> (PositionRange, [t], AnswerId, Int) -> String
-prettyPrintOutput t (range, tks, aId, score) = do
+prettyPrintOutput :: (Show t)
+                     => Text
+                  -> (PositionRange, [t], S.Set AnswerFragmentId, Int)
+                  -> String
+prettyPrintOutput t (range, tks, aIds, score) = do
   let res = Text.unpack $ textInRange range t
   "Distance: " ++ show score
-              ++ " Answer: " ++ show (answerIdInt aId)
+              ++ " In answer fragments: " ++ show (S.toList aIds)
               ++ " In range: " ++  show range
               ++ " Matched tokens: " ++ show tks ++ "\n"
               ++ " Source:\n" ++ res
-  
 
 -- | Try to read something and reprompt if the user puts in something that we
 -- can't understand until we have a valid result
 readPrompt :: (Read a) => String -> IO a
 readPrompt str = do
   putStrLn str
-  catch readLn $ \(e :: IOException) -> do
+  catch readLn $ \(_ :: IOException) -> do
                                           putStrLn "Sorry, what?\n"
                                           readPrompt str
 
