@@ -1,6 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.CodeAnalysis.Language (Language(..), LanguageText(..), processAndTokenize, buildTokenVector, langText) where
+module Thesis.CodeAnalysis.Language (Language(..), LanguageText(..), processAndTokenize, buildTokenVector) where
 
 import qualified Data.Vector as V
 

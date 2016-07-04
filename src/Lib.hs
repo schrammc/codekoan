@@ -32,6 +32,8 @@ import Thesis.Data.Stackoverflow.Dictionary
 import Thesis.Data.Text.PositionRange
 
 import Thesis.Search
+import Thesis.Search.SearchResult
+import Thesis.Search.ResultSet
 import Thesis.Search.Index
 
 dictPath :: String
@@ -55,32 +57,33 @@ someFunc = do
       str <- Text.pack <$> getLine
       print str
       n <- readPrompt "Sensitivity: "
-      let res = sortOn (\(_,_,_,similarity) -> similarity) <$> findMatches index n (LanguageText str)
+      let res = sortOn resultLevenScore <$> (listOfResults <$> findMatches index n (LanguageText str))
       putStrLn "Result: "
       case res of
-        Just results@(_:_) -> mapM_ (printOutput str) (filter (\(_,ts,_,_) -> length ts > 10) (results))
+        Just results@(_:_) -> mapM_ (printOutput str)
+                                    (filter (\SearchResult{..} -> length resultMatchedTokens > 10) (results))
         _ -> putStrLn "Not a single thing. Sorry."
       putStrLn "===================================================\n"
       go index
 
 printOutput :: Show t
                => Text
-            -> (PositionRange, [t], S.Set AnswerFragmentId, Int)
+            -> SearchResult t
             -> IO ()
-printOutput t (range, tks, aId, score) = do
+printOutput t res = do
   putStrLn "Found a match: "
-  putStrLn $ prettyPrintOutput t (range, tks, aId, score)
+  putStrLn $ prettyPrintOutput t res
 
 prettyPrintOutput :: (Show t)
                      => Text
-                  -> (PositionRange, [t], S.Set AnswerFragmentId, Int)
+                  -> SearchResult t
                   -> String
-prettyPrintOutput t (range, tks, aIds, score) = do
-  let res = Text.unpack $ textInRange range t
-  "Distance: " ++ show score
-              ++ " In answer fragments: " ++ show (S.toList aIds)
-              ++ " In range: " ++  show range
-              ++ " Matched tokens: " ++ show tks ++ "\n"
+prettyPrintOutput t SearchResult{..} = do
+  let res = Text.unpack $ textInRange resultTextRange t
+  "Distance: " ++ show resultLevenScore
+              ++ " In answer fragment: " ++ show (fragmentMetaId resultMetaData)
+              ++ " In range: " ++  show resultTextRange
+              ++ " Matched tokens: " ++ show resultMatchedTokens ++ "\n"
               ++ " Source:\n" ++ res
 
 -- | Try to read something and reprompt if the user puts in something that we

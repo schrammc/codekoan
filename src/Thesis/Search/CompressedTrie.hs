@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -91,6 +92,14 @@ buildSuffixTrie xs v = buildTrie $ zip suffixes (repeat v)
   where
     suffixes = filter ((> 7) . length) (tails $ toList xs)
 
+buildIndexedSuffixTrie :: (Foldable f, Ord a, Eq v)
+                          => f a
+                       -> v
+                       -> CompressedTrie a (v, Int)
+buildIndexedSuffixTrie xs v = buildTrie $ zip suffixes (zip (repeat v) [0.. ])
+  where
+    suffixes = filter ((> 7) . length) (tails $ toList xs)
+
 buildTrieWith :: (Foldable f, Foldable f', Ord a, Eq v)
                  => (v -> v -> v)
               -> f (f' a,v)
@@ -120,10 +129,18 @@ wordsInTrie' (CTrieNode mp v) =
 
 -- | Yield the values of this node and all it's children
 trieLeaves :: CompressedTrie a v -> [v]
-trieLeaves (CTrieLeaf v) = [v]
-trieLeaves (CTrieNode mp v) = toList v ++ do
-  (_,(_,nd)) <- M.toList mp
-  trieLeaves nd
+trieLeaves t = fst <$> trieLeavesDist t
+
+-- | Yield the values of this node and it's children. With each value, this
+-- function also returns the number of symbols on the path from this node to the
+-- node containing a value.
+trieLeavesDist :: CompressedTrie a v -> [(v, Int)]
+trieLeavesDist (CTrieLeaf v) = [(v,0)]
+trieLeavesDist (CTrieNode mp v) = ((, 0) <$> toList v) ++ do
+  (_,(xs, nd)) <- M.toList mp
+  let n = length xs
+  (val, k) <- trieLeavesDist nd
+  return (val, k+n)
 
 -- | A helper function. Applies the given function to both values if both are
 -- defined. If only one of the values is defined, we return it. Nothing if no

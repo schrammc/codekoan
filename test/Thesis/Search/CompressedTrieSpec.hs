@@ -1,8 +1,8 @@
-module Thesis.CompressedTrieSpec where
+module Thesis.Search.CompressedTrieSpec where
 
 import Test.Hspec
 
-import Thesis.CompressedTrie
+import Thesis.Search.CompressedTrie
 
 import Data.Vector as V
 

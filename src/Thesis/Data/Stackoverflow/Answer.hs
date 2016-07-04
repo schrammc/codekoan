@@ -36,3 +36,17 @@ data AnswerFragmentId = AnswerFragmentId { fragmentAnswerId :: AnswerId
                                          , fragmentId :: Int
                                          }
                         deriving (Show, Eq, Ord)
+
+data AnswerFragmentMetaData =
+  AnswerFragmentMetaData { fragmentMetaId :: AnswerFragmentId
+                         , fragmentMetaSize :: Int
+                         }
+  deriving (Show, Eq, Ord)
+
+fragmentMetaAnswerId :: AnswerFragmentMetaData -> AnswerId
+fragmentMetaAnswerId AnswerFragmentMetaData{..} =
+  fragmentAnswerId fragmentMetaId
+
+fragmentMetaFragId :: AnswerFragmentMetaData -> Int
+fragmentMetaFragId AnswerFragmentMetaData{..} =
+  fragmentId fragmentMetaId

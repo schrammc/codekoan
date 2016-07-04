@@ -136,28 +136,28 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur ++ do
    extend cs (cs', v', s) = (cs ++ cs', v', s)
    cur = toList ( ([],,) <$> v <*> acceptScore aut st)
 
-lookupAllSuff :: (Ord a, Eq v) => (v -> v -> v)
-           -> LevensteinAutomaton a
-           -> CompressedTrie a v
-           -> [([a], v,Int)]
-lookupAllSuff aggregate aut t | t == empty = []
-                              | otherwise =
-  lookupSuff acceptAllScoreL aggregate aut t (startL aut) 0
+lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
+           -> CompressedTrie a (S.Set v)
+           -> [([a], [(S.Set v, Int)], Int)]
+lookupAllSuff aut t | t == empty = []
+                    | otherwise =
+  lookupSuff acceptAllScoreL aut t (startL aut) 0
 
-lookupSuff :: (Ord a, Eq v)
+-- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
+-- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
+lookupSuff :: (Ord a, Ord v)
               => (LevensteinAutomaton a -> LevenState -> Maybe Int)
-           -> (v -> v -> v)
            -> LevensteinAutomaton a
-           -> CompressedTrie a v
+           -> CompressedTrie a (S.Set v)
            -> LevenState
            -> Int -- ^ Depth
-           -> [([a], v, Int)]
-lookupSuff acceptScore _ aut (CTrieLeaf v) st _ =
-  maybe [] (\score -> [([],v,score)]) (acceptScore aut st)
-lookupSuff acceptScore aggResults aut nd@(CTrieNode mp _) st d = cur ++ do
+           -> [([a], [(S.Set v, Int)] , Int)]
+lookupSuff acceptScore aut (CTrieLeaf v) st _ =
+  maybe [] (\score -> [([],[(v, 0)],score)]) (acceptScore aut st)
+lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
   (_,(xs, t)) <- M.toList mp
   newState <- toList $ foldlM f st xs
-  extend xs <$> lookupSuff acceptScore aggResults aut t newState (d + length xs)
+  extend xs <$> lookupSuff acceptScore aut t newState (d + length xs)
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
@@ -165,14 +165,12 @@ lookupSuff acceptScore aggResults aut nd@(CTrieNode mp _) st d = cur ++ do
    cur = let score = toList $ acceptScore aut st
              hits = if d > 10
                     then do
-                      _ <- score
-                      val <- trieLeaves nd
-                      return val
+                      _ <- score -- Do nothing if we fail to calculate the score
+                      trieLeavesDist nd
                     else []
          in case hits of
            [] -> []
-           h:hs -> let v = foldl' aggResults h hs
-                   in v `seq` [([],v,)] <*> score
+           hs@(_:_) -> length hs `seq` [([], hs ,)] <*> score
 
 eliminateRedundantHits :: (Ord a, Ord v) =>
                           [([a], S.Set v, Int)]

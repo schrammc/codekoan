@@ -1,13 +1,13 @@
 name:                ma-xml-analyzer
-version:             0.2.0.0
+version:             0.4.0.0
 synopsis:            Initial project template from stack
 description:         Please see README.md
 homepage:            https://github.com/githubuser/ma-xml-analyzer#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2016 Author name here
+author:              Christof Schramm
+maintainer:          christof.schramm@campus.lmu.de
+copyright:           2016 Christof Schramm
 category:            Web
 build-type:          Simple
 -- extra-source-files:
@@ -28,6 +28,7 @@ library
                      , Thesis.Data.Stackoverflow.Dictionary
                      , Thesis.Data.Stackoverflow.Dump
                      , Thesis.Data.Text.PositionRange
+                     , Thesis.Data.Range
 
                      , Thesis.Search
                      , Thesis.Search.Index
@@ -35,6 +36,8 @@ library
                      , Thesis.Search.CompressedTrie
                      , Thesis.Search.Levenstein
                      , Thesis.Search.NGrams
+                     , Thesis.Search.ResultSet
+                     , Thesis.Search.SearchResult
                      , Thesis.Search.Trie
 
   build-depends:       attoparsec >= 0.13
@@ -110,6 +113,7 @@ test-suite ma-xml-analyzer-test
                      , hashable >= 1.2.4.0
                      , hspec >= 2.2.3
                      , ma-xml-analyzer
+                     , QuickCheck >= 2.8
                      , resourcet >= 1.1.7.4
                      , text >= 1.2.2.1
                      , transformers >= 0.4.2.0

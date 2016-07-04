@@ -7,28 +7,28 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search where
 
+import           Data.Hashable (Hashable)
 import qualified Data.Set as S
 import qualified Data.Vector as V
 
 import           Control.Parallel.Strategies
 
-import           Debug.Trace
-
-import           Data.Hashable (Hashable)
-
 import           Thesis.CodeAnalysis.Language
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Text.PositionRange
+import           Thesis.Data.Range
 import           Thesis.Search.BloomFilter
 import           Thesis.Search.Levenstein
 import           Thesis.Search.NGrams
 import           Thesis.Search.Index
+import           Thesis.Search.SearchResult
+import           Thesis.Search.ResultSet
 
 findMatches :: (Ord t, Hashable t)
-               => SearchIndex t l 
-               -> Int             -- ^ The tolerated levenstein distance
-               -> LanguageText l  -- ^ The submitted code to be searched
-               -> Maybe [(PositionRange, [t], S.Set AnswerFragmentId, Int)]
+               => SearchIndex t l
+               -> Int            -- ^ The tolerated levenstein distance
+               -> LanguageText l -- ^ The submitted code to be searched
+               -> Maybe (ResultSet t)
 findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
@@ -36,8 +36,8 @@ findMatches index@(SearchIndex{..}) n t = do
       relevantTails = snd <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
-  return $ searchResults
-      
+  return $ buildResultSet searchResults
+
   where
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (snd <$> tks)
@@ -46,10 +46,15 @@ findMatches index@(SearchIndex{..}) n t = do
       let tokenVector = V.fromList $ snd <$> ts
           result = search index n tokenVector
       in do
-           (foundTokens, aId, score) <- result
+           (foundTokens, metadata, range, score) <- result
            case ngramWithRange (take (length foundTokens) ts) of
              Nothing -> []
-             Just x -> return (fst x, foundTokens, aId, score)
+             Just x -> return SearchResult { resultTextRange = fst x
+                                           , resultMatchedTokens = foundTokens
+                                           , resultMetaData = metadata
+                                           , resultFragmentRange = range
+                                           , resultLevenScore = score
+                                           }
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
@@ -67,9 +72,21 @@ ngramWithRange xs = let (rs, ts) = unzip xs
 search :: (Ord t) => SearchIndex t l
        -> Int
        -> V.Vector t
-       -> [([t],S.Set AnswerFragmentId, Int)]
-search SearchIndex{..} n xs =
-  eliminateRedundantHits $ lookupAllSuff S.union aut indexTrie
+       -> [([t], AnswerFragmentMetaData, Range , Int)]
+search SearchIndex{..} n xs = do
+  (tks, results, levenD) <- lookupAllSuff aut indexTrie
+  (mds, dist) <- results
+  md <- S.toList mds
+  let rg = buildRange md tks dist
+  return (tks, md, rg, levenD)
   where
     aut = LevensteinAutomaton (V.length xs) n (xs V.!)
 
+-- | Given an answer sequence, a sequence of matched tokens and a remainder
+-- return the range of covered tokens in the answer fragments.
+buildRange :: AnswerFragmentMetaData -> [t] -> Int -> Range
+buildRange AnswerFragmentMetaData{..} tks d =
+  Range (fragmentMetaSize - (n + d)) (fragmentMetaSize - d)
+  where
+    n = length tks
+    

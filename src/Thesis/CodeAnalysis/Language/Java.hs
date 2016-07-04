@@ -5,7 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
-module Thesis.CodeAnalysis.Language.Java where
+module Thesis.CodeAnalysis.Language.Java (Java, java, Token) where
 
 import           Control.Applicative ((<|>))
 
@@ -21,6 +21,8 @@ import qualified Data.Conduit.List as CL
 
 import           Data.Hashable (Hashable)
 
+import qualified Data.Text as Text
+
 import           GHC.Generics (Generic)
 
 import           Thesis.CodeAnalysis.Language
@@ -30,17 +32,29 @@ data Java
 
 java :: Language Token Java 
 java = Language { removeComments = LanguageText
-                , normalize = id
+                , normalize = removeImportLines
                 , tokenize = tokenizeJ
                 }
 
 tokenizeJ :: Conduit (LanguageText Java) Maybe (PositionRange, Token)
-tokenizeJ = (CL.map langText) =$= conduitParser completeParser =$= filterNothings
+tokenizeJ = CL.map langText
+            =$= conduitParser completeParser
+            =$= filterNothings
   where
     completeParser = (AP.takeWhile isHorizontalSpace) *> tokenOrComment
-    tokenOrComment = ((const Nothing) <$> (javaStyleComment <|> endOfLine)) <|>(Just <$> token)
-    filterNothings = awaitForever $ \(pos, x) -> do
-      mapM_ (yield . (pos, )) x
+    tokenOrComment = ((const Nothing) <$> (javaStyleComment <|> endOfLine)
+                     ) <|> (Just <$> token)
+    filterNothings =
+      awaitForever $ \(pos, x) -> do
+        mapM_ (yield . (pos, )) x
+
+-- | Remove all lines starting with import 
+removeImportLines :: LanguageText Java -> LanguageText Java
+removeImportLines LanguageText{..} =
+  LanguageText $ Text.unlines $ filter isImport ls
+  where
+    isImport = not . (Text.isPrefixOf "import")
+    ls = Text.lines langText
 
 data Token = TokenLT
            | TokenGT
@@ -68,6 +82,8 @@ data Token = TokenLT
            | TokenQuestion
            | TokenSemicolon
            | TokenKeyword
+           | TokenBreak
+           | TokenLoopWord
            | TokenIdentifier
            | TokenPrimitive
            | TokenNumber
@@ -107,7 +123,9 @@ token = "<" *> pure TokenLT
         <|> ":" *> pure TokenColon
         <|> "?" *> pure TokenQuestion
         <|> ";" *> pure TokenSemicolon
+        <|> "break" *> pure TokenBreak
         <|> modifier
+        <|> loopWord
         <|> keyword
         <|> primitive
         <|> identifier
@@ -136,17 +154,22 @@ keyword = ("if"
            <|> "super"
            <|> "this"
            <|> "new"
-           <|> "break"
            <|> "continue"
            <|> "goto"
            <|> "synchronized"
            <|> "package"
-           <|> "do"
-           <|> "while"
            <|> "enum"
            <|> "assert"
           ) *> pure TokenKeyword
 
+-- | A parser for tokens that are used to declare looping constructs
+loopWord :: Parser Token
+loopWord = ("do"
+            <|> "while"
+            <|> "for"
+           ) *> pure TokenLoopWord
+
+-- | A parser vor visibility modifiers of identifiers
 modifier :: Parser Token
 modifier = ("public"
            <|> "private"
@@ -155,6 +178,7 @@ modifier = ("public"
            <|> "volatile"
            ) *> pure TokenModifier
 
+-- | Atomic types in java
 primitive :: Parser Token
 primitive = ("byte"
              <|> "char"
@@ -166,6 +190,7 @@ primitive = ("byte"
              <|> "boolean"
              <|> "void") *> pure TokenPrimitive
 
+-- | Annotations starting with an \@ symbol
 annotation :: Parser Token
 annotation = char '@' *> identifier *> pure TokenAnnotation
 
