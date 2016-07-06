@@ -25,22 +25,47 @@ answersWithCoverage :: (Eq t)
                         => Double -- ^ A fraction (>= 0 and <= 1)
                         -> ResultSet t
                         -> ResultSet t
-answersWithCoverage cov ResultSet{..} = ResultSet $ 
-  (flip M.mapMaybeWithKey) resultSetMap $ \_ -> \mp ->
-    let mp' = (flip M.mapMaybeWithKey) mp $ \_ -> \results ->
-               case results of
-                 [] -> Nothing
-                 rs@(r:_) ->
-                     let n = fragmentMetaSize $ resultMetaData r
-                         frags = resultFragmentRange <$> rs
-                     in if coveragePercentage n frags >= cov'
-                        then Just rs
-                        else Nothing
+answersWithCoverage cov resultSet =
+  mapFragmentResults resultSet $ \_ -> \_ -> \rs@(r:_) -> 
+     let n = fragmentMetaSize $ resultMetaData r
+         frags = resultFragmentRange <$> rs
+     in if coveragePercentage n frags >= cov'
+        then Just rs
+        else Nothing
+  where
+    cov' = max 0 (min 1 cov)
+
+fragmentsLongerThan :: (Eq t)
+                       => Int -- ^ Minimum length of an answer fragment
+                       -> ResultSet t
+                       -> ResultSet t
+fragmentsLongerThan n resultSet =
+  mapFragmentResults resultSet $ \_ -> \_ -> \results -> 
+    case filter (\r -> length (resultMatchedTokens r) >= n) results of
+      [] -> Nothing
+      rs -> Just rs
+
+-- | Map a function over all fragment results in a result set. If the given
+-- function returns 'Nothing' then the fragment is removed from the result
+-- set. If an answer contains no more fragments after application of the
+-- function, then the answer is removed as well. The function is guaranteed to
+-- never be given an empty list of search results as an argument.
+mapFragmentResults :: (Eq t)
+                      => ResultSet t
+                      -> (AnswerId
+                          -> Int
+                          -> [SearchResult t]
+                          -> Maybe [SearchResult t ])
+                      -> ResultSet t
+mapFragmentResults ResultSet{..} f = ResultSet $ 
+  (flip M.mapMaybeWithKey) resultSetMap $ \aId -> \mp ->
+    let mp' = (flip M.mapMaybeWithKey) mp $ \fragId -> \results ->
+          case results of
+            [] -> Nothing
+            _  -> f aId fragId results 
     in if M.empty == mp'
        then Nothing
        else Just mp'
-  where
-    cov' = max 0 (min 1 cov)
 
 -- | Build a result set from a list of search results.
 buildResultSet :: [SearchResult t] -> ResultSet t
@@ -57,3 +82,17 @@ buildResultSet results =
     fragIdGroup <- aIdGroup
     let fragId = getFragId $ head fragIdGroup
     return $ M.singleton aId (M.singleton fragId fragIdGroup)
+
+-- | For each fragment remove all search results, that are properly subsumed by
+-- another search result. Note that this will not remove any answer fragments
+-- from a search result set, as there is always at least one search result per
+-- answer fragment, that is not subsumed by another.
+removeSubsumption :: (Eq t) => ResultSet t -> ResultSet t
+removeSubsumption resultSet =
+  mapFragmentResults resultSet $ \_ -> \_ -> \results ->
+    Just $ do
+      r <- results
+      if null $ filter (/= r) $ filter (subsumedByProper r) results
+        then [r]
+        else []
+        

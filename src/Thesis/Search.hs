@@ -26,7 +26,7 @@ import           Thesis.Search.ResultSet
 
 findMatches :: (Ord t, Hashable t)
                => SearchIndex t l
-               -> Int            -- ^ The tolerated levenstein distance
+               -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
                -> Maybe (ResultSet t)
 findMatches index@(SearchIndex{..}) n t = do
@@ -36,7 +36,7 @@ findMatches index@(SearchIndex{..}) n t = do
       relevantTails = snd <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
-  return $ buildResultSet searchResults
+  return $ removeSubsumption $ buildResultSet searchResults
 
   where
     maybeTokens = processAndTokenize indexLanguage t
@@ -70,7 +70,7 @@ ngramWithRange xs = let (rs, ts) = unzip xs
                     in Just (foldl1 mergePositionRanges rs, ts)
 
 search :: (Ord t) => SearchIndex t l
-       -> Int
+       -> Int  -- ^ Levenshtein distance
        -> V.Vector t
        -> [([t], AnswerFragmentMetaData, Range , Int)]
 search SearchIndex{..} n xs = do
