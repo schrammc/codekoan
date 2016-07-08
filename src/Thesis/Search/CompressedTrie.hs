@@ -16,8 +16,11 @@ import qualified Data.Vector as V
 import           Data.Vector.Binary ()
 
 data CompressedTrie a v where
-  CTrieNode :: Ord a => !(M.Map a ([a], CompressedTrie a v))
+  CTrieNode :: Ord a
+               => !(M.Map a ([a], CompressedTrie a v))
+               -- ^ Structural information of the trie
             -> !(Maybe v)
+               -- ^ The annotation of a completed word
             -> CompressedTrie a v
   CTrieLeaf :: !v -> CompressedTrie a v
 
@@ -87,18 +90,16 @@ mergeTries = mergeTriesWith const
 -- Beware, that this implementation does not yet use a linear time suffix tree
 -- construction algorithm like ukkonens and there is considerable room for
 -- improvement in performance here!
-buildSuffixTrie :: (Foldable f, Ord a, Eq v) => f a -> v -> CompressedTrie a v
-buildSuffixTrie xs v = buildTrie $ zip suffixes (repeat v)
+buildSuffixTrie :: (Foldable f, Ord a, Eq v)
+                   => Maybe Int -- ^ The minimum length of indexed suffixes
+                -> f a -- ^ The words to index
+                -> v   -- ^ An annotation, that will be used for all indexed
+                       -- suffixes of all words
+                -> CompressedTrie a v
+buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
   where
-    suffixes = filter ((> 7) . length) (tails $ toList xs)
-
-buildIndexedSuffixTrie :: (Foldable f, Ord a, Eq v)
-                          => f a
-                       -> v
-                       -> CompressedTrie a (v, Int)
-buildIndexedSuffixTrie xs v = buildTrie $ zip suffixes (zip (repeat v) [0.. ])
-  where
-    suffixes = filter ((> 7) . length) (tails $ toList xs)
+    n = fromMaybe 0 minSuffixLength
+    suffixes = filter ((> n) . length) (tails $ toList xs)
 
 buildTrieWith :: (Foldable f, Foldable f', Ord a, Eq v)
                  => (v -> v -> v)
@@ -118,6 +119,7 @@ wordsInTrie t = V.fromList $ do
   (w,v) <- wordsInTrie' t
   [(V.fromList w, v)]
 
+-- | A list of words in the trie complete with their annotation
 wordsInTrie' :: CompressedTrie a v -> [([a],v)]
 wordsInTrie' (CTrieLeaf v) = [([],v)]
 wordsInTrie' (CTrieNode mp v) =

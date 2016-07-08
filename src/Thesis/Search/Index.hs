@@ -76,7 +76,8 @@ buildIndexForJava dict postsFile ngramSize = do
       =$ (CL.foldM (\trie -> \(str, v) -> do
                        mapM_ (lift . stToIO . BF.Mutable.insert mutableBF) $
                          (hash <$> ngrams ngramSize (V.toList str))
-                       return $ mergeTries trie (buildSuffixTrie str (S.singleton v))
+                       return $ mergeTries trie
+                                  (buildSuffixTrie (Just 7) str (S.singleton v))
                    )
                    Trie.empty
          )
