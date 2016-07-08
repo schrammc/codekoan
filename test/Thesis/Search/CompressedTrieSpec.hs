@@ -49,6 +49,8 @@ allMinlengthSuffixesPresent =
                          then (Just n)
                          else Nothing
 
+-- | Property that ensures, that the words in a suffix trie are equal to
+-- suffixes of 'w' that are of length at least 'n'
 suffixesProperty n = property $ \(w :: String) ->
   if null w
   then True
