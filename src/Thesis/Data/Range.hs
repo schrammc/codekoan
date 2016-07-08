@@ -8,7 +8,7 @@ data Range = Range Int Int
 
 -- | The number of characters in a range
 rangeLength :: Range -> Int
-rangeLength (Range a b) = b - a + 1
+rangeLength (Range a b) = b - a
 
 -- | From a given list of ranges build a list of ranges so that the ranges are
 -- non-overlapping (i.e. no position is covered by a range twice). Furthermore the
@@ -41,3 +41,8 @@ merge ra@(Range a b) rb@(Range c d) | overlap ra rb =
 overlap :: Range -> Range -> Bool
 overlap (Range a b) (Range c d) =
   (b <= d && c <= b) || (d <= b && a <= d)
+
+-- | Return true if the second range contains the first range
+isSubRangeOf :: Range -> Range -> Bool
+isSubRangeOf (Range a b) (Range c d) = c <= a && d >= b
+  

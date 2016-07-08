@@ -5,6 +5,8 @@ module Thesis.Data.Text.PositionRange ( PositionRange (..)
                                       , textFrom
                                       , textUntil
                                       , textInRange
+
+                                      , isSubPosRangeOf
                                       ) where
 
 import Data.Conduit.Attoparsec
@@ -41,3 +43,7 @@ textUntil (Position l c) t =
   
   where
     textLines = take l $ Text.lines t
+
+-- | Return true if the second range contains the first range
+isSubPosRangeOf :: PositionRange -> PositionRange -> Bool
+isSubPosRangeOf (PositionRange a b) (PositionRange c d) = c <= a && d >= b
