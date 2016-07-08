@@ -11,13 +11,14 @@ import           Data.Foldable
 import           Data.List (tails)
 import qualified Data.Map.Strict as M
 import           Data.Maybe
+import           Data.Monoid ((<>))
 
 import qualified Data.Vector as V
 import           Data.Vector.Binary ()
 
 data CompressedTrie a v where
   CTrieNode :: Ord a
-               => !(M.Map a ([a], CompressedTrie a v))
+               => !(M.Map a (V.Vector a, CompressedTrie a v))
                -- ^ Structural information of the trie
             -> !(Maybe v)
                -- ^ The annotation of a completed word
@@ -39,7 +40,8 @@ linearTrie' :: (Ord a) => [a] -> v -> CompressedTrie a v
 linearTrie' [] !v = CTrieNode M.empty (Just v)
 linearTrie' !xs@(x:_) !v = CTrieNode mp Nothing
   where
-    mp = M.singleton x $! (xs, CTrieLeaf v)
+    vec = V.fromList xs
+    mp = vec `seq` M.singleton x $! (vec, CTrieLeaf v)
 
 
 -- | Merge two tries with a merging function if two values are at the end of the
@@ -58,22 +60,22 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
     merge (va, ta) (vb, tb) | va == vb = (va, mergeTriesWith f ta tb)
                             | otherwise =
       let (common, ra, rb) = pref va vb
-          nd | ra == [] =
-            let new = CTrieNode (M.singleton (head rb) (rb, tb)) (g ta)
-                other = snd $ fromJust $ M.lookup (head common) mp
+          nd | ra == V.empty =
+            let new = CTrieNode (M.singleton (V.head rb) (rb, tb)) (g ta)
+                other = snd $ fromJust $ M.lookup (V.head common) mp
             in mergeTriesWith f new other
-             | rb == [] =
-            let new = CTrieNode (M.singleton (head ra) (ra, ta)) (g tb)
-                other = snd $ fromJust $ M.lookup (head common) mp'
+             | rb == V.empty =
+            let new = CTrieNode (M.singleton (V.head ra) (ra, ta)) (g tb)
+                other = snd $ fromJust $ M.lookup (V.head common) mp'
             in mergeTriesWith f new other
-             | otherwise = CTrieNode (M.fromList $ [(head ra, (ra,ta))
-                                                   ,(head rb, (rb,tb))]) Nothing
+             | otherwise = CTrieNode (M.fromList $ [(V.head ra, (ra,ta))
+                                                   ,(V.head rb, (rb,tb))]) Nothing
       in (common, nd)
-    pref va vb = let commons  = takeWhile (\(a,b) -> a == b) (zip va vb)
-                     common   = fst $ unzip commons
+    pref va vb = let commons  = V.takeWhile (\(a,b) -> a == b) (V.zip va vb)
+                     common   = fst $ V.unzip commons
                      n        = length common
-                     (ra, rb) = (drop n va, drop n vb)
-                 in (common, ra, rb)
+                     (ra, rb) = (V.drop n va, V.drop n vb)
+                 in common `seq` ra `seq` rb `seq` (common, ra, rb)
     g (CTrieLeaf x)  = Just x
     g (CTrieNode _ x) = x
     
@@ -126,7 +128,7 @@ wordsInTrie' (CTrieNode mp v) =
   let childResults = do
         (_, (vec,t)) <- M.toList mp
         (xs, v) <- wordsInTrie' t
-        [(vec ++ xs, v)]
+        [(V.toList vec <> xs, v)]
   in maybe childResults (\v' -> ([],v'):childResults) v
 
 -- | Yield the values of this node and all it's children

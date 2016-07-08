@@ -10,6 +10,9 @@ import qualified Data.Map.Strict as M
 import Data.Foldable
 import qualified Data.Set as S
 
+import Data.Monoid ((<>))
+import qualified Data.Vector as V
+
 --------------------------------------------------------------------------------
 --
 -- Implementation of efficient Levenstein Automata
@@ -129,11 +132,11 @@ lookupWithL' acceptScore aut (CTrieLeaf v) st =
 lookupWithL' acceptScore aut (CTrieNode mp v) st = cur ++ do
   (_,(xs, t)) <- M.toList mp
   newState <- toList $ foldlM f st xs
-  extend xs <$> lookupWithL' acceptScore aut t newState
+  extend (V.toList xs) <$> lookupWithL' acceptScore aut t newState
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
-   extend cs (cs', v', s) = (cs ++ cs', v', s)
+   extend cs (cs', v', s) = (cs <> cs', v', s)
    cur = toList ( ([],,) <$> v <*> acceptScore aut st)
 
 lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
@@ -157,11 +160,11 @@ lookupSuff acceptScore aut (CTrieLeaf v) st _ =
 lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
   (_,(xs, t)) <- M.toList mp
   newState <- toList $ foldlM f st xs
-  extend xs <$> lookupSuff acceptScore aut t newState (d + length xs)
+  extend (V.toList xs) <$> lookupSuff acceptScore aut t newState (d + length xs)
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
-   extend cs (cs', v', s) = (cs ++ cs', v', s)
+   extend cs (cs', v', s) = (cs <> cs', v', s)
    cur = let score = toList $ acceptScore aut st
              hits = if d > 10
                     then do
