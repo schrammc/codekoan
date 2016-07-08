@@ -101,11 +101,13 @@ allFields = [ ".backoff"
             , "filter.included_fields"
             ]
 
+-- | A handle to access Stackoverflow-Data through the API
 soAPIAccess :: SOAccess
 soAPIAccess = SOAccess { getSOQuestion = requestQuestion defaultCrawler
                        , getSOAnswer = requestAnswer defaultCrawler
                        , getSOAnswersTo = requestAnswersTo defaultCrawler}
 
+-- | Get a question with a given ID from Stackoverflow
 requestQuestion :: CrawlerConfig -> QuestionId -> IO (Maybe Question)
 requestQuestion conf qId = do
   resultObject <- requestQuestionWrapper conf qId
@@ -113,6 +115,7 @@ requestQuestion conf qId = do
     filterObj <- wrapperItems resultObject !? 0
     Aeson.parseMaybe Aeson.parseJSON filterObj
 
+-- | Get an answer with the given ID from stackoverflow
 requestAnswer :: CrawlerConfig -> AnswerId -> IO (Maybe Answer)
 requestAnswer CrawlerConfig{..} AnswerId{..} = do
   request <- parsedRequest
@@ -129,6 +132,7 @@ requestAnswer CrawlerConfig{..} AnswerId{..} = do
     baseURL = "http://api.stackexchange.com/" ++ apiVersion ++ "/answers/"
               ++ (show answerIdInt) ++ "/?"
 
+-- | List the ID's of answers to the given question
 requestAnswersTo :: CrawlerConfig -> QuestionId -> IO (Maybe [AnswerId])
 requestAnswersTo conf qId = do
   resultObject <- requestQuestionWrapper conf qId
@@ -138,6 +142,7 @@ requestAnswersTo conf qId = do
                        (fmap answerId) <$> (o .: "answers" :: Aeson.Parser [Answer])
                        ) filterObj
 
+-- | Request a question and return the reply - wrapper object unmodified.
 requestQuestionWrapper :: CrawlerConfig -> QuestionId -> IO WrapperObject
 requestQuestionWrapper CrawlerConfig{..} QuestionId{..} = do
   request <- parsedRequest
