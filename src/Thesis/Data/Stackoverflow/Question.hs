@@ -3,6 +3,8 @@ module Thesis.Data.Stackoverflow.Question where
 
 import Data.Attoparsec.Text as AP
 
+import Data.Aeson
+import Data.Maybe (fromMaybe)
 import Data.Text
 
 import qualified Data.Vector as V
@@ -21,6 +23,14 @@ data Question = Question { questionId :: !QuestionId
 newtype QuestionId = QuestionId {questionIdInt :: Int}
                    deriving (Show, Eq)
 
+instance FromJSON Question where
+  parseJSON (Object o) = Question <$>
+                  (QuestionId <$> o .: "question_id") <*>
+                  (fromMaybe "" <$> o .:? "body") <*>
+                  o .: "title" <*>
+                  o .: "score" <*>
+                  o .: "tags"
+  parseJSON _ = fail "Expected a answer-json object, got something else!"
                             
 -- | Parse a question from a post element of the Stackoverflow data dump given
 -- the question's id and the body of the question as 'Text'
