@@ -41,6 +41,7 @@ library
                      , Thesis.Search.Trie
 
   build-depends:       attoparsec >= 0.13
+                     , aeson >= 0.11
                      , base >= 4.7 && < 5
                      , binary >= 0.7.5.0
                      , bloomfilter >= 2.0.1.0
@@ -52,6 +53,7 @@ library
                      , exceptions >= 0.8.2.1
                      , hashable >= 1.2.4.0
                      , html-conduit >= 1.2
+                     , http-conduit >= 2.1.10
                      , parallel >= 3.2
                      , resourcet >= 1.1.7.4
                      , text >= 1.2.2.1
