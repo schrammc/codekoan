@@ -70,7 +70,7 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
             in mergeTriesWith f new other
              | otherwise = CTrieNode (M.fromList $ [(V.head ra, (ra,ta))
                                                    ,(V.head rb, (rb,tb))]) Nothing
-      in (common, nd)
+      in nd `seq` (common, nd)
     pref va vb = let commons  = V.takeWhile (\(a,b) -> a == b) (V.zip va vb)
                      common   = fst $ V.unzip commons
                      n        = length common
@@ -92,27 +92,33 @@ mergeTries = mergeTriesWith const
 -- Beware, that this implementation does not yet use a linear time suffix tree
 -- construction algorithm like ukkonens and there is considerable room for
 -- improvement in performance here!
-buildSuffixTrie :: (Foldable f, Ord a, Eq v)
+buildSuffixTrie :: (Ord a, Eq v)
                    => Maybe Int -- ^ The minimum length of indexed suffixes
-                -> f a -- ^ The word to index
+                -> V.Vector a -- ^ The word to index
                 -> v   -- ^ An annotation, that will be used for all indexed
                        -- suffixes of all words
                 -> CompressedTrie a v
 buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
   where
     n = fromMaybe 0 minSuffixLength
-    suffixes = filter ((> n) . length) (tails $ toList xs)
+    suffixes = filter ((> n) . length) (vtails xs)
 
-buildTrieWith :: (Foldable f, Foldable f', Ord a, Eq v)
+vtails :: V.Vector a -> [V.Vector a]
+vtails v = do
+  start <- [0 .. V.length v]
+  let n = (V.length v) - start
+  return $ V.slice start n v
+
+buildTrieWith :: (Foldable f, Ord a, Eq v)
                  => (v -> v -> v)
-              -> f (f' a,v)
+              -> f (V.Vector a,v)
               -> CompressedTrie a v
 buildTrieWith f xs = foldl' merge empty xs
   where
-    merge t (ys, v) = mergeTriesWith f (linearTrie ys v) t
+    merge t (ys, v) = mergeTriesWith f (linearTrie' ys v) t
 
 -- | Only uses the last value in the given sequence in case of conflict
-buildTrie :: (Foldable f, Foldable f', Ord a, Eq v) => f (f' a,v)
+buildTrie :: (Foldable f, Ord a, Eq v) => f (V.Vector a,v)
           -> CompressedTrie a v
 buildTrie = buildTrieWith const
 
