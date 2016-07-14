@@ -94,7 +94,7 @@ mergeTries = mergeTriesWith const
 -- improvement in performance here!
 buildSuffixTrie :: (Foldable f, Ord a, Eq v)
                    => Maybe Int -- ^ The minimum length of indexed suffixes
-                -> f a -- ^ The words to index
+                -> f a -- ^ The word to index
                 -> v   -- ^ An annotation, that will be used for all indexed
                        -- suffixes of all words
                 -> CompressedTrie a v
