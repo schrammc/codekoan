@@ -3,6 +3,8 @@
 
 module Thesis.Data.Stackoverflow.Answer where
 
+import Control.DeepSeq
+
 import Data.Aeson
 import Data.Binary
 import Data.Text
@@ -45,16 +47,22 @@ parseAnswer idInt body= do
   parent <- readAttribute "ParentId"
   return $ Answer (AnswerId idInt) body score parent
 
-data AnswerFragmentId = AnswerFragmentId { fragmentAnswerId :: AnswerId
-                                         , fragmentId :: Int
+data AnswerFragmentId = AnswerFragmentId { fragmentAnswerId :: !AnswerId
+                                         , fragmentId :: !Int
                                          }
                         deriving (Show, Eq, Ord)
 
+instance NFData AnswerFragmentId where
+  rnf AnswerFragmentId{..} = ()
+
 data AnswerFragmentMetaData =
   AnswerFragmentMetaData { fragmentMetaId :: AnswerFragmentId
-                         , fragmentMetaSize :: Int
+                         , fragmentMetaSize :: !Int
                          }
   deriving (Show, Eq, Ord)
+
+instance NFData AnswerFragmentMetaData where
+  rnf AnswerFragmentMetaData{..} = deepseq fragmentMetaId ()
 
 fragmentMetaAnswerId :: AnswerFragmentMetaData -> AnswerId
 fragmentMetaAnswerId AnswerFragmentMetaData{..} =

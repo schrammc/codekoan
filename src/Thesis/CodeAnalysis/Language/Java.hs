@@ -1,6 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -27,6 +28,8 @@ import           GHC.Generics (Generic)
 
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
+
+import Control.DeepSeq
 
 data Java
 
@@ -91,7 +94,7 @@ data Token = TokenLT
            | TokenCharacterLiteral
            | TokenModifier
            | TokenAnnotation
-           deriving (Show,Eq, Ord, Generic)
+           deriving (Show,Eq, Ord, Generic, NFData)
 
 instance Hashable Token
 

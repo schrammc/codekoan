@@ -16,6 +16,8 @@ import           Data.Monoid ((<>))
 import qualified Data.Vector as V
 import           Data.Vector.Binary ()
 
+import Control.DeepSeq
+
 data CompressedTrie a v where
   CTrieNode :: Ord a
                => !(M.Map a (V.Vector a, CompressedTrie a v))
@@ -29,20 +31,22 @@ deriving instance (Show a, Show v) => Show (CompressedTrie a v)
 
 deriving instance (Ord a, Eq v) => Eq (CompressedTrie a v)
 
+instance (NFData a, NFData v) => NFData (CompressedTrie a v) where
+   rnf (CTrieLeaf v) = deepseq v ()
+   rnf (CTrieNode mp v) = deepseq mp $ deepseq v ()
+
 empty :: (Ord a) => CompressedTrie a v
 empty = CTrieNode M.empty Nothing
 
 linearTrie :: (Foldable f, Ord a) => f a -> v -> CompressedTrie a v
-linearTrie !xs !v = linearTrie' (toList xs) v
+linearTrie !xs !v = linearTrie' (V.fromList $ toList xs) v
 
--- | Helper function for 'linearTrie' that works with lists
-linearTrie' :: (Ord a) => [a] -> v -> CompressedTrie a v
-linearTrie' [] !v = CTrieNode M.empty (Just v)
-linearTrie' !xs@(x:_) !v = CTrieNode mp Nothing
+linearTrie' :: (Ord a) => V.Vector a -> v -> CompressedTrie a v
+linearTrie' !vec !v | V.null vec = CTrieNode M.empty (Just v)
+                    | otherwise  = CTrieNode mp Nothing
   where
-    vec = V.fromList xs
+    x = V.head vec
     mp = vec `seq` M.singleton x $! (vec, CTrieLeaf v)
-
 
 -- | Merge two tries with a merging function if two values are at the end of the
 -- same path
@@ -103,6 +107,7 @@ buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
     n = fromMaybe 0 minSuffixLength
     suffixes = filter ((> n) . length) (vtails xs)
 
+-- | Like Data.List.tails for Vector. This doesn't copy the vector's contents.
 vtails :: V.Vector a -> [V.Vector a]
 vtails v = do
   start <- [0 .. V.length v]

@@ -35,6 +35,8 @@ import           Thesis.Search.BloomFilter
 import           Thesis.Search.CompressedTrie as Trie
 import           Thesis.Search.NGrams
 
+import Control.DeepSeq
+
 data SearchIndex t l where
   SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)
                  , indexTrie :: !(CompressedTrie t (S.Set AnswerFragmentMetaData))
@@ -83,5 +85,5 @@ buildIndexForJava dict postsFile ngramSize = do
          )
 
   bf <- BloomFilter <$> (stToIO $ BF.freeze mutableBF)
-  return $ SearchIndex java tr bf ngramSize
+  return $ SearchIndex java (force tr) bf ngramSize
 

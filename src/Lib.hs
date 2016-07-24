@@ -40,7 +40,7 @@ dictPath :: String
 dictPath = "/home/kryo/data/stackoverflow_dump/data_dictionary"
 
 xmlFilePath :: String
-xmlFilePath = "/home/kryo/posts_abridged.xml"
+xmlFilePath = "/home/kryo/data/stackoverflow_dump/posts_abridged.xml"
 --xmlFilePath = "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
 
 someFunc :: IO ()
