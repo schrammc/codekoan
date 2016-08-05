@@ -52,8 +52,9 @@ data AppSettings = AppSettings
     , appAnalytics              :: Maybe Text
     -- ^ Google Analytics code
 
-    , appXMLPath :: String
+    , appTriePath :: String
     , appDictPath :: String
+    , appBloomNGramSize :: Int
     }
 
 instance FromJSON AppSettings where
@@ -78,8 +79,9 @@ instance FromJSON AppSettings where
 
         appCopyright              <- o .: "copyright"
         appAnalytics              <- o .:? "analytics"
-        appXMLPath                <- o .: "post-xml-path"
+        appTriePath                <- o .: "trie-path"
         appDictPath               <- o .: "so-dictionary-path"
+        appBloomNGramSize         <- o .: "analysis-ngram-size"
 
         return AppSettings {..}
 

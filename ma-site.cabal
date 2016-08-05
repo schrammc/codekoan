@@ -23,6 +23,8 @@ library
                      Handler.Home
                      Handler.Comment
                      Handler.Submit
+                     Handler.Display
+                     Helpers
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
@@ -81,7 +83,7 @@ library
                  , case-insensitive
                  , wai
 
-                 , ma-xml-analyzer >= 0.1.0.0
+                 , ma-xml-analyzer >= 0.4.0.0
 
 executable         ma-site
     if flag(library-only)

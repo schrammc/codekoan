@@ -25,9 +25,11 @@ import Network.Wai.Middleware.RequestLogger (Destination (Logger),
                                              OutputFormat (..), destination,
                                              mkRequestLogger, outputFormat)
 import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
-                                             toLogStr)
+                                             toLogStr,pushLogStrLn, LogStr)
 
+import Thesis.CodeAnalysis.Language.Java (java)
 import Thesis.Search
+import Thesis.Search.Index
 import Thesis.Data.Stackoverflow.Dictionary
 
 -- Import all relevant handler modules here.
@@ -36,6 +38,9 @@ import Handler.Common
 import Handler.Home
 import Handler.Comment
 import Handler.Submit
+import Handler.Display
+
+import qualified Data.Vector as V
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -56,10 +61,11 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
 
+    let appNGramSize = appBloomNGramSize appSettings
+
     appDict <- readDictionary $ appDictPath appSettings
-    appIndex <- buildIndexForJava appDict
-                                  (appXMLPath appSettings)
-                                  10
+    appIndex <- buildIndexForJava appDict (appTriePath appSettings) appNGramSize
+    appIndex `seq` pushLogStrLn (loggerSet appLogger) "Index complete"
 
     -- Return the foundation
     return App {..}

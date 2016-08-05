@@ -2,8 +2,9 @@ module Handler.Home where
 
 import Import
 
-import Thesis.Search (indexTrie)
-import Thesis.Trie (countEntries)
+import Thesis.Search.Index (indexTrie)
+import Thesis.Search.CompressedTrie (wordsInTrie)
+import qualified Data.Vector as V
 
 -- This is a handler function for the GET request method on the HomeR
 -- resource pattern. All of your resource patterns are defined in
@@ -16,7 +17,7 @@ getHomeR :: Handler Html
 getHomeR = do
   foundation <- getYesod
   let index = appIndex foundation
-      indexSize = countEntries (const 1) (indexTrie index)
+      indexSize = V.length $ wordsInTrie (indexTrie index)
   defaultLayout $ do
     setTitle "Welcome!"
     $(widgetFile "homepage")

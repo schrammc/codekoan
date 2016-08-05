@@ -23,5 +23,8 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 copyright: "Copyright: Christof Schramm 2016"
 #analytics: UA-YOURCODE
 
-post-xml-path: "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
+analysis-ngram-size: 10
+
+# trie-path: "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
+trie-path: "/home/kryo/data/stackoverflow_dump/posts_abridged.xml"
 so-dictionary-path: "/home/kryo/data/stackoverflow_dump/data_dictionary"

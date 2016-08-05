@@ -4,6 +4,7 @@
 /robots.txt RobotsR GET
 
 / HomeR GET
-
+/display DisplayR GET
 /comments CommentR POST
 /submit SubmitR GET POST
+

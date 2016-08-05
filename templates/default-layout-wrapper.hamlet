@@ -21,6 +21,7 @@ $newline never
     \<![endif]-->
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.js">
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.0.3/js.cookie.min.js">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js">
 
     <script>
       /* The `defaultCsrfMiddleware` Middleware added in Foundation.hs adds a CSRF token the request cookies. */
@@ -47,7 +48,7 @@ $newline never
       <header>
       <div id="main" role="main">
         ^{pageBody pc}
-      <footer>
+      <footer class="text-center well">
         #{appCopyright $ appSettings master}
 
     $maybe analytics <- appAnalytics $ appSettings master

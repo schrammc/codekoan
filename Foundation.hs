@@ -9,8 +9,9 @@ import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 
-import Thesis.Search
-import Thesis.Tokenizer
+import Thesis.Search.Index
+import Thesis.CodeAnalysis.Language
+import Thesis.CodeAnalysis.Language.Java
 import Thesis.Data.Stackoverflow.Dictionary
 
 -- | The foundation datatype for your application. This can be a good place to
@@ -24,6 +25,7 @@ data App = App
     , appLogger      :: Logger
     , appDict        :: DataDictionary
     , appIndex       :: SearchIndex Token Java
+    , appNGramSize   :: Int
     }
 
 -- This is where we define all of the routes in our application. For a full
@@ -129,11 +131,3 @@ instance HasHttpManager App where
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
-
--- Note: Some functionality previously present in the scaffolding has been
--- moved to documentation in the Wiki. Following are some hopefully helpful
--- links:
---
--- https://github.com/yesodweb/yesod/wiki/Sending-email
--- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
--- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
