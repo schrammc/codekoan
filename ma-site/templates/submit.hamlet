@@ -1,0 +1,24 @@
+<h1 class="jumbotron text-center">
+  Submit your java code for analysis
+
+<form method=post action=@{SubmitR}#form enctype=#{formEnctype}>
+  ^{formWidget}
+
+<hr>
+
+$maybe (tokensMaybe,resultWidgetMaybe) <- result
+  <div>
+    $maybe resultWidget <- resultWidgetMaybe
+      ^{resultWidget}
+    $nothing
+      Search failure!
+
+    <hr>
+
+    <h2.text-center> Tokens:
+    $maybe tokens <- tokensMaybe
+      <button data-toggle="collapse" data-target="#tokenslist">Show tokens
+      <div id="tokenslist" class="collapse">
+        The tokens are #{tokens}
+    $nothing
+      Tokenizer failure!
