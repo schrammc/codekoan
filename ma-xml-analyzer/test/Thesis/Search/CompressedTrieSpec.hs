@@ -28,7 +28,7 @@ aFewWords = it "should correctly read a few fixed example words" $ do
   let tr = buildTrie ws
   (V.length $ wordsInTrie tr) `shouldBe` 3
   where
-    ws = zip ["abcdef", "abc", "abcdxxy"] [1..]
+    ws = zip (V.fromList <$> ["abcdef", "abc", "abcdxxy"]) [1..]
 
 -- | This quickcheck test ensures, that nonempty suffixes of all given words are
 -- present in a suffix trie. This is a special case of
@@ -57,6 +57,7 @@ suffixesProperty n = property $ \(w :: String) ->
   else
     let n' = max 0 (fromMaybe 0 n)
         nonemptySuffixes = sort $ filter (\x -> length x > n') $ tails w
-        tr = buildSuffixTrie n w (0 :: Int)
+        w' = V.fromList w
+        tr = buildSuffixTrie n w' (0 :: Int)
         trieWords = sort  $ fst <$> wordsInTrie' tr
     in trieWords == nonemptySuffixes

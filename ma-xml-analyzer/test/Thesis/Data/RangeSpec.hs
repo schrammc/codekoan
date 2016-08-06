@@ -5,6 +5,7 @@ import Data.Maybe
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck
+
 import Thesis.Data.Range
 
 instance Arbitrary Range where
