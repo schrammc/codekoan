@@ -16,7 +16,7 @@ import Thesis.Search
 import Thesis.Search.ResultSet
 import Thesis.Search.SearchResult
 
-import Thesis.Data.Text.PositionRange
+import Thesis.Data.Range
 import Thesis.Data.Range (coveragePercentage)
 import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
@@ -102,18 +102,12 @@ singleResultWidget txt res@(SearchResult{..}) = do
                      (fromIntegral $ fragmentMetaSize resultMetaData))
     showList xs = "[" ++ (concat $ List.intersperse ", " $ show <$> xs)  ++ "]" :: String
 
-codeSnippetWidget :: PositionRange -> Text -> Widget
-codeSnippetWidget range@(PositionRange pa pb) t =
-  formattedCode
+codeSnippetWidget :: Range -> Text -> Widget
+codeSnippetWidget range@(Range pa pb) t =
+  [whamlet|<div class="well">
+             <code>#{codeText}|]
   where
     codeText = textInRange range t
-    firstLineSpaces = Text.pack $ take (posCol pa) (repeat ' ')
-    codeLines = case Text.lines codeText of
-      [] -> []
-      (l:ls) -> (firstLineSpaces <> l):(ls)
-    formattedCode = sequence_ $ do
-      (n, l) <- zip [posLine pa ..] codeLines
-      return $ [whamlet|#{Text.pack (show n)}:<code>#{l}</code>|]
 
 submitCodeForm :: Html
                -> MForm Handler (FormResult (LanguageText Java, Int, Int, Double, Bool), Widget)

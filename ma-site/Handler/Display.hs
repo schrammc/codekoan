@@ -182,7 +182,7 @@ buildRanges t rs = do
   return $ (range, resultData)
   where
     results = listOfResults rs
-    resultRanges = toRanges t (resultTextRange <$> results)
+    resultRanges = resultTextRange <$> results
     resultData = resultMetaData <$> results
     resultRangesWithData = zip resultRanges resultData
 
