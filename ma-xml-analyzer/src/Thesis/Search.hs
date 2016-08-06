@@ -11,6 +11,8 @@ import           Data.Hashable (Hashable)
 import qualified Data.Set as S
 import qualified Data.Vector as V
 
+import           Data.Maybe(fromJust)
+
 import           Control.Parallel.Strategies
 
 import           Thesis.CodeAnalysis.Language
@@ -58,13 +60,13 @@ findMatches index@(SearchIndex{..}) n t = do
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
-mergePositionRanges :: PositionRange -> PositionRange -> PositionRange
-mergePositionRanges (PositionRange start _) (PositionRange _ end) =
-                        PositionRange start end
+mergePositionRanges :: Range -> Range -> Range
+mergePositionRanges (Range start _) (Range _ end) =
+                        Range start end
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
-ngramWithRange :: [(PositionRange, t)] -> Maybe (PositionRange, [t])
+ngramWithRange :: [(Range, t)] -> Maybe (Range, [t])
 ngramWithRange [] = Nothing
 ngramWithRange xs = let (rs, ts) = unzip xs
                     in Just (foldl1 mergePositionRanges rs, ts)

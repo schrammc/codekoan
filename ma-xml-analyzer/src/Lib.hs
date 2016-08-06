@@ -29,7 +29,7 @@ import Thesis.Data.Stackoverflow.StackoverflowPost
 import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
 import Thesis.Data.Stackoverflow.Dictionary
-import Thesis.Data.Text.PositionRange
+import Thesis.Data.Range
 
 import Thesis.Search
 import Thesis.Search.SearchResult

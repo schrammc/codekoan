@@ -14,11 +14,8 @@ import           Data.Attoparsec.Text as AP
 
 import           Data.Binary (Binary)
 
+import  Data.List
 import           Data.Char
-
-import           Data.Conduit
-import           Data.Conduit.Attoparsec
-import qualified Data.Conduit.List as CL
 
 import           Data.Hashable (Hashable)
 
@@ -29,6 +26,10 @@ import           GHC.Generics (Generic)
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 
+import qualified Data.Vector as V
+
+import           Thesis.Data.Range
+import Data.Maybe (catMaybes, mapMaybe)
 import Control.DeepSeq
 
 data Java
@@ -39,18 +40,6 @@ java = Language { removeComments = LanguageText
                 , tokenize = tokenizeJ
                 }
 
-tokenizeJ :: Conduit (LanguageText Java) Maybe (PositionRange, Token)
-tokenizeJ = CL.map langText
-            =$= conduitParser completeParser
-            =$= filterNothings
-  where
-    completeParser = (AP.takeWhile isHorizontalSpace) *> tokenOrComment
-    tokenOrComment = ((const Nothing) <$> (javaStyleComment <|> endOfLine)
-                     ) <|> (Just <$> token)
-    filterNothings =
-      awaitForever $ \(pos, x) -> do
-        mapM_ (yield . (pos, )) x
-
 -- | Remove all lines starting with import 
 removeImportLines :: LanguageText Java -> LanguageText Java
 removeImportLines LanguageText{..} =
@@ -58,6 +47,29 @@ removeImportLines LanguageText{..} =
   where
     isImport = not . (Text.isPrefixOf "import")
     ls = Text.lines langText
+
+tokenizeJ :: LanguageText Java -> Maybe (V.Vector (Range, Token))
+tokenizeJ LanguageText{..} = do
+  res <- parseResult
+  let (_, tokens) = mapAccumL f 0 res
+  return $! V.fromList $ mapMaybe (\(r, t) -> (r,) <$> t) tokens
+  where
+    f n (k,t) = (n+k, (Range n (n+k), t))
+    
+    parseResult :: Maybe [(Int, Maybe Token)]
+    parseResult = case AP.parseOnly (many' lenParser) langText of
+      Right xs -> Just xs
+      _ -> Nothing
+
+    -- | Parse a token or skip an area (Nothing if skipped). Also yields the
+    -- length of the
+    lenParser :: Parser (Int, Maybe Token)
+    lenParser = do
+      (txt, token) <- AP.match tokenOrComment
+      return $ (Text.length txt, token)
+
+    tokenOrComment = ((const Nothing) <$> skipP) <|> (Just <$> token)
+    skipP = many1 space *> pure () <|> javaStyleComment
 
 data Token = TokenLT
            | TokenGT

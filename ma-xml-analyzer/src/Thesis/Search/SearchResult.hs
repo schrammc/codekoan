@@ -7,7 +7,7 @@ import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Text.PositionRange
 
 data SearchResult t  =
-  SearchResult { resultTextRange :: PositionRange
+  SearchResult { resultTextRange :: Range
                , resultMatchedTokens :: [t]
                , resultMetaData :: AnswerFragmentMetaData
                , resultFragmentRange :: Range
@@ -26,8 +26,8 @@ subsumedBy a b = fragmentSubsumption && textRangeSubsumption && tokenSubsumption
                                        (resultMatchedTokens b)
     fragmentSubsumption = isSubRangeOf (resultFragmentRange a)
                                        (resultFragmentRange b)
-    textRangeSubsumption = isSubPosRangeOf (resultTextRange a)
-                                           (resultTextRange b)
+    textRangeSubsumption = isSubRangeOf (resultTextRange a)
+                                        (resultTextRange b)
 
 subsumedByProper :: (Eq t) => SearchResult t -> SearchResult t -> Bool
 subsumedByProper a b =

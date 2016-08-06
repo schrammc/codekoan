@@ -71,8 +71,8 @@ buildIndexForJava dict postsFile ngramSize = do
               return $ (code, AnswerFragmentId answerId n))
       =$= CL.concat
       =$= (CL.map $ \(c, aId) -> do
-              tokenV <- buildTokenVector java (LanguageText c)
-              Just $ (tokenV,AnswerFragmentMetaData aId (V.length tokenV))
+              tokenV <- tokenize java (LanguageText c)
+              Just $ (snd <$> tokenV,AnswerFragmentMetaData aId (V.length tokenV))
           )
       =$= CL.catMaybes
       =$ (CL.foldM (\trie -> \(str, v) -> do
@@ -85,5 +85,5 @@ buildIndexForJava dict postsFile ngramSize = do
          )
 
   bf <- BloomFilter <$> (stToIO $ BF.freeze mutableBF)
-  return $ SearchIndex java (force tr) bf ngramSize
+  return $ SearchIndex java tr bf ngramSize
 

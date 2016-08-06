@@ -69,11 +69,14 @@ merge ra@(Range a b) rb@(Range c d) | overlap ra rb =
                                         Just $ Range (min a c) (max b d)
                                     | otherwise = Nothing
 
--- | A predicate to tell if two ranges overlap
+-- | A predicate to tell if two ranges overlap or touch
 overlap :: Range -> Range -> Bool
 overlap (Range a b) (Range c d) =
-  (b <= d && c < b) || (d <= b && a < d)
+  (b <= d && c <= b) || (d <= b && a <= d)
 
 -- | Return true if the second range contains the first range
 isSubRangeOf :: Range -> Range -> Bool
 isSubRangeOf (Range a b) (Range c d) = c <= a && d >= b
+
+textInRange :: Range -> Text -> Text
+textInRange (Range a b) txt = Text.take (b - (a)) (Text.drop a txt)
