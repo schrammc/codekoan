@@ -26,6 +26,7 @@ library
                      , Thesis.Data.Stackoverflow.Question
                      , Thesis.Data.Stackoverflow.StackoverflowPost
                      , Thesis.Data.Stackoverflow.Dictionary
+                     , Thesis.Data.Stackoverflow.Dictionary.Database
                      , Thesis.Data.Stackoverflow.Dump
                      , Thesis.Data.Text.PositionRange
                      , Thesis.Data.Range
@@ -40,8 +41,10 @@ library
                      , Thesis.Search.SearchResult
                      , Thesis.Search.Trie
 
-  build-depends:       attoparsec >= 0.13
+  build-depends:       HDBC >= 2.4
+                     , HDBC-sqlite3 >= 2.3.3
                      , aeson >= 0.11
+                     , attoparsec >= 0.13
                      , base >= 4.7 && < 5
                      , binary >= 0.7.5.0
                      , bloomfilter >= 2.0.1.0
@@ -50,6 +53,7 @@ library
                      , conduit-extra >= 1.1.13
                      , containers >= 0.5.6.2
                      , deepseq >= 1.4
+                     , directory >= 1.2.2.0
                      , exceptions >= 0.8.2.1
                      , hashable >= 1.2.4.0
                      , html-conduit >= 1.2
@@ -74,6 +78,7 @@ executable ma-xml-analyzer-exe
                      , conduit >= 1.2.6.6
                      , containers >= 0.5.6.2
                      , deepseq >= 1.4
+                     , directory >= 1.2.2.0
                      , exceptions >= 0.8.2.1
                      , hashable >= 1.2.4.0
                      , ma-xml-analyzer
@@ -94,6 +99,7 @@ executable build-index
                      , bytestring >= 0.10.6.0
                      , conduit >= 1.2.6.6
                      , containers >= 0.5.6.2
+                     , directory >= 1.2.2.0
                      , exceptions >= 0.8.2.1
                      , hashable >= 1.2.4.0
                      , ma-xml-analyzer
@@ -108,16 +114,17 @@ test-suite ma-xml-analyzer-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  build-depends:       base
+  build-depends:       QuickCheck >= 2.8
+                     , base
                      , binary >= 0.7.5.0
                      , bytestring >= 0.10.6.0
                      , conduit >= 1.2.6.6
                      , containers >= 0.5.6.2
+                     , directory >= 1.2.2.0
                      , exceptions >= 0.8.2.1
                      , hashable >= 1.2.4.0
                      , hspec >= 2.2.3
                      , ma-xml-analyzer
-                     , QuickCheck >= 2.8
                      , resourcet >= 1.1.7.4
                      , text >= 1.2.2.1
                      , transformers >= 0.4.2.0

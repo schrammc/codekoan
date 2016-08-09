@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 module Thesis.Data.Stackoverflow.Dictionary where
 
-import Data.Text
+import Data.Text hiding (concat)
 
 import Data.Binary
 import GHC.Generics (Generic)
