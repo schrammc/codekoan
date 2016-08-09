@@ -36,13 +36,16 @@ answerRootTags conn aId = do
   case maybeQid of
     Nothing -> return Nothing
     Just QuestionId{..} -> do
-      tagInts <- concat <$> quickQuery' conn
-                                        "SELECT tag FROM questionTags WHERE id = ?"
-                                        [toSql questionIdInt]
+      tagInts <-
+        concat <$> quickQuery' conn
+                               "SELECT tag FROM questionTags WHERE id = ?"
+                               [toSql questionIdInt]
 
-      tagList <- concat <$> quickQuery' conn
-                                        ("SELECT tagtext FROM tags WHERE id in " ++ buildParamList tagInts)
-                                        (toSql <$> tagInts)
+      tagList <-
+        concat <$> quickQuery' conn
+                   ("SELECT tagtext FROM tags WHERE id in " ++
+                    buildParamList tagInts)
+                   (toSql <$> tagInts)
 
       return $ Just (S.fromList $ fromSql <$> tagList)
   where
@@ -90,9 +93,10 @@ buildSqliteDict dbPath dataPath = do
             return ()
           PostQuestion Question{..} -> lift $ do
             qtags <- forM questionTags $ \t -> do
-              tIds <- concat <$>
-                      quickQuery' conn "SELECT id FROM tags WHERE tags.tagtext = ?"
-                                       [toSql t]
+              tIds <-
+                concat <$> quickQuery' conn
+                                      "SELECT id FROM tags WHERE tags.tagtext = ?"
+                                      [toSql t]
               case tIds of
                 [] -> do
                   modifyMVar_ counter (return . (+1))
