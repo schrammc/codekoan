@@ -71,6 +71,11 @@ answerWithTag conn tag aId = do
     Just ts -> return $ S.member tag ts
     Nothing -> return False
 
+-- | Build a dictionary structure in an Sqlite databse. The dictionary structure
+-- will help us answer questions like:
+--   * What is the parent question of an answer
+--   * What tags does the parent question of an answer have
+--   * What other answers exist to a question besides the given one
 buildSqliteDict :: FilePath -> FilePath -> IO ()
 buildSqliteDict dbPath dataPath = do
   
