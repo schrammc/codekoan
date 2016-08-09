@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.Data.Stackoverflow.Question where
 
+import Data.List (nub)
+
 import Data.Attoparsec.Text as AP
 
 import Data.Aeson
@@ -42,7 +44,7 @@ parseQuestion idInt body  = do
   return $ Question (QuestionId idInt) body questionTitle score tags
 
 parseTags :: Parser (V.Vector Text)
-parseTags = V.fromList <$> AP.many' tag
+parseTags = V.fromList . nub <$> AP.many' tag
   where
     tag = do
       char '<'
