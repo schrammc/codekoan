@@ -20,16 +20,20 @@ spec = do
     overlapMergeDefined
     rangeCoverCorrect
 
+-- | The overlap detection function should be symmetrical.
 overlapSymmetry = it "overlap is symmetrical" $ property $ \a -> \b ->
   overlap a b == overlap b a
 
+-- | A property to make sure, that only overlapping ranges have a defined merge
+-- result
 overlapMergeDefined = it "only overlapping ranges have a defined merge result" $
                       property $ \a -> \b -> if overlap a b
                                              then isJust $ merge a b
                                              else isNothing $ merge a b
 
 
-
+-- | A property to make sure that the 'rangeCover' function doesn't produce
+-- overlapping ranges (as these should be merged)
 rangeCoverCorrect = it "no overlaps in range cover" $ property rangeCoverCorrectP
 
 rangeCoverCorrectP [] = rangeCover [] == []

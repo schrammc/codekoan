@@ -23,6 +23,8 @@ spec = do
     allSuffixesPresent
     allMinlengthSuffixesPresent
 
+-- | A trie constructed for three fixed words should show it's number of
+-- contained words as three
 aFewWords :: Spec
 aFewWords = it "should correctly read a few fixed example words" $ do
   let tr = buildTrie ws

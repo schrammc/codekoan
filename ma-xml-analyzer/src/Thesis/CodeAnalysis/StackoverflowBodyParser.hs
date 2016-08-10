@@ -7,7 +7,8 @@ import qualified Data.Text as Text
 import           Text.HTML.DOM
 import           Text.XML.Cursor
 
--- | Reads everything in code tags in the given text parsed as HTML
+-- | Parses the given text as HTML and returns the content of all code tags in
+-- or der of their occurence
 readCodeFromHTMLPost :: Text -> [Text]
 readCodeFromHTMLPost t = readData <$> (fromDocument htmlDoc $// findCode)
   where
