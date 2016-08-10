@@ -1,0 +1,26 @@
+name:                ma-postgres-indexer
+version:             0.1.0.0
+synopsis:            Write stackoverflow posts from the dump to postgresql
+license:             AllRightsReserved
+license-file:        LICENSE
+author:              Christof Schramm
+
+maintainer:          c.schramm@csconsultingsoftware.com
+
+category:            Data
+
+build-type:          Simple
+
+cabal-version:       >=1.22
+
+executable ma-postgres-indexer
+  main-is:             Main.hs
+  build-depends:       base >=4.8 && <4.9
+                     , ma-xml-analyzer >= 0.4.0.0
+                     , postgresql-simple >= 0.5.2
+                     , directory >= 1.2
+
+  hs-source-dirs:      src
+  
+  default-language:    Haskell2010
+  
