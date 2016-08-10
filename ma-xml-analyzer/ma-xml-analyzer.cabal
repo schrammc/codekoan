@@ -10,7 +10,6 @@ maintainer:          christof.schramm@campus.lmu.de
 copyright:           2016 Christof Schramm
 category:            Web
 build-type:          Simple
--- extra-source-files:
 cabal-version:       >=1.10
 
 library
@@ -28,6 +27,7 @@ library
                      , Thesis.Data.Stackoverflow.Dictionary
                      , Thesis.Data.Stackoverflow.Dictionary.Database
                      , Thesis.Data.Stackoverflow.Dump
+                     , Thesis.Data.Stackoverflow.Dump.Export.Postgres
                      , Thesis.Data.Text.PositionRange
                      , Thesis.Data.Range
 
@@ -41,8 +41,7 @@ library
                      , Thesis.Search.SearchResult
                      , Thesis.Search.Trie
 
-  build-depends:       HDBC >= 2.4
-                     , HDBC-sqlite3 >= 2.3.3
+  build-depends:       postgresql-simple >= 0.5.2
                      , aeson >= 0.11
                      , attoparsec >= 0.13
                      , base >= 4.7 && < 5
