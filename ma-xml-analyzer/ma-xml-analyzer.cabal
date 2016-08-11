@@ -42,6 +42,8 @@ library
                      , Thesis.Search.SearchResult
                      , Thesis.Search.Trie
 
+                     , Thesis.Util.ConduitUtils
+
   build-depends:       postgresql-simple >= 0.5.2
                      , aeson >= 0.11
                      , attoparsec >= 0.13

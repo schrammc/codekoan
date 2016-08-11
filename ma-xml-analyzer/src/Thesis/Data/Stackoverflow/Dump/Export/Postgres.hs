@@ -14,15 +14,13 @@ import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
 import Thesis.Data.Stackoverflow.Dump
 
+import Thesis.Util.ConduitUtils
+
 import Data.Conduit hiding (connect)
-import qualified Data.Conduit.List as CL
 import Control.Monad.Trans.Resource
 import Control.Monad.IO.Class (liftIO)
 
 import Database.PostgreSQL.Simple
-
-import Control.Monad (when)
-import Control.Concurrent.MVar
 
 -- | Writes the information in the Stackoverflow XML dump to a specified
 -- postgresql database. Uses
@@ -34,19 +32,10 @@ dumpToPostgres dumpPath connInfo = do
 
   let chunkSize = 500
 
-  counter <- newMVar (0 :: Int)
-
   runResourceT $ do
     postSource dumpPath $$
       chunks chunkSize
-      =$= (CL.iterM $ \posts -> liftIO $ do
-              let n = length posts
-              c <- takeMVar counter
-              putMVar counter (c+n)
-
-              when (c `mod` 25000 == 0) $ print c
-              
-              writePosts connection posts) 
+      =$= everyN (25000 `div` chunkSize) (\k -> liftIO $ print $ chunkSize * k)
       =$= awaitForever return
 
   return ()

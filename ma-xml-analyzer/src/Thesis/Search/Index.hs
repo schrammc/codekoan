@@ -9,6 +9,7 @@ module Thesis.Search.Index where
 
 import           Control.Concurrent.MVar
 import           Control.Monad
+import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.ST
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Resource
@@ -20,7 +21,7 @@ import qualified Data.BloomFilter.Mutable as BF.Mutable
 
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
-import           Data.Hashable (Hashable, hash)
+import           Data.Hashable (hash)
 import qualified Data.Set as S
 import qualified Data.Vector as V
 
@@ -28,14 +29,10 @@ import           Thesis.CodeAnalysis.StackoverflowBodyParser
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.Java
 import           Thesis.Data.Stackoverflow.Answer
-import           Thesis.Data.Stackoverflow.Dictionary
-import           Thesis.Data.Stackoverflow.Dump
-import           Thesis.Data.Stackoverflow.StackoverflowPost
 import           Thesis.Search.BloomFilter
 import           Thesis.Search.CompressedTrie as Trie
 import           Thesis.Search.NGrams
-
-import Control.DeepSeq
+import           Thesis.Util.ConduitUtils
 
 data SearchIndex t l where
   SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)
@@ -55,16 +52,10 @@ buildIndexForJava postSource ngramSize = do
 
   mutableBF <- stToIO $ BF.Mutable.new hashF bloomSize
   
-  nVar <- newMVar (0 :: Integer)
-  
   tr <- runResourceT $ do
     postSource
-      $$ (CL.iterM $ \_ -> lift $ do -- Print a message every 25000 posts to
-                                     -- show progress
-              n <- takeMVar nVar
-              putMVar nVar $! (n+1)
-              when (n `mod` 25000 == 0) $ putStrLn $ show n
-          )
+      $$ maxElements (Just 100000)
+      =$= everyN 25000 (liftIO . print)
       =$= (CL.map $ \Answer{..} -> do
               (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]
               return $ (code, AnswerFragmentId answerId n))
