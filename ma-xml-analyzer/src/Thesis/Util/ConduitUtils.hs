@@ -11,14 +11,16 @@ import Control.Monad
 
 -- | This conduit will pass through a maximum of 'n' input values before
 -- stopping processing.
-maxElements :: (MonadIO m) => Int -> Conduit a m a
-maxElements n = do
+maxElements :: (MonadIO m) => Maybe Int -> Conduit a m a
+maxElements Nothing = awaitForever yield
+maxElements (Just n) = do
   counterVar <- liftIO $ newMVar 0
   go counterVar
   where
+    cap = max 0 n :: Int
     go counterVar = do
       counter <- liftIO $ takeMVar counterVar
-      if counter < n
+      if counter < cap
         then do
           liftIO $ putMVar counterVar (counter + 1)
           x <- await
