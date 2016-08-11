@@ -44,11 +44,12 @@ data SearchIndex t l where
                  , indexNGramSize :: !Int
                  } -> SearchIndex t l
 
-buildIndexForJava :: DataDictionary -- ^ The data dictionary
-                  -> FilePath -- ^ Path to the file with the posts
-                  -> Int      -- ^ NGram size
+buildIndexForJava :: Source (ResourceT IO) Answer
+                     -- ^ A source of answers with java code. To get this use
+                     -- one of the Thesis.Data.Stackoverflow.Dump.* modules
+                  -> Int -- ^ NGram size
                   -> IO (SearchIndex Token Java)
-buildIndexForJava dict postsFile ngramSize = do
+buildIndexForJava postSource ngramSize = do
   let (bloomSize, bloomNumberFs) = BF.Easy.suggestSizing 1000000 0.01
       hashF = BF.Hash.hashes bloomNumberFs  
 
@@ -57,15 +58,13 @@ buildIndexForJava dict postsFile ngramSize = do
   nVar <- newMVar (0 :: Integer)
   
   tr <- runResourceT $ do
-    postSource postsFile
+    postSource
       $$ (CL.iterM $ \_ -> lift $ do -- Print a message every 25000 posts to
                                      -- show progress
               n <- takeMVar nVar
               putMVar nVar $! (n+1)
               when (n `mod` 25000 == 0) $ putStrLn $ show n
           )
-      =$= filterAnswers
-      =$= (CL.filter $ \Answer{..} -> answerWithTag dict "java" answerId)
       =$= (CL.map $ \Answer{..} -> do
               (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]
               return $ (code, AnswerFragmentId answerId n))

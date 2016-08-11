@@ -1,6 +1,6 @@
 name:                ma-xml-analyzer
-version:             0.4.0.0
-synopsis:            Initial project template from stack
+version:             0.5.0.0
+synopsis:            Code pattern search engine backend
 description:         Please see README.md
 homepage:            https://github.com/githubuser/ma-xml-analyzer#readme
 license:             BSD3
@@ -25,9 +25,10 @@ library
                      , Thesis.Data.Stackoverflow.Question
                      , Thesis.Data.Stackoverflow.StackoverflowPost
                      , Thesis.Data.Stackoverflow.Dictionary
-                     , Thesis.Data.Stackoverflow.Dictionary.Database
+                     , Thesis.Data.Stackoverflow.Dictionary.Postgres
                      , Thesis.Data.Stackoverflow.Dump
                      , Thesis.Data.Stackoverflow.Dump.Export.Postgres
+                     , Thesis.Data.Stackoverflow.Dump.Source.Postgres
                      , Thesis.Data.Text.PositionRange
                      , Thesis.Data.Range
 

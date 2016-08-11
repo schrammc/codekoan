@@ -44,7 +44,8 @@ xmlFilePath = "/home/kryo/data/stackoverflow_dump/posts_abridged.xml"
 --xmlFilePath = "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
 
 someFunc :: IO ()
-someFunc = do
+someFunc = undefined
+{-
   dict <- readDictionary dictPath
   putStrLn "The dictionary is complete"
   index <- dict `seq` buildIndexForJava dict xmlFilePath 10
@@ -127,3 +128,4 @@ filterTags :: Monad m => S.Set Text -> Conduit Question m Question
 filterTags tgs = CL.filter $ \Question{..} ->
                                not . null $ filter (\t -> S.member t tgs)
                                                    (V.toList questionTags)
+-}
