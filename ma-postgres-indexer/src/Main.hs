@@ -4,7 +4,7 @@
 --  Author: Christof Schramm
 module Main where
 
-import Thesis.Data.Stackoverflow.Dump
+import Thesis.Data.Stackoverflow.Dump.Export.Postgres
 import Database.PostgreSQL.Simple
 
 import System.Environment
