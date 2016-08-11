@@ -5,9 +5,13 @@ import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Dictionary as Dict
 import Thesis.Data.Stackoverflow.Question
 
-linkToAnswer :: DataDictionary -> AnswerId -> Widget
-linkToAnswer dict aId@(AnswerId{..}) = 
-  case Dict.answerParent dict aId  of
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Maybe
+
+linkToAnswer :: DataDictionary IO -> AnswerId -> Widget
+linkToAnswer dict aId@(AnswerId{..}) = do
+  parentMaybe <- liftIO $ runMaybeT $ Dict.answerParent dict aId
+  case parentMaybe of
     Nothing ->
       [whamlet|#{show $ answerIdInt}|]
     Just qId -> let a = show $ answerIdInt

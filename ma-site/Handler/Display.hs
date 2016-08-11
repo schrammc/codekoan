@@ -41,7 +41,7 @@ getDisplayR = do
 codeText :: Text
 codeText = "public class Foo{\n    public static void main(String[] args){\n        System.out.println(\"test\");\n    }\n}"
 
-codeResultWidget :: DataDictionary -> Text -> ResultSet t -> Widget
+codeResultWidget :: DataDictionary IO -> Text -> ResultSet t -> Widget
 codeResultWidget dict txt results@(ResultSet{..}) = do
   toWidgetHead $ [julius|
 
@@ -113,7 +113,7 @@ codeResultWidget dict txt results@(ResultSet{..}) = do
 
 |]
 
-buildOutput :: DataDictionary -> Text -> ResultSet t -> Widget
+buildOutput :: DataDictionary IO -> Text -> ResultSet t -> Widget
 buildOutput dict txt res = do
   linumWidget 1
   foldM_ f (2 :: Int) codeWith

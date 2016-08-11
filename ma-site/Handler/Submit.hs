@@ -55,13 +55,13 @@ postSubmitR = do
     setTitle "Code Analysis"
     $(widgetFile "submit")
 
-resultWidget :: Show t => DataDictionary -> Text  -> ResultSet t -> Widget
+resultWidget :: Show t => DataDictionary IO -> Text  -> ResultSet t -> Widget
 resultWidget dict txt (ResultSet{..}) = do
   [whamlet|<h2> SearchResults:|]
   sequence_ (answerGroupW dict txt <$> M.toList resultSetMap)
 
 answerGroupW :: Show t
-                => DataDictionary
+                => DataDictionary IO
                 -> Text
                 -> (AnswerId, M.Map Int [SearchResult t])
                 -> Widget

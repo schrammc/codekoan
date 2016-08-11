@@ -18,6 +18,8 @@ import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
 import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
                                     widgetFileReload)
 
+import Database.PostgreSQL.Simple
+
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
 -- theoretically even a database.
@@ -55,6 +57,7 @@ data AppSettings = AppSettings
     , appTriePath :: String
     , appDictPath :: String
     , appBloomNGramSize :: Int
+    , appPostgresConnectInfo :: ConnectInfo
     }
 
 instance FromJSON AppSettings where
@@ -82,6 +85,12 @@ instance FromJSON AppSettings where
         appTriePath                <- o .: "trie-path"
         appDictPath               <- o .: "so-dictionary-path"
         appBloomNGramSize         <- o .: "analysis-ngram-size"
+
+        appPostgresConnectInfo    <- ConnectInfo <$> o .: "db-host"
+                                                 <*> o .: "db-port"
+                                                 <*> o .: "db-user"
+                                                 <*> o .: "db-pwd"
+                                                 <*> o .: "db-name"
 
         return AppSettings {..}
 

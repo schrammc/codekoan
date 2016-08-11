@@ -30,7 +30,9 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 import Thesis.CodeAnalysis.Language.Java (java)
 import Thesis.Search
 import Thesis.Search.Index
+import Thesis.Data.Stackoverflow.Dictionary.Postgres
 import Thesis.Data.Stackoverflow.Dictionary
+import Thesis.Data.Stackoverflow.Dump.Source.Postgres
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -39,6 +41,8 @@ import Handler.Home
 import Handler.Comment
 import Handler.Submit
 import Handler.Display
+
+import Database.PostgreSQL.Simple as Psql
 
 import qualified Data.Vector as V
 
@@ -63,8 +67,11 @@ makeFoundation appSettings = do
 
     let appNGramSize = appBloomNGramSize appSettings
 
-    appDict <- readDictionary $ appDictPath appSettings
-    appIndex <- buildIndexForJava appDict (appTriePath appSettings) appNGramSize
+    connection <- (Psql.connect $ appPostgresConnectInfo appSettings :: IO Connection)
+
+    appDict <- postgresDictionary connection
+    
+    appIndex <- buildIndexForJava (answersWithTags connection ["java"]) appNGramSize
     appIndex `seq` pushLogStrLn (loggerSet appLogger) "Index complete"
 
     -- Return the foundation

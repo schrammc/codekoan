@@ -28,3 +28,9 @@ analysis-ngram-size: 10
 # trie-path: "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
 trie-path: "/home/kryo/data/stackoverflow_dump/posts_abridged.xml"
 so-dictionary-path: "/home/kryo/data/stackoverflow_dump/data_dictionary"
+
+db-user: "kryo"
+db-pwd: "mnl07xs"
+db-name: "testdb"
+db-port: 5432
+db-host: "localhost"

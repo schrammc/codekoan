@@ -23,7 +23,7 @@ data App = App
     , appStatic      :: Static -- ^ Settings for static file serving.
     , appHttpManager :: Manager
     , appLogger      :: Logger
-    , appDict        :: DataDictionary
+    , appDict        :: DataDictionary IO
     , appIndex       :: SearchIndex Token Java
     , appNGramSize   :: Int
     }
