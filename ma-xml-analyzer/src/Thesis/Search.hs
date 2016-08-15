@@ -11,13 +11,13 @@ import           Data.Hashable (Hashable)
 import qualified Data.Set as S
 import qualified Data.Vector as V
 
-import           Data.Maybe(fromJust)
+
 
 import           Control.Parallel.Strategies
 
 import           Thesis.CodeAnalysis.Language
 import           Thesis.Data.Stackoverflow.Answer
-import           Thesis.Data.Text.PositionRange
+
 import           Thesis.Data.Range
 import           Thesis.Search.BloomFilter
 import           Thesis.Search.Levenstein
@@ -30,7 +30,7 @@ findMatches :: (Ord t, Hashable t)
                => SearchIndex t l
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
-               -> Maybe (ResultSet t)
+               -> Maybe (ResultSet t l)
 findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
@@ -60,13 +60,13 @@ findMatches index@(SearchIndex{..}) n t = do
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
-mergePositionRanges :: Range -> Range -> Range
+mergePositionRanges :: Range a -> Range a -> Range a
 mergePositionRanges (Range start _) (Range _ end) =
                         Range start end
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
-ngramWithRange :: [(Range, t)] -> Maybe (Range, [t])
+ngramWithRange :: [(Range a, t)] -> Maybe (Range a, [t])
 ngramWithRange [] = Nothing
 ngramWithRange xs = let (rs, ts) = unzip xs
                     in Just (foldl1 mergePositionRanges rs, ts)
@@ -74,7 +74,7 @@ ngramWithRange xs = let (rs, ts) = unzip xs
 search :: (Ord t) => SearchIndex t l
        -> Int  -- ^ Levenshtein distance
        -> V.Vector t
-       -> [([t], AnswerFragmentMetaData, Range , Int)]
+       -> [([t], AnswerFragmentMetaData, Range t , Int)]
 search SearchIndex{..} n xs = do
   (tks, results, levenD) <- lookupAllSuff aut indexTrie
   (mds, dist) <- results
@@ -86,7 +86,7 @@ search SearchIndex{..} n xs = do
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
-buildRange :: AnswerFragmentMetaData -> [t] -> Int -> Range
+buildRange :: AnswerFragmentMetaData -> [t] -> Int -> Range a
 buildRange AnswerFragmentMetaData{..} tks d =
   Range (fragmentMetaSize - (n + d)) (fragmentMetaSize - d)
   where

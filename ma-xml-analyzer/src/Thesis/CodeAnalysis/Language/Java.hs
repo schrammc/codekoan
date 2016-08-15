@@ -6,7 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
-module Thesis.CodeAnalysis.Language.Java (Java, java, Token) where
+module Thesis.CodeAnalysis.Language.Java (Java, java, Token(..)) where
 
 import           Control.Applicative ((<|>))
 
@@ -48,7 +48,7 @@ removeImportLines LanguageText{..} =
     isImport = not . (Text.isPrefixOf "import")
     ls = Text.lines langText
 
-tokenizeJ :: LanguageText Java -> Maybe (V.Vector (Range, Token))
+tokenizeJ :: LanguageText Java -> Maybe (V.Vector (Range (LanguageText Java), Token))
 tokenizeJ LanguageText{..} = do
   res <- parseResult
   let (_, tokens) = mapAccumL f 0 res

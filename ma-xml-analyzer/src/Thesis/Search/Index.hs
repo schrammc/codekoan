@@ -7,8 +7,6 @@
 
 module Thesis.Search.Index where
 
-import           Control.Concurrent.MVar
-import           Control.Monad
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.ST
 import           Control.Monad.Trans.Class

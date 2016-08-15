@@ -5,12 +5,12 @@ import Data.List (sort, nub)
 import Data.Text (Text)
 import qualified Data.Text as Text
 
-data Range = Range Int Int
+data Range a = Range Int Int
            deriving (Eq, Ord, Show)
 
 
 -- | The number of characters in a range
-rangeLength :: Range -> Int
+rangeLength :: Range a -> Int
 rangeLength (Range a b) = b - a
 
 -- | From a given list of ranges build a list of ranges so that the ranges are
@@ -19,7 +19,7 @@ rangeLength (Range a b) = b - a
 --
 -- If two ranges are conflicting, they are merged into one range covering both
 -- original ranges
-rangeCover :: [Range] -> [Range]
+rangeCover :: [Range a] -> [Range a]
 rangeCover rangeList =
   case sort rangeList of
     (r:rs) -> result r rs
@@ -44,7 +44,7 @@ rangeCover rangeList =
 -- B:          |-------------|
 -- Result:
 --      |------|-----|-------|
-rangeSplits :: [Range] -> [Range]
+rangeSplits :: [Range a] -> [Range a]
 rangeSplits rangeList =
   case rangeList of
     []  -> rangeList
@@ -58,25 +58,25 @@ rangeSplits rangeList =
 
 -- | Given a set of ranges and a length of the string that the ranges are drawn
 -- from return the fraction of positions that are covered by at least one range.
-coveragePercentage :: Int -> [Range] -> Double
+coveragePercentage :: Int -> [Range a] -> Double
 coveragePercentage n ranges =
   (fromIntegral . sum $ rangeLength <$> rangeCover ranges) / (fromIntegral n)
 
 -- | Merge two ranges. If the two ranges overlap, return a merged range
 -- including both. If they don't, return Nothing.
-merge :: Range -> Range -> Maybe Range
+merge :: Range a -> Range a -> Maybe (Range a)
 merge ra@(Range a b) rb@(Range c d) | overlap ra rb =
                                         Just $ Range (min a c) (max b d)
                                     | otherwise = Nothing
 
 -- | A predicate to tell if two ranges overlap or touch
-overlap :: Range -> Range -> Bool
+overlap :: Range a -> Range a -> Bool
 overlap (Range a b) (Range c d) =
   (b <= d && c <= b) || (d <= b && a <= d)
 
 -- | Return true if the second range contains the first range
-isSubRangeOf :: Range -> Range -> Bool
+isSubRangeOf :: Range a -> Range a -> Bool
 isSubRangeOf (Range a b) (Range c d) = c <= a && d >= b
 
-textInRange :: Range -> Text -> Text
+textInRange :: Range a -> Text -> Text
 textInRange (Range a b) txt = Text.take (b - (a)) (Text.drop a txt)

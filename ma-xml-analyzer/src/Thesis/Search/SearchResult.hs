@@ -2,16 +2,20 @@ module Thesis.Search.SearchResult where
 
 import Data.List (isSubsequenceOf)
 
+import Thesis.CodeAnalysis.Language (LanguageText)
 import Thesis.Data.Range
 import Thesis.Data.Stackoverflow.Answer
-import Thesis.Data.Text.PositionRange
 
-data SearchResult t  =
-  SearchResult { resultTextRange :: Range
+data SearchResult t l =
+  SearchResult { resultTextRange :: Range (LanguageText l)
+                 -- ^ The matched text range in the query document
                , resultMatchedTokens :: [t]
                , resultMetaData :: AnswerFragmentMetaData
-               , resultFragmentRange :: Range
+                 -- ^ Meta information about the matched answer fragment
+               , resultFragmentRange :: Range t
+                 -- ^ The range of matched tokens in the answer fragment
                , resultLevenScore :: Int
+                 -- ^ Levenshtein distance of the search match
                }
   deriving (Eq, Show)
 
@@ -19,7 +23,7 @@ data SearchResult t  =
 -- result and therefore makes the first search result redundant.
 --
 -- NOTE THAT THIS FUNCTION DOES NOT TAKE 'resultLevenScore' INTO CONSIDERATION.
-subsumedBy :: (Eq t) => SearchResult t -> SearchResult t -> Bool
+subsumedBy :: (Eq t) => SearchResult t l -> SearchResult t l -> Bool
 subsumedBy a b = fragmentSubsumption && textRangeSubsumption && tokenSubsumption
   where
     tokenSubsumption = isSubsequenceOf (resultMatchedTokens a)
@@ -29,6 +33,6 @@ subsumedBy a b = fragmentSubsumption && textRangeSubsumption && tokenSubsumption
     textRangeSubsumption = isSubRangeOf (resultTextRange a)
                                         (resultTextRange b)
 
-subsumedByProper :: (Eq t) => SearchResult t -> SearchResult t -> Bool
+subsumedByProper :: (Eq t) => SearchResult t l -> SearchResult t l -> Bool
 subsumedByProper a b =
   resultLevenScore a >= resultLevenScore b && subsumedBy a b

@@ -8,7 +8,7 @@ module Thesis.Search.CompressedTrie where
 import           Control.Applicative ((<|>))
 
 import           Data.Foldable
-import           Data.List (tails)
+
 import qualified Data.Map.Strict as M
 import           Data.Maybe
 import           Data.Monoid ((<>))

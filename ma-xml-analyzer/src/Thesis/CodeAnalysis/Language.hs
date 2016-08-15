@@ -22,10 +22,10 @@ data Language t l where
   Language :: (Ord t, Show t, Hashable t) =>
               { removeComments :: Text -> LanguageText l
               , normalize :: LanguageText l -> LanguageText l
-              , tokenize :: LanguageText l -> Maybe (V.Vector (Range, t))
+              , tokenize :: LanguageText l -> Maybe (V.Vector (Range (LanguageText l), t))
               } -> Language t l
 
-processAndTokenize :: Language t l -> LanguageText l-> Maybe (V.Vector (Range, t))
+processAndTokenize :: Language t l -> LanguageText l-> Maybe (V.Vector (Range (LanguageText l), t))
 processAndTokenize Language{..}= tokenize . normalize
 
 -- | A type for the text representation fo program code in a langauge.

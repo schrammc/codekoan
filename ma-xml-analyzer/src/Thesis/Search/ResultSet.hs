@@ -9,10 +9,10 @@ import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Search.SearchResult
 
 -- | Search results organized into questions and fragments of these questions
-newtype ResultSet t =
-  ResultSet {resultSetMap :: (M.Map AnswerId (M.Map Int [SearchResult t]))}
+newtype ResultSet t l =
+  ResultSet {resultSetMap :: (M.Map AnswerId (M.Map Int [SearchResult t l]))}
 
-listOfResults :: ResultSet t -> [SearchResult t]
+listOfResults :: ResultSet t l -> [SearchResult t l]
 listOfResults (ResultSet mp) = do
   (_, mp') <- M.toList mp
   (_, res) <- M.toList mp'
@@ -23,8 +23,8 @@ listOfResults (ResultSet mp) = do
 -- filter out the answer.
 answersWithCoverage :: (Eq t)
                         => Double -- ^ A fraction (>= 0 and <= 1)
-                        -> ResultSet t
-                        -> ResultSet t
+                        -> ResultSet t l
+                        -> ResultSet t l
 answersWithCoverage cov resultSet =
   mapFragmentResults resultSet $ \_ -> \_ -> \rs@(r:_) -> 
      let n = fragmentMetaSize $ resultMetaData r
@@ -37,8 +37,8 @@ answersWithCoverage cov resultSet =
 
 fragmentsLongerThan :: (Eq t)
                        => Int -- ^ Minimum length of an answer fragment
-                       -> ResultSet t
-                       -> ResultSet t
+                       -> ResultSet t l
+                       -> ResultSet t l
 fragmentsLongerThan n resultSet =
   mapFragmentResults resultSet $ \_ -> \_ -> \results -> 
     case filter (\r -> length (resultMatchedTokens r) >= n) results of
@@ -51,12 +51,12 @@ fragmentsLongerThan n resultSet =
 -- function, then the answer is removed as well. The function is guaranteed to
 -- never be given an empty list of search results as an argument.
 mapFragmentResults :: (Eq t)
-                      => ResultSet t
+                      => ResultSet t l
                       -> (AnswerId
                           -> Int
-                          -> [SearchResult t]
-                          -> Maybe [SearchResult t ])
-                      -> ResultSet t
+                          -> [SearchResult t l]
+                          -> Maybe [SearchResult t l])
+                      -> ResultSet t l
 mapFragmentResults ResultSet{..} f = ResultSet $ 
   (flip M.mapMaybeWithKey) resultSetMap $ \aId -> \mp ->
     let mp' = (flip M.mapMaybeWithKey) mp $ \fragId -> \results ->
@@ -68,7 +68,7 @@ mapFragmentResults ResultSet{..} f = ResultSet $
        else Just mp'
 
 -- | Build a result set from a list of search results.
-buildResultSet :: [SearchResult t] -> ResultSet t
+buildResultSet :: [SearchResult t l] -> ResultSet t l
 buildResultSet [] = ResultSet M.empty
 buildResultSet results =
   let getAId = fragmentAnswerId . fragmentMetaId . resultMetaData
@@ -87,7 +87,7 @@ buildResultSet results =
 -- another search result. Note that this will not remove any answer fragments
 -- from a search result set, as there is always at least one search result per
 -- answer fragment, that is not subsumed by another.
-removeSubsumption :: (Eq t) => ResultSet t -> ResultSet t
+removeSubsumption :: (Eq t) => ResultSet t l -> ResultSet t l
 removeSubsumption resultSet =
   mapFragmentResults resultSet $ \_ -> \_ -> \results ->
     Just $ do
