@@ -1,4 +1,14 @@
-module Thesis.Data.Range where
+module Thesis.Data.Range ( Range(..)
+                         , isSubRangeOf
+                         , coveragePercentage
+
+                         , rangeSplits
+
+                         , overlap
+                         , overlapOrBorder
+
+                         , textInRange
+) where
 
 import Data.List (sort, nub)
 
@@ -69,9 +79,20 @@ merge ra@(Range a b) rb@(Range c d) | overlap ra rb =
                                         Just $ Range (min a c) (max b d)
                                     | otherwise = Nothing
 
--- | A predicate to tell if two ranges overlap or touch
+-- | A predicate to tell if two ranges overlap. Overlapping is when two ranges
+-- share at least one position.
+--
+-- Edge cases: Empty ranges don't overlap overlap, i.e.
+-- @
+-- (Range 0 0) (Range 0 0) == False
+-- @
 overlap :: Range a -> Range a -> Bool
 overlap (Range a b) (Range c d) =
+  (b <= d && c < b) || (d <= b && a < d)
+
+-- | A predicate to tell if two ranges overlap or touch.
+overlapOrBorder :: Range a -> Range a -> Bool
+overlapOrBorder (Range a b) (Range c d) =
   (b <= d && c <= b) || (d <= b && a <= d)
 
 -- | Return true if the second range contains the first range
@@ -79,4 +100,4 @@ isSubRangeOf :: Range a -> Range a -> Bool
 isSubRangeOf (Range a b) (Range c d) = c <= a && d >= b
 
 textInRange :: Range a -> Text -> Text
-textInRange (Range a b) txt = Text.take (b - (a)) (Text.drop a txt)
+textInRange (Range a b) txt = Text.take (b - a) (Text.drop a txt)

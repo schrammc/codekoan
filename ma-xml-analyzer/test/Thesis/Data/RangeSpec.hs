@@ -8,7 +8,7 @@ import Test.QuickCheck
 
 import Thesis.Data.Range
 
-instance Arbitrary Range where
+instance Arbitrary (Range a) where
   arbitrary = do
     a <- arbitrary
     b <- arbitrary
@@ -17,12 +17,28 @@ instance Arbitrary Range where
 spec = do
   describe "Thesis.Data.RangeSpec" $ do
     overlapSymmetry
+    overlapReflexive
+    overlapImpliesOverlapBorder
     overlapMergeDefined
     rangeCoverCorrect
+
 
 -- | The overlap detection function should be symmetrical.
 overlapSymmetry = it "overlap is symmetrical" $ property $ \a -> \b ->
   overlap a b == overlap b a
+
+overlapReflexive =
+  it "overlap is reflexive (forall a: overlap a a if a nonempty)" $ property $
+    \a@(Range s e) -> if s == e
+                      then True -- This case is necessary because two ranges
+                                -- only overlap if they actually share a
+                                -- position. Empty ranges can't overlap
+                      else overlap a a
+
+overlapImpliesOverlapBorder = it "overlap implies overlapOrBorder" $ property $
+                              \a -> \b -> if overlap a b
+                                          then overlapOrBorder a b
+                                          else True
 
 -- | A property to make sure, that only overlapping ranges have a defined merge
 -- result
