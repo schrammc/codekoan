@@ -47,23 +47,23 @@ postSubmitR = do
                 txt' = normalize java txt
                 dict = appDict foundation
                 resultW = if debugDisplay
-                          then resultWidget dict (langText txt') <$> searchResult
-                          else codeResultWidget dict (langText txt') <$> searchResult
+                          then resultWidget dict txt' <$> searchResult
+                          else codeResultWidget dict txt' <$> searchResult
             in Just (show <$> tks, resultW)
           _ -> Nothing
   defaultLayout $ do
     setTitle "Code Analysis"
     $(widgetFile "submit")
 
-resultWidget :: Show t => DataDictionary IO -> Text  -> ResultSet t -> Widget
+resultWidget :: Show t => DataDictionary IO -> LanguageText l  -> ResultSet t l -> Widget
 resultWidget dict txt (ResultSet{..}) = do
   [whamlet|<h2> SearchResults:|]
   sequence_ (answerGroupW dict txt <$> M.toList resultSetMap)
 
 answerGroupW :: Show t
                 => DataDictionary IO
-                -> Text
-                -> (AnswerId, M.Map Int [SearchResult t])
+                -> (LanguageText l)
+                -> (AnswerId, M.Map Int [SearchResult t l])
                 -> Widget
 answerGroupW dict txt (aId@AnswerId{..}, mp) = do
   [whamlet|<h3>Answer ^{linkToAnswer dict aId}:|]
@@ -82,8 +82,8 @@ answerGroupW dict txt (aId@AnswerId{..}, mp) = do
 
 -- | Build a nicely formatted output widget for a search result
 singleResultWidget :: Show t
-                => Text -- ^ The query code to which the range pertains
-             -> SearchResult t -- ^ Search result
+                => (LanguageText l) -- ^ The query code to which the range pertains
+             -> SearchResult t l -- ^ Search result
              -> Widget 
 singleResultWidget txt res@(SearchResult{..}) = do
   dict <- appDict <$> getYesod
@@ -102,12 +102,12 @@ singleResultWidget txt res@(SearchResult{..}) = do
                      (fromIntegral $ fragmentMetaSize resultMetaData))
     showList xs = "[" ++ (concat $ List.intersperse ", " $ show <$> xs)  ++ "]" :: String
 
-codeSnippetWidget :: Range -> Text -> Widget
-codeSnippetWidget range@(Range pa pb) t =
+codeSnippetWidget :: Range (LanguageText l) -> (LanguageText l) -> Widget
+codeSnippetWidget range@(Range pa pb) LanguageText{..} =
   [whamlet|<div class="well">
              <code>#{codeText}|]
   where
-    codeText = textInRange range t
+    codeText = textInRange range langText
 
 submitCodeForm :: Html
                -> MForm Handler (FormResult (LanguageText Java, Int, Int, Double, Bool), Widget)

@@ -35,13 +35,13 @@ getDisplayR = do
 <h1> Result:
 
 <div>
-  ^{codeResultWidget appDict codeText undefined}
+  ^{codeResultWidget appDict (LanguageText codeText) undefined}
           |]
 
 codeText :: Text
 codeText = "public class Foo{\n    public static void main(String[] args){\n        System.out.println(\"test\");\n    }\n}"
 
-codeResultWidget :: DataDictionary IO -> Text -> ResultSet t -> Widget
+codeResultWidget :: DataDictionary IO -> (LanguageText l) -> ResultSet t l -> Widget
 codeResultWidget dict txt results@(ResultSet{..}) = do
   toWidgetHead $ [julius|
 
@@ -108,12 +108,12 @@ codeResultWidget dict txt results@(ResultSet{..}) = do
   <h2 class="text-center"> Search Results:
   ^{summaryWidget results}
   <div class="outputclass">
-    ^{buildOutput dict (Text.replace "\r" "" (Text.replace "\r\n" "\n" txt)) results}
+    ^{buildOutput dict (Text.replace "\r" "" (Text.replace "\r\n" "\n" (langText txt))) results}
 
 
 |]
 
-buildOutput :: DataDictionary IO -> Text -> ResultSet t -> Widget
+buildOutput :: DataDictionary IO -> Text -> ResultSet t l -> Widget
 buildOutput dict txt res = do
   linumWidget 1
   foldM_ f (2 :: Int) codeWith
@@ -148,7 +148,7 @@ menuWidget code links = do
   where
     linkW = (forM_ links $ \l -> [whamlet|<td> ^{l}|])
 
-textMatchedData :: Text -> ResultSet t -> [(Text, Maybe [AnswerFragmentMetaData])]
+textMatchedData :: Text -> ResultSet t l -> [(Text, Maybe [AnswerFragmentMetaData])]
 textMatchedData t rs = splitSnip $ snipText t $ buildRanges t rs
 
 splitSnip :: [(Text, Maybe a)] -> [(Text, Maybe a)]
@@ -159,7 +159,7 @@ splitSnip ((txt, v):rest) | txt == "" = splitSnip rest
     lst = List.intersperse ("\n",Nothing) ((,v) <$> Text.splitOn "\n" txt )
 
 -- | Replace each range with the piece of text it represents.
-snipText :: Text -> [(Range, a)] -> [(Text, Maybe a)]
+snipText :: Text -> [(Range (LanguageText l), a)] -> [(Text, Maybe a)]
 snipText txt rs = snip txt rs 0
   where
     snip txt [] _ | txt == "" = []
@@ -171,12 +171,13 @@ snipText txt rs = snip txt rs 0
            (Text.take (a-n) txt, Nothing):(snip (Text.drop (a - n) txt) (r:rest) a)
          | otherwise -> error "Unexpected (snipText)"
 
-buildRanges :: Text -> ResultSet t -> [(Range, [AnswerFragmentMetaData])]
+buildRanges :: Text -> ResultSet t l
+            -> [(Range (LanguageText l), [AnswerFragmentMetaData])]
 buildRanges t rs = do
   range <- rangeSplits resultRanges
   let resultData = do
         (rg, dat) <- resultRangesWithData
-        if overlap rg range
+        if overlapOrBorder rg range
           then [dat]
           else []
   return $ (range, resultData)
@@ -186,7 +187,7 @@ buildRanges t rs = do
     resultData = resultMetaData <$> results
     resultRangesWithData = zip resultRanges resultData
 
-summaryWidget :: ResultSet t -> Widget
+summaryWidget :: ResultSet t l -> Widget
 summaryWidget ResultSet{..} =
   [whamlet|<div class="alert alert-success">
             Matches with #{nFragments} fragments of #{nAnswers} answers were found!
@@ -195,7 +196,7 @@ summaryWidget ResultSet{..} =
     nAnswers = M.size resultSetMap
     nFragments = M.foldl (\x -> \mp -> x + M.size mp) 0 resultSetMap
 
-toRanges :: Text -> [PositionRange] -> [Range]
+toRanges :: Text -> [PositionRange] -> [Range Text]
 toRanges txt rs = do
   PositionRange{..} <- rs
   return $ Range (positionToN posRangeStart) (positionToN posRangeEnd)
