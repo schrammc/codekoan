@@ -15,7 +15,9 @@ import Data.List (sort, nub)
 import Data.Text (Text)
 import qualified Data.Text as Text
 
-data Range a = Range Int Int
+data Range a = Range { rangeStart ::  Int
+                     , rangeEnd :: Int
+                     }
            deriving (Eq, Ord, Show)
 
 
