@@ -72,10 +72,10 @@ coveragePercentage :: Int -> [Range a] -> Double
 coveragePercentage n ranges =
   (fromIntegral . sum $ rangeLength <$> rangeCover ranges) / (fromIntegral n)
 
--- | Merge two ranges. If the two ranges overlap, return a merged range
--- including both. If they don't, return Nothing.
+-- | Merge two ranges. If the two ranges overlap or border each other, return a
+-- merged range including both. If they don't, return Nothing.
 merge :: Range a -> Range a -> Maybe (Range a)
-merge ra@(Range a b) rb@(Range c d) | overlap ra rb =
+merge ra@(Range a b) rb@(Range c d) | overlapOrBorder ra rb =
                                         Just $ Range (min a c) (max b d)
                                     | otherwise = Nothing
 
