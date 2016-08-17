@@ -84,6 +84,7 @@ executable ma-xml-analyzer-exe
                      , exceptions >= 0.8.2.1
                      , hashable >= 1.2.4.0
                      , ma-xml-analyzer
+                     , maximal-cliques >= 0.1.1
                      , random >= 1.1
                      , resourcet >= 1.1.7.4
                      , text >= 1.2.2.1
