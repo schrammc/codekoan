@@ -34,25 +34,30 @@ findMatches :: (Ord t, Hashable t)
 findMatches index@(SearchIndex{..}) n t = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
-      relevantNGramTails = filter (ngramRelevant . fst) ngramsWithTails
-      relevantTails = snd <$> relevantNGramTails
+      relevantNGramTails = filter (\(ngr, _, _) -> ngramRelevant ngr)
+                                  ngramsWithTails
+      relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
-  return $ removeSubsumption $ buildResultSet searchResults
+  return $ buildResultSet searchResults
 
   where
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (snd <$> tks)
 
-    searchFor ts  = 
+    searchFor (start, ts)  = 
       let tokenVector = V.fromList $ snd <$> ts
           result = search index n tokenVector
       in do
            (foundTokens, metadata, range, score) <- result
+           -- TODO: instead of length foundTokens we need the length of the
+           -- tokens that have been matched in the query doc!
+           let queryRange = Range start (start + length foundTokens)
            case ngramWithRange (take (length foundTokens) ts) of
              Nothing -> []
              Just x -> return SearchResult { resultTextRange = fst x
                                            , resultMatchedTokens = foundTokens
+                                           , resultQueryRange = queryRange
                                            , resultMetaData = metadata
                                            , resultFragmentRange = range
                                            , resultLevenScore = score

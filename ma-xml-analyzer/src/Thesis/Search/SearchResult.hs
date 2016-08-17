@@ -10,6 +10,7 @@ data SearchResult t l =
   SearchResult { resultTextRange :: Range (LanguageText l)
                  -- ^ The matched text range in the query document
                , resultMatchedTokens :: [t]
+               , resultQueryRange :: Range t
                , resultMetaData :: AnswerFragmentMetaData
                  -- ^ Meta information about the matched answer fragment
                , resultFragmentRange :: Range t
