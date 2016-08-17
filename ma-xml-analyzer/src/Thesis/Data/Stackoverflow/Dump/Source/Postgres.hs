@@ -6,6 +6,7 @@ import Data.List (nub)
 
 import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
+import Thesis.Data.Stackoverflow.Dump
 import Database.PostgreSQL.Simple
 
 import Data.Text hiding (maximum)
@@ -86,4 +87,8 @@ getQuestion connection QuestionId{..} = do
     [] -> MaybeT $ return Nothing
     (q:_) -> return q
   
-  
+postgresSOAccess :: Connection -> StackoverflowAccess IO
+postgresSOAccess conn =
+  StackoverflowAccess { getSOQuestion = getQuestion conn
+                      , getSOAnswer   = getAnswer conn
+                      }

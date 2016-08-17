@@ -16,6 +16,8 @@ import qualified Data.Vector as V
 import           Control.Parallel.Strategies
 
 import           Thesis.CodeAnalysis.Language
+
+import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Stackoverflow.Answer
 
 import           Thesis.Data.Range
