@@ -56,36 +56,42 @@ postSubmitR = do
     $(widgetFile "submit")
 
 resultWidget :: Show t => DataDictionary IO -> LanguageText l  -> ResultSet t l -> Widget
-resultWidget dict txt (ResultSet{..}) = do
+resultWidget dict txt resultSet = do
   [whamlet|<h2> SearchResults:|]
-  sequence_ (answerGroupW dict txt <$> M.toList resultSetMap)
+  sequence_ (answerGroupW dict txt <$> M.toList (resultSetMap resultSet))
 
 answerGroupW :: Show t
                 => DataDictionary IO
                 -> (LanguageText l)
-                -> (AnswerId, M.Map Int [SearchResult t l])
+                -> (AnswerId, M.Map Int [[SearchResult t l]])
                 -> Widget
 answerGroupW dict txt (aId@AnswerId{..}, mp) = do
   [whamlet|<h3>Answer ^{linkToAnswer dict aId}:|]
-  forM_ (M.toList mp) $ \(fragId, results) -> do
-    
-    case results of
-          [] -> [whamlet|<h4>Fragment #{show fragId} has no results|]
+  forM_ (M.toList mp) $ \(fragId, resultGroups) -> do
+    case resultGroups of
+      [] -> [whamlet|<h4>Fragment #{show fragId} has no results|]
+      _ -> mapM_ (resultGroupWidget txt) resultGroups
+{-    case results of
+          
           (r:rs) -> let n = fragmentMetaSize $ resultMetaData r
                         fragRanges = resultFragmentRange <$> results
                         percentage = 100.0 * coveragePercentage n fragRanges
                         p = printf "%.2f" percentage :: String
                     in do
                       [whamlet|<h4>Fragment #{show fragId} (coverage: #{p}%)|]
-                      forM_ results (singleResultWidget txt)
-
+                      forM_ results (singleResultWidget txt)-}
 
 -- | Build a nicely formatted output widget for a search result
-singleResultWidget :: Show t
+resultGroupWidget :: Show t
                 => (LanguageText l) -- ^ The query code to which the range pertains
-             -> SearchResult t l -- ^ Search result
+             -> [SearchResult t l] -- ^ Search result
              -> Widget 
-singleResultWidget txt res@(SearchResult{..}) = do
+resultGroupWidget txt group = do
+  [whamlet|<h4> Result group|]
+  mapM_ (singleResultWidget txt) group
+
+singleResultWidget :: Show t => (LanguageText l) -> SearchResult t l -> Widget
+singleResultWidget txt res@SearchResult{..} = do
   dict <- appDict <$> getYesod
   [whamlet|
     Distance: #{resultLevenScore}; matched: #{fPerc} %

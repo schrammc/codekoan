@@ -42,7 +42,7 @@ codeText :: Text
 codeText = "public class Foo{\n    public static void main(String[] args){\n        System.out.println(\"test\");\n    }\n}"
 
 codeResultWidget :: DataDictionary IO -> (LanguageText l) -> ResultSet t l -> Widget
-codeResultWidget dict txt results@(ResultSet{..}) = do
+codeResultWidget dict txt results = do
   toWidgetHead $ [julius|
 
          function closeMenus() {
@@ -188,13 +188,13 @@ buildRanges t rs = do
     resultRangesWithData = zip resultRanges resultData
 
 summaryWidget :: ResultSet t l -> Widget
-summaryWidget ResultSet{..} =
+summaryWidget resultSet =
   [whamlet|<div class="alert alert-success">
             Matches with #{nFragments} fragments of #{nAnswers} answers were found!
           |]
   where
-    nAnswers = M.size resultSetMap
-    nFragments = M.foldl (\x -> \mp -> x + M.size mp) 0 resultSetMap
+    nAnswers = M.size (resultSetMap resultSet)
+    nFragments = M.foldl (\x -> \mp -> x + M.size mp) 0 (resultSetMap resultSet)
 
 toRanges :: Text -> [PositionRange] -> [Range Text]
 toRanges txt rs = do
