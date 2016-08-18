@@ -6,11 +6,14 @@ import qualified Data.Set as S
 import qualified Data.Map.Strict as M
 import Data.List as List (intersperse, foldl1)
 
+import Control.Monad.Trans.Maybe
+
 import Text.Printf
 import qualified Data.Text as Text
 
 import Thesis.CodeAnalysis.Language
-import Thesis.CodeAnalysis.Language.Java (Java, java)
+import Thesis.CodeAnalysis.Language.Java (Java, java, Token)
+import Thesis.CodeAnalysis.Semantic.Blocks
 
 import Thesis.Search
 import Thesis.Search.ResultSet
@@ -25,10 +28,12 @@ import Thesis.Data.Stackoverflow.Dictionary as Dict
 import Helpers
 import Handler.Display
 
+import qualified Data.Vector as V
+
 getSubmitR :: Handler Html
 getSubmitR = do
   (formWidget, formEnctype) <- generateFormPost submitCodeForm
-  let result = Nothing :: Maybe (Maybe String, Maybe Widget)
+  let result = Nothing :: Maybe (Maybe String, Widget)
   defaultLayout $ do
     setTitle "Code Analysis"
     $(widgetFile "submit")
@@ -36,24 +41,47 @@ getSubmitR = do
 postSubmitR :: Handler Html
 postSubmitR = do
   ((formResult, formWidget), formEnctype) <- runFormPost submitCodeForm
-  foundation <- getYesod
-  let index = appIndex foundation
-  let result =
-        case formResult of
-          FormSuccess (txt, sim, len, thresh, debugDisplay) ->
-            let tks = processAndTokenize java txt
-                searchResult = fragmentsLongerThan len <$>
-                  answersWithCoverage thresh <$> findMatches index sim txt
-                txt' = normalize java txt
-                dict = appDict foundation
-                resultW = if debugDisplay
-                          then resultWidget dict txt' <$> searchResult
-                          else codeResultWidget dict txt' <$> searchResult
-            in Just (show <$> tks, resultW)
-          _ -> Nothing
+  App{..} <- getYesod
+  result <- case formResult of
+    FormSuccess (txt, conf) -> liftIO $ runSearch (txt, conf)
+    _ -> return $ Nothing
   defaultLayout $ do
     setTitle "Code Analysis"
     $(widgetFile "submit")
+
+runSearch :: (LanguageText Java, SearchConfig)
+          -> IO (Maybe (Maybe String, Widget))
+runSearch (txt, conf@SearchConfig{..}) = do
+  let tokens = processAndTokenize java txt
+      widget = case tokens of
+        Nothing -> defaultWidget
+        Just tks -> buildResultWidget conf txt tks
+  return (Just $ (show <$> tokens, widget))
+  where
+    defaultWidget = [whamlet|Tokenizer failure!|]
+
+buildResultWidget :: SearchConfig -> LanguageText Java -> TokenVector Token Java -> Widget
+buildResultWidget SearchConfig{..} txt tks = do
+  App{..} <- getYesod
+  searchResultWidgetMaybe <- liftIO $ runMaybeT $ do
+    result <- MaybeT $ return $ fragmentsLongerThan minMatchLength
+                                <$> answersWithCoverage aggregationPercentage
+                                <$> findMatches appIndex levenSensitivity txt
+    displayResult <- if blockAccordanceFilter
+                     then resultSetBlockAnalysis appDict
+                                                 java
+                                                 result
+                                                 javaBlockData
+                                                 (token <$> tks)
+                     else return result
+    if debugOutput
+      then do
+        return $ resultWidget appDict txt displayResult
+      else undefined
+  case searchResultWidgetMaybe of
+    Nothing -> [whamlet|Search Failure!|]
+    Just w  -> w
+  
 
 resultWidget :: Show t => DataDictionary IO
              -> LanguageText l
@@ -61,6 +89,7 @@ resultWidget :: Show t => DataDictionary IO
              -> Widget
 resultWidget dict txt resultSet = do
   [whamlet|<h2> SearchResults:|]
+  summaryWidget resultSet
   sequence_ (answerGroupW dict txt <$> M.toList (resultSetMap resultSet))
 
 answerGroupW :: Show t
@@ -120,22 +149,31 @@ codeSnippetWidget range@(Range pa pb) LanguageText{..} =
   where
     codeText = textInRange range langText
 
+data SearchConfig = SearchConfig { levenSensitivity :: Int
+                                 , minMatchLength :: Int
+                                 , aggregationPercentage :: Double
+                                 , debugOutput :: Bool
+                                 , blockAccordanceFilter :: Bool
+                                 }
+
 submitCodeForm :: Html
-               -> MForm Handler (FormResult (LanguageText Java, Int, Int, Double, Bool), Widget)
+               -> MForm Handler (FormResult (LanguageText Java, SearchConfig), Widget)
 submitCodeForm extra = do
-  (codeVal, codeView) <- (mreq textareaField "lfoo" Nothing)
+  (codeVal, codeView) <- (mreq textareaField " " Nothing)
   (sensVal, sensView) <- mreq sensitivityField "" (Just 0)
   (lenVal , lenView ) <- mreq sensitivityField" " (Just 20)
   (percVal, percView) <- mreq percField " " (Just 75.0)
   (displayVal, displayView) <- mreq checkBoxField " " (Just False)
+  (blocksVal, blocksView) <- mreq checkBoxField " " (Just False)
 
   ngramSize <- appNGramSize <$> getYesod
   
-  let queryVal = (,,,,) <$> (langText <$> codeVal)
-                       <*> sensVal
-                       <*> lenVal
-                       <*> ((/ 100.0) <$> percVal)
-                       <*> displayVal
+  let searchConfig = SearchConfig <$> sensVal
+                                  <*> lenVal
+                                  <*> ((/ 100.0) <$> percVal)
+                                  <*> displayVal
+                                  <*> blocksVal
+      queryVal = (,) <$> (langText <$> codeVal) <*> searchConfig
       widget = do
         toWidget 
           [lucius|
@@ -176,6 +214,14 @@ submitCodeForm extra = do
                            <td>
                              Aggregation min %: <br>
                              ^{fvInput percView}
+                   <tr>
+                     <td>
+                       <h3> Semantic Settings
+                       <table>
+                         <tr>
+                           <td>
+                             Block accordance filter: ^{fvInput blocksView}
+                     
                    <tr>
                      <td>
                        <h3> Display Settings

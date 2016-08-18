@@ -190,11 +190,12 @@ buildRanges t rs = do
 summaryWidget :: ResultSet t l -> Widget
 summaryWidget resultSet =
   [whamlet|<div class="alert alert-success">
-            Matches with #{nFragments} fragments of #{nAnswers} answers were found!
+            Matches with #{nGroups} groups of #{nFragments} fragments of #{nAnswers} answers were found!
           |]
   where
-    nAnswers = M.size (resultSetMap resultSet)
-    nFragments = M.foldl (\x -> \mp -> x + M.size mp) 0 (resultSetMap resultSet)
+    nAnswers = show $ numberOfAnswers resultSet
+    nFragments = show $ numberOfFragments resultSet
+    nGroups = show $ numberOfGroups resultSet
 
 toRanges :: Text -> [PositionRange] -> [Range Text]
 toRanges txt rs = do

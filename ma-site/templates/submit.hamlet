@@ -6,13 +6,9 @@
 
 <hr>
 
-$maybe (tokensMaybe,resultWidgetMaybe) <- result
+$maybe (tokensMaybe,resultWidget) <- result
   <div>
-    $maybe resultWidget <- resultWidgetMaybe
-      ^{resultWidget}
-    $nothing
-      Search failure!
-
+    ^{resultWidget}
     <hr>
 
     <h2.text-center> Tokens:
