@@ -1,13 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Thesis.Search.ResultSet ( ResultSet
-                               , resultSetMap
+module Thesis.Search.ResultSet ( ResultSet(..)
                                , listOfResults
                                , buildResultSet
                                , mapFragmentResults
                                , mapSplitFragmentResults
                                , answersWithCoverage
                                , fragmentsLongerThan
+                               -- * SummaryInformation
+                               , numberOfAnswers
+                               , numberOfFragments
+                               , numberOfGroups
                                )where
 
 import           Data.List (groupBy)
@@ -135,4 +138,20 @@ removeSubsumption results = do
         then [r]
         else []
 
-        
+
+-- | Get the number of answers for which this result set contains alignment
+-- match groups.
+numberOfAnswers :: ResultSet t l -> Int
+numberOfAnswers ResultSet{..} = M.size resultSetMap
+
+-- |
+numberOfFragments :: ResultSet t l -> Int
+numberOfFragments ResultSet{..} = sum $ do
+  (_, fragMap) <- M.toList resultSetMap
+  return $ M.size fragMap
+
+numberOfGroups :: ResultSet t l -> Int
+numberOfGroups ResultSet{..} = sum $ do
+  (_, fragMap) <- M.toList resultSetMap
+  (_, groupList) <- M.toList fragMap
+  return $ length groupList
