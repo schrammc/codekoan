@@ -27,7 +27,10 @@ import qualified Data.Vector as V
 -- | A helper data structure that allows to find tags for all questions in a
 -- stackoverflow data dump somewhat efficiently.
 --
--- Polymorphic over a monad that is used to access the given data
+-- It also provides random access to Stackoverflow data.
+--
+-- Polymorphic over a monad that is used to access the given data. For database
+-- access this could e.g. be 'IO'
 data DataDictionary m where
   DataDictionary :: (MonadThrow m) =>
                     { answerParent :: AnswerId -> MaybeT m QuestionId
