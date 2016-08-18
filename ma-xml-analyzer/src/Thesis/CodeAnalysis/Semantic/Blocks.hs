@@ -1,19 +1,21 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.CodeAnalysis.Semantic.Blocks where
 
-import Data.Foldable (foldl')
-import Thesis.Data.Range
+import           Control.Monad
+import           Control.Monad.Trans.Maybe
 
-import Thesis.Search.ResultSet
-import Thesis.Search.SearchResult
-
-import Thesis.CodeAnalysis.Language.Java
-import Thesis.Data.Graph
-
-import Data.Graph
+import           Data.Foldable (foldl')
 import qualified Data.Map as M
-
 import qualified Data.Vector as V
+
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language.Java
+import           Thesis.Data.Graph
+import           Thesis.Data.Range
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Dictionary
+import           Thesis.Search.ResultSet
+import           Thesis.Search.SearchResult
 
 -- Specification:
 --
@@ -154,6 +156,23 @@ blockAnalysis blockData results = cliques accordanceGraph
         then [(k, n)]
         else []
 
-resultSetBlockAnalysis :: BlockData t -> ResultSet t l -> ResultSet t l
-resultSetBlockAnalysis bd resultSet =
-  mapSplitFragmentResults resultSet (\_ -> \_ -> blockAnalysis bd )
+resultSetBlockAnalysis :: (Monad m) =>
+                          DataDictionary m
+                       -> Language t l
+                       -> ResultSet t l
+                       -> (V.Vector t -> V.Vector t -> BlockData t)
+                       -- ^ A function that takes the vector of query doc tokens
+                       -- and the vector of answr fragment tokens and builds a
+                       -- 'BlockData' object.
+                       -> V.Vector t
+                       -> MaybeT m (ResultSet t l)
+resultSetBlockAnalysis dict lang ResultSet{..} mkBlockData queryTokens = do
+  updatedLst <- forM (M.toList resultSetMap) $ \(aId, fragMap) -> do
+    fragMap' <- forM (M.toList fragMap) $ \(fragId, groups) -> do
+      fragment  <- answerFragmentTokens dict lang (AnswerFragmentId aId fragId)
+      let fragTokens = token <$> fragment
+          blockData = mkBlockData queryTokens fragTokens
+          analyzedGroups = concat $ blockAnalysis blockData <$> groups
+      return (fragId, analyzedGroups)
+    return (aId, M.fromList fragMap')
+  return $ ResultSet (M.fromList updatedLst)
