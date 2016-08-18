@@ -89,9 +89,9 @@ javaBlockData queryTokens fragmentTokens =
 javaBlockStringInRegion :: V.Vector Token -> Range t -> [BlockDelim]
 javaBlockStringInRegion tks (Range{..}) = javaBlockString subSlice
   where
-    subSlice = V.unsafeSlice (normalizeV tks rangeStart)
-                             (normalizeV tks rangeEnd)
-                             tks
+    subSlice = V.unsafeSlice a (b - a) tks
+    a = normalizeV tks rangeStart
+    b = normalizeV tks rangeEnd
 
 javaBlockString :: V.Vector Token -> [BlockDelim]
 javaBlockString tks = do
@@ -131,7 +131,10 @@ data BlockData t =
 
 blockAccordance :: BlockData t -> SearchResult t l -> SearchResult t l -> Bool
 blockAccordance BlockData{..} resA resB =
-  queryDist == fragmentDist && blockStringEquality
+  queryDist == fragmentDist
+  && blockStringEquality
+  && noQueryOverlap
+  && noFragOverlap
   where
     queryDist = queryRelation (rangeStart $ resultQueryRange resA)
                               (rangeStart $resultQueryRange resB)
@@ -139,6 +142,10 @@ blockAccordance BlockData{..} resA resB =
                                     (rangeStart $ resultFragmentRange resB)
     blockStringEquality = (queryBlockString $ resultQueryRange resA) ==
                           (queryBlockString $ resultQueryRange resB)
+    noQueryOverlap = not $ overlap (resultQueryRange resA)
+                                   (resultQueryRange resB)
+    noFragOverlap  = not $ overlap (resultFragmentRange resA)
+                                   (resultFragmentRange resB)
 
 blockAnalysis :: BlockData t
               -> [SearchResult t l] -- ^ result matches
