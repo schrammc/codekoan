@@ -86,7 +86,7 @@ merge ra@(Range a b) rb@(Range c d) | overlapOrBorder ra rb =
 --
 -- Edge cases: Empty ranges don't overlap overlap, i.e.
 -- @
--- (Range 0 0) (Range 0 0) == False
+-- overlap (Range 0 0) (Range 0 0) == False
 -- @
 overlap :: Range a -> Range a -> Bool
 overlap (Range a b) (Range c d) =
