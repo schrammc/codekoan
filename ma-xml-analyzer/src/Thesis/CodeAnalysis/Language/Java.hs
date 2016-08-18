@@ -29,7 +29,7 @@ import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 import qualified Data.Vector as V
 
 import           Thesis.Data.Range
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (mapMaybe)
 import Control.DeepSeq
 
 data Java
@@ -48,11 +48,11 @@ removeImportLines LanguageText{..} =
     isImport = not . (Text.isPrefixOf "import")
     ls = Text.lines langText
 
-tokenizeJ :: LanguageText Java -> Maybe (V.Vector (Range (LanguageText Java), Token))
+tokenizeJ :: LanguageText Java -> Maybe (TokenVector Token Java)
 tokenizeJ LanguageText{..} = do
   res <- parseResult
   let (_, tokens) = mapAccumL f 0 res
-  return $! V.fromList $ mapMaybe (\(r, t) -> (r,) <$> t) tokens
+  return $! V.fromList $ mapMaybe (\(r, t) -> TokenWithRange r <$> t) tokens
   where
     f n (k,t) = (n+k, (Range n (n+k), t))
     
@@ -68,7 +68,7 @@ tokenizeJ LanguageText{..} = do
       (txt, token) <- AP.match tokenOrComment
       return $ (Text.length txt, token)
 
-    tokenOrComment = ((const Nothing) <$> skipP) <|> (Just <$> token)
+    tokenOrComment = ((const Nothing) <$> skipP) <|> (Just <$> tokenP)
     skipP = many1 space *> pure () <|> javaStyleComment
 
 data Token = TokenLT
@@ -112,43 +112,43 @@ instance Hashable Token
 
 instance Binary Token
 
-token :: Parser Token
-token = "<" *> pure TokenLT
-        <|> ">" *> pure TokenGT
-        <|> "==" *> pure TokenEQ
-        <|> "=" *> pure TokenAssign
-        <|> "!" *> pure TokenNot
-        <|> "&" *> pure TokenBinAnd
-        <|> "&&" *> pure TokenAnd
-        <|> "|" *> pure TokenBinOr
-        <|> "||" *> pure TokenOr
-        <|> "+" *> pure TokenAdd
-        <|> "*" *> pure TokenMult
-        <|> "-" *> pure TokenSub
-        <|> "/" *> pure TokenDiv
-        <|> "%" *> pure TokenMod
-        <|> "(" *> pure TokenLParen
-        <|> ")" *> pure TokenRParen
-        <|> "[" *> pure TokenLBrack
-        <|> "]" *> pure TokenRBrack
-        <|> "{" *> pure TokenLBrace
-        <|> "}" *> pure TokenRBrace
-        <|> "." *> pure TokenDot
-        <|> "," *> pure TokenComma
-        <|> ":" *> pure TokenColon
-        <|> "?" *> pure TokenQuestion
-        <|> ";" *> pure TokenSemicolon
-        <|> "break" *> pure TokenBreak
-        <|> modifier
-        <|> loopWord
-        <|> keyword
-        <|> primitive
-        <|> identifier
-        <|> tokenNumber
-        <|> stringLiteral *> pure TokenStringLiteral
-        <|> characterLiteral *> pure TokenCharacterLiteral
-        <|> annotation
-        
+tokenP :: Parser Token
+tokenP = "<" *> pure TokenLT
+         <|> ">" *> pure TokenGT
+         <|> "==" *> pure TokenEQ
+         <|> "=" *> pure TokenAssign
+         <|> "!" *> pure TokenNot
+         <|> "&" *> pure TokenBinAnd
+         <|> "&&" *> pure TokenAnd
+         <|> "|" *> pure TokenBinOr
+         <|> "||" *> pure TokenOr
+         <|> "+" *> pure TokenAdd
+         <|> "*" *> pure TokenMult
+         <|> "-" *> pure TokenSub
+         <|> "/" *> pure TokenDiv
+         <|> "%" *> pure TokenMod
+         <|> "(" *> pure TokenLParen
+         <|> ")" *> pure TokenRParen
+         <|> "[" *> pure TokenLBrack
+         <|> "]" *> pure TokenRBrack
+         <|> "{" *> pure TokenLBrace
+         <|> "}" *> pure TokenRBrace
+         <|> "." *> pure TokenDot
+         <|> "," *> pure TokenComma
+         <|> ":" *> pure TokenColon
+         <|> "?" *> pure TokenQuestion
+         <|> ";" *> pure TokenSemicolon
+         <|> "break" *> pure TokenBreak
+         <|> modifier
+         <|> loopWord
+         <|> keyword
+         <|> primitive
+         <|> identifier
+         <|> tokenNumber
+         <|> stringLiteral *> pure TokenStringLiteral
+         <|> characterLiteral *> pure TokenCharacterLiteral
+         <|> annotation
+         
 
 keyword :: Parser Token
 keyword = ("if"

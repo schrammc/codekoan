@@ -60,7 +60,7 @@ buildIndexForJava postSource ngramSize = do
       =$= CL.concat
       =$= (CL.map $ \(c, aId) -> do
               tokenV <- tokenize java (LanguageText c)
-              Just $ (snd <$> tokenV,AnswerFragmentMetaData aId (V.length tokenV))
+              Just $ (token <$> tokenV,AnswerFragmentMetaData aId (V.length tokenV))
           )
       =$= CL.catMaybes
       =$ (CL.foldM (\trie -> \(str, v) -> do

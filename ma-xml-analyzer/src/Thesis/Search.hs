@@ -45,10 +45,10 @@ findMatches index@(SearchIndex{..}) n t = do
 
   where
     maybeTokens = processAndTokenize indexLanguage t
-    ngramRelevant tks = indexBF =?: (snd <$> tks)
+    ngramRelevant tks = indexBF =?: (token <$> tks)
 
     searchFor (start, ts)  = 
-      let tokenVector = V.fromList $ snd <$> ts
+      let tokenVector = V.fromList $ token <$> ts
           result = search index n tokenVector
       in do
            (foundTokens, metadata, range, score) <- result
@@ -73,9 +73,9 @@ mergePositionRanges (Range start _) (Range _ end) =
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
-ngramWithRange :: [(Range a, t)] -> Maybe (Range a, [t])
+ngramWithRange :: [TokenWithRange t l] -> Maybe (Range (LanguageText l), [t])
 ngramWithRange [] = Nothing
-ngramWithRange xs = let (rs, ts) = unzip xs
+ngramWithRange xs = let (rs, ts) = unzip $ (\(TokenWithRange r t) -> (r,t)) <$> xs
                     in Just (foldl1 mergePositionRanges rs, ts)
 
 search :: (Ord t) => SearchIndex t l
