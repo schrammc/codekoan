@@ -1,3 +1,10 @@
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- This module is for reading information from stackoverflow post bodies. This
+-- functionality is in a separate module from question and answer because it is
+-- the same for all stackoverflow post types.
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.CodeAnalysis.StackoverflowBodyParser where
 
