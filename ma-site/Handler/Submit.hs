@@ -55,7 +55,10 @@ postSubmitR = do
     setTitle "Code Analysis"
     $(widgetFile "submit")
 
-resultWidget :: Show t => DataDictionary IO -> LanguageText l  -> ResultSet t l -> Widget
+resultWidget :: Show t => DataDictionary IO
+             -> LanguageText l
+             -> ResultSet t l
+             -> Widget
 resultWidget dict txt resultSet = do
   [whamlet|<h2> SearchResults:|]
   sequence_ (answerGroupW dict txt <$> M.toList (resultSetMap resultSet))
@@ -70,7 +73,9 @@ answerGroupW dict txt (aId@AnswerId{..}, mp) = do
   forM_ (M.toList mp) $ \(fragId, resultGroups) -> do
     case resultGroups of
       [] -> [whamlet|<h4>Fragment #{show fragId} has no results|]
-      _ -> mapM_ (resultGroupWidget txt) resultGroups
+      _ -> do
+        [whamlet|<h4> Answer fragment #{show fragId}|]
+        mapM_ (resultGroupWidget txt) resultGroups
 {-    case results of
           
           (r:rs) -> let n = fragmentMetaSize $ resultMetaData r
