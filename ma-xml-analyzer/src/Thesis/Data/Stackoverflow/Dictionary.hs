@@ -19,6 +19,8 @@ data DataDictionary m where
   DataDictionary :: (MonadThrow m) =>
                     { answerParent :: AnswerId -> MaybeT m QuestionId
                     , questionTags :: QuestionId -> MaybeT m (S.Set Text)
+                    , getQuestion  :: QuestionId -> MaybeT m Question
+                    , getAnswer    :: AnswerId -> MaybeT m Answer
                     } -> DataDictionary m
 
 -- | Get the tags of the parent question to the given answer

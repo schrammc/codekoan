@@ -15,10 +15,11 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib
-                     , Thesis.CodeAnalysis.StackoverflowBodyParser
                      , Thesis.CodeAnalysis.Language
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
                      , Thesis.CodeAnalysis.Language.Java
+                     , Thesis.CodeAnalysis.StackoverflowBodyParser
+                     , Thesis.CodeAnalysis.Semantic.Blocks
 
                      , Thesis.Data.Stackoverflow.XML.Helpers
                      , Thesis.Data.Stackoverflow.Answer
@@ -31,6 +32,7 @@ library
                      , Thesis.Data.Stackoverflow.Dump.Source.Postgres
                      , Thesis.Data.Text.PositionRange
                      , Thesis.Data.Range
+                     , Thesis.Data.Graph
 
                      , Thesis.Search
                      , Thesis.Search.Index
@@ -60,6 +62,7 @@ library
                      , hashable >= 1.2.4.0
                      , html-conduit >= 1.2
                      , http-conduit >= 2.1.10
+                     , maximal-cliques >= 0.1.1
                      , parallel >= 3.2
                      , resourcet >= 1.1.7.4
                      , text >= 1.2.2.1
