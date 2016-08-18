@@ -55,7 +55,7 @@ runSearch (txt, conf@SearchConfig{..}) = do
   let tokens = processAndTokenize java txt
       widget = case tokens of
         Nothing -> defaultWidget
-        Just tks -> buildResultWidget conf txt tks
+        Just tks -> buildResultWidget conf (normalize java txt) tks
   return (Just $ (show <$> tokens, widget))
   where
     defaultWidget = [whamlet|Tokenizer failure!|]
@@ -64,8 +64,8 @@ buildResultWidget :: SearchConfig -> LanguageText Java -> TokenVector Token Java
 buildResultWidget SearchConfig{..} txt tks = do
   App{..} <- getYesod
   searchResultWidgetMaybe <- liftIO $ runMaybeT $ do
-    result <- MaybeT $ return $ fragmentsLongerThan minMatchLength
-                                <$> answersWithCoverage aggregationPercentage
+    result <- MaybeT $ return $ answersWithCoverage aggregationPercentage
+                                <$> fragmentsLongerThan minMatchLength
                                 <$> findMatches appIndex levenSensitivity txt
     displayResult <- if blockAccordanceFilter
                      then resultSetBlockAnalysis appDict
@@ -104,16 +104,12 @@ answerGroupW dict txt (aId@AnswerId{..}, mp) = do
       [] -> [whamlet|<h4>Fragment #{show fragId} has no results|]
       _ -> do
         [whamlet|<h4> Answer fragment #{show fragId}|]
-        mapM_ (resultGroupWidget txt) resultGroups
-{-    case results of
-          
-          (r:rs) -> let n = fragmentMetaSize $ resultMetaData r
-                        fragRanges = resultFragmentRange <$> results
-                        percentage = 100.0 * coveragePercentage n fragRanges
-                        p = printf "%.2f" percentage :: String
-                    in do
-                      [whamlet|<h4>Fragment #{show fragId} (coverage: #{p}%)|]
-                      forM_ results (singleResultWidget txt)-}
+        let groupListW = forM_ resultGroups $ \group ->
+                          [whamlet| <li class="list-groupitem">
+                                       ^{resultGroupWidget txt group}|]
+        [whamlet|<ul class="list-group">
+                   ^{groupListW}|]
+
 
 -- | Build a nicely formatted output widget for a search result
 resultGroupWidget :: Show t
@@ -137,9 +133,9 @@ singleResultWidget txt res@SearchResult{..} = do
   where
     n = length resultMatchedTokens
     fPerc :: String
-    fPerc = printf "%.2f" $
-            100.0 * ((fromIntegral n :: Double) /
-                     (fromIntegral $ fragmentMetaSize resultMetaData))
+    fPerc = printf "%.2f" $ 100.0 *
+                            (coveragePercentage (fragmentMetaSize resultMetaData)
+                                                [resultFragmentRange])
     showList xs = "[" ++ (concat $ List.intersperse ", " $ show <$> xs)  ++ "]" :: String
 
 codeSnippetWidget :: Range (LanguageText l) -> (LanguageText l) -> Widget
