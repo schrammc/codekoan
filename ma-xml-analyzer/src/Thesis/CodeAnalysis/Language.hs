@@ -34,12 +34,24 @@ data Language t l where
               { removeComments :: Text -> LanguageText l
               , normalize :: LanguageText l -> LanguageText l
               , tokenize :: LanguageText l -> Maybe (TokenVector t l)
+              , isTokenIdentifier :: t -> Bool
               } -> Language t l
 
 processAndTokenize :: Language t l
                    -> LanguageText l
                    -> Maybe (TokenVector t l)
 processAndTokenize Language{..}= tokenize . normalize
+
+-- | Get all identifiers from a code document
+identifiers :: Language t l -- ^ The underlying language implementation
+            -> (LanguageText l) -- ^ The code document in text form
+            -> TokenVector t l -- ^ The tokenized document
+            -> [Text]
+identifiers Language{..} LanguageText{..} tks = do
+  TokenWithRange{..} <- V.toList tks
+  if isTokenIdentifier token
+    then return $ textInRange coveredRange langText
+    else []
 
 -- | A type for the text representation fo program code in a langauge.
 --

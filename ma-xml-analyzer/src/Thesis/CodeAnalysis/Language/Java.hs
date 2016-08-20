@@ -38,6 +38,7 @@ java :: Language Token Java
 java = Language { removeComments = LanguageText
                 , normalize = removeImportLines
                 , tokenize = tokenizeJ
+                , isTokenIdentifier = (== TokenIdentifier)
                 }
 
 -- | Remove all lines starting with import 
