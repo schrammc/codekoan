@@ -14,7 +14,6 @@ import           Control.Monad.Trans.Resource
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import           Thesis.CodeAnalysis.Language
-import           Thesis.CodeAnalysis.Language.Java
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.CodeAnalysis.Semantic.Source
 
@@ -34,4 +33,4 @@ chatterDirectoryCorpus lang@Language{..} dirPath = do
   runResourceT $ do
     directoryCorpus languageFileExtension dirPath
       $$ identifierWords lang
-      =$= CL.fold addDocument (mkCorpus []) 
+      =$= CL.fold addDocument (mkCorpus [])
