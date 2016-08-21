@@ -18,6 +18,7 @@ import qualified Data.Text.IO as TIO
 import           System.Directory
 import           System.FilePath
 import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Semantic.IdentifierSplitter
 
 -- | A conduit that recursively traverses a directory and returns all files that
 -- have a given extension. This does not follow symlinks.
@@ -48,6 +49,8 @@ identifierWords :: MonadResource m => Language t l -> Conduit Text m [Text]
 identifierWords lang@Language{..} =
   (CL.mapMaybe $ \txt ->
     let lt = LanguageText txt
-    in (identifiers lang lt) <$> (processAndTokenize lang lt)
+    in (flip fmap) (processAndTokenize lang lt) $ \tokenVector -> do
+      ident <- identifiers lang lt tokenVector
+      splitIdText ident
   )
 

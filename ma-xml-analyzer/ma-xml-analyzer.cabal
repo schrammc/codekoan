@@ -19,7 +19,15 @@ library
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
                      , Thesis.CodeAnalysis.Language.Java
                      , Thesis.CodeAnalysis.StackoverflowBodyParser
+
+                     , Thesis.CodeAnalysis.Semantic
                      , Thesis.CodeAnalysis.Semantic.Blocks
+                     , Thesis.CodeAnalysis.Semantic.CamelCaseSplitter
+                     , Thesis.CodeAnalysis.Semantic.Chatter
+                     , Thesis.CodeAnalysis.Semantic.IdentifierSplitter
+                     , Thesis.CodeAnalysis.Semantic.Source
+
+
 
                      , Thesis.Data.Stackoverflow.XML.Helpers
                      , Thesis.Data.Stackoverflow.Answer
