@@ -39,6 +39,7 @@ java = Language { removeComments = LanguageText
                 , normalize = removeImportLines
                 , tokenize = tokenizeJ
                 , isTokenIdentifier = (== TokenIdentifier)
+                , languageFileExtension = ".java"
                 }
 
 -- | Remove all lines starting with import 

@@ -6,7 +6,8 @@ module Thesis.CodeAnalysis.Language ( Language(..)
                                     , LanguageText(..)
                                     , processAndTokenize
                                     , TokenWithRange(..)
-                                    , TokenVector) where
+                                    , TokenVector
+                                    , identifiers) where
 
 import qualified Data.Vector as V
 
@@ -31,7 +32,8 @@ data TokenWithRange t l = TokenWithRange { coveredRange :: Range (LanguageText l
 -- > Language Token Java
 data Language t l where
   Language :: (Ord t, Show t, Hashable t) =>
-              { removeComments :: Text -> LanguageText l
+              { languageFileExtension :: String
+              , removeComments :: Text -> LanguageText l
               , normalize :: LanguageText l -> LanguageText l
               , tokenize :: LanguageText l -> Maybe (TokenVector t l)
               , isTokenIdentifier :: t -> Bool
