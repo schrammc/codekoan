@@ -25,6 +25,7 @@ camelCaseWordsText = (fmap T.pack) . camelCaseWords . T.unpack
 -- @
 camelCaseWords :: String -> [String]
 camelCaseWords [] = []
+camelCaseWords (_:[]) = []
 camelCaseWords  (a:b:xs) =
   if | isLower a ->
        let (w, rest) = span isLower (a:b:xs)
