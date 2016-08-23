@@ -1,6 +1,25 @@
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RecordWildCards #-}
 module Thesis.CodeAnalysis.Semantic where
 
 import Data.Text (Text)
+
+import Thesis.Data.Stackoverflow.Dictionary
+import Thesis.Data.Range
+import Thesis.CodeAnalysis.Language
+import Thesis.CodeAnalysis.Semantic.IdentifierSplitter
+import Thesis.Search.SearchResult
+import Thesis.Search.ResultSet
+import Control.Monad.Catch
+import Control.Monad.Trans.Maybe
+
+import qualified Data.Map as M
+
+import Control.Monad
+import Data.Maybe(fromMaybe)
+
+import Data.Vector ((!?))
+import qualified Data.Vector as V
 
 -- | An interface to a semantic analysis method
 data SemanticAnalyzer a =
@@ -10,3 +29,69 @@ data SemanticAnalyzer a =
                      -- 0.0 to 1.0. 0.0 is maximally dissimilar while 1.0 is
                      -- either identical or highly similar.
                    }
+
+-- | This function filters all those results from a result set that don't have a semantic similarity value that is equal to or greater than the reference value
+resultsWithSimilarity :: MonadThrow m =>
+                         Language t l
+                      -> DataDictionary m
+                      -> SemanticAnalyzer a
+                      -> (TokenVector t l, LanguageText l)
+                      -- ^ query document
+                      -> ResultSet t l
+                      -> Double
+                      -- ^ Threshold value between 0 and 1
+                      -> m (ResultSet t l)
+resultsWithSimilarity lang dict analyzer@SemanticAnalyzer{..} queryDoc set thresh =
+  do
+  newMap <- M.fromList <$> buildNewMapList
+  return $ filterEmptyResults $ ResultSet newMap
+  where
+    buildNewMapList =
+      forM (M.toList $ resultSetMap set) $ \(aId, fragMap) ->
+      fromMaybe (aId, M.empty) <$> (runMaybeT $ do
+        fragments <- answerFragments dict lang aId
+        answerGroup <- forM (M.toList $ fragMap) $ \(fragId, searchResults) -> do
+          fragment <- MaybeT . return $ fragments !? fragId
+          let filteredResults = do
+                result <- searchResults
+                let sim = searchResultSimilarity lang
+                                                 analyzer
+                                                 queryDoc
+                                                 fragment
+                                                 result
+                if sim > thresh
+                  then return result
+                  else []
+          return (fragId, filteredResults)
+        return (aId, M.fromList answerGroup))
+  
+searchResultSimilarity :: Language t l
+                       -> SemanticAnalyzer a
+                       -> (TokenVector t l, LanguageText l)
+                       -- ^ query document
+                       -> (TokenVector t l, LanguageText l)
+                       -- ^ answer fragment
+                       -> [SearchResult t l]
+                       -> Double
+searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (rs) =
+  semanticSimilarity (semanticPreprocess queryIds) (semanticPreprocess fragIds)
+  where
+    queryIds :: [Text]
+    queryIds = identifiers lang queryText $ V.concat $ do
+      SearchResult{..} <- rs
+      let queryTokenRange = convertRange resultQueryRange
+      return $ vectorInRange queryTokenRange queryTokens
+    fragIds :: [Text]
+    fragIds = identifiers lang fragText $ V.concat $ do
+      SearchResult{..} <- rs
+      let fragmentTokenRange = convertRange resultFragmentRange
+      return $ vectorInRange fragmentTokenRange fragTokens
+      
+
+-- | Get the words in all identifiers that underly identifier tokens as split by
+-- 'splitIdText'
+identifierWordsInCode :: Language t l -> LanguageText l -> Maybe [Text]
+identifierWordsInCode lang lt = 
+  (flip fmap) (processAndTokenize lang lt) $ \tokenVector -> do
+    ident <- identifiers lang lt tokenVector
+    splitIdText ident

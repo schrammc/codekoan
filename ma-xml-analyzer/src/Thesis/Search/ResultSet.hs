@@ -11,6 +11,8 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , numberOfAnswers
                                , numberOfFragments
                                , numberOfGroups
+
+                               , filterEmptyResults
                                )where
 
 import           Data.List (groupBy)
@@ -24,6 +26,20 @@ import           Thesis.Search.SearchResult
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l =
   ResultSet {resultSetMap :: (M.Map AnswerId (M.Map Int [[SearchResult t l]]))}
+
+-- | This function makes sure, that for each answer there is at least one
+-- fragment, that contains at least one search results.
+filterEmptyResults :: ResultSet t l -> ResultSet t l
+filterEmptyResults ResultSet{..} = ResultSet . M.fromList $ do
+  (aId, mp) <- filter (\(_ , mp) -> not $ M.null mp) (M.toList resultSetMap)
+  let mp' = M.fromList $ do
+        (fragId, results) <- M.toList mp
+        let nonemptySearchResults = filter (not . null) results
+        if not $ null nonemptySearchResults
+          then return (fragId, nonemptySearchResults)
+          else []
+        
+  return (aId, mp')
 
 listOfResults :: ResultSet t l -> [SearchResult t l]
 listOfResults (ResultSet mp) = do

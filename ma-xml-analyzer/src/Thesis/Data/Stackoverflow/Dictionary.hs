@@ -58,20 +58,22 @@ answerWithTag dict@DataDictionary{..} tag aId = do
     Nothing -> return False
     Just tags -> return $ S.member tag tags
 
--- | Get the token vectors of all answer code fragments of an answer from the
--- dictionary for one answer. This will return 'Nothing' if no answer for the
+-- | Get token vectors and normalized 'LanguageText' of all fragments of an
+-- answer from the dictionary. This will return 'Nothing' if no answer for the
 -- given id could be found.
 answerFragments :: (Monad m) =>
                    DataDictionary m
                 -> Language t l
                 -> AnswerId
-                -> MaybeT m (V.Vector (TokenVector t l))
+                -> MaybeT m (V.Vector (TokenVector t l, LanguageText l))
 answerFragments DataDictionary{..} lang@Language{..} aId = do
   Answer{..} <- getAnswer aId
   let codeFragments = LanguageText <$> readCodeFromHTMLPost answerBody
   V.fromList <$> mapM process codeFragments
   where
-    process txt =  MaybeT . return $ processAndTokenize lang txt
+    process txt =  MaybeT . return $ do
+      tokenV <- processAndTokenize lang txt
+      return (tokenV, normalize txt)
 
 -- | Get the token vector of one specific answer code fragment from the
 -- dictionary. This will return 'Nothing' if the answer code fragment couldn't
@@ -80,7 +82,7 @@ answerFragmentTokens  :: (Monad m) =>
                          DataDictionary m
                       -> Language t l
                       -> AnswerFragmentId
-                      -> MaybeT m (TokenVector t l)
+                      -> MaybeT m (TokenVector t l, LanguageText l)
 answerFragmentTokens dict lang AnswerFragmentId{..} = do
-  fragmentTokens <- answerFragments dict lang fragmentAnswerId
-  MaybeT $ return (fragmentTokens !? fragmentId)
+  fragmentContent <- answerFragments dict lang fragmentAnswerId
+  MaybeT $ return (fragmentContent !? fragmentId)

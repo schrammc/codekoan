@@ -52,7 +52,7 @@ buildIndexForJava postSource ngramSize = do
   
   tr <- runResourceT $ do
     postSource
-      $$ maxElements (Just 100000)
+      $$ maxElements (Just 400000)
       =$= everyN 25000 (liftIO . print)
       =$= (CL.map $ \Answer{..} -> do
               (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]

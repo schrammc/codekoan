@@ -7,15 +7,18 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.CodeAnalysis.Semantic.Chatter where
 
+import           Control.Monad.Trans.Resource
+
+import           Data.Conduit
+import qualified Data.Conduit.List as CL
+
 import           NLP.Similarity.VectorSim
 import           NLP.Types
 
-import           Control.Monad.Trans.Resource
-import           Data.Conduit
-import qualified Data.Conduit.List as CL
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.CodeAnalysis.Semantic.Source
+import Thesis.CodeAnalysis.Language.Java
 
 -- | Build a semantic analyzer based on a chatter-corpus.
 chatterAnalyzer :: Corpus -> SemanticAnalyzer TermVector
@@ -33,4 +36,7 @@ chatterDirectoryCorpus lang@Language{..} dirPath = do
   runResourceT $ do
     directoryCorpus languageFileExtension dirPath
       $$ identifierWords lang
-      =$= CL.fold addDocument (mkCorpus [])
+      =$= CL.fold (\ doc corp ->
+                    let corp'@(Corpus{corpTermCounts = mp}) = addDocument doc corp
+                    in mp `seq` corp'
+                  ) (mkCorpus [])

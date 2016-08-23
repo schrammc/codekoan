@@ -176,8 +176,8 @@ resultSetBlockAnalysis :: (Monad m) =>
 resultSetBlockAnalysis dict lang ResultSet{..} mkBlockData queryTokens = do
   updatedLst <- forM (M.toList resultSetMap) $ \(aId, fragMap) -> do
     fragMap' <- forM (M.toList fragMap) $ \(fragId, groups) -> do
-      fragment  <- answerFragmentTokens dict lang (AnswerFragmentId aId fragId)
-      let fragTokens = token <$> fragment
+      (fragTks,_)  <- answerFragmentTokens dict lang (AnswerFragmentId aId fragId)
+      let fragTokens = token <$> fragTks
           blockData = mkBlockData queryTokens fragTokens
           analyzedGroups = concat $ blockAnalysis blockData <$> groups
       return (fragId, analyzedGroups)
