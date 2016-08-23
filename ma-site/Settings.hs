@@ -58,6 +58,7 @@ data AppSettings = AppSettings
     , appDictPath :: String
     , appBloomNGramSize :: Int
     , appPostgresConnectInfo :: ConnectInfo
+    , appCorpusPath :: String
     }
 
 instance FromJSON AppSettings where
@@ -91,6 +92,7 @@ instance FromJSON AppSettings where
                                                  <*> o .: "db-user"
                                                  <*> o .: "db-pwd"
                                                  <*> o .: "db-name"
+        appCorpusPath             <- o .: "corpus-directory"
 
         return AppSettings {..}
 

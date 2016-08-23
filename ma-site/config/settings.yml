@@ -34,3 +34,5 @@ db-pwd: "mnl07xs"
 db-name: "testdb"
 db-port: 5432
 db-host: "localhost"
+
+corpus-directory: "/home/kryo/temp/javacorpus/elasticsearch"

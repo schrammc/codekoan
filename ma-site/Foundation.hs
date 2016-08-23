@@ -13,6 +13,8 @@ import Thesis.Search.Index
 import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Language.Java
 import Thesis.Data.Stackoverflow.Dictionary
+import Thesis.CodeAnalysis.Semantic
+import NLP.Similarity.VectorSim
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -25,6 +27,7 @@ data App = App
     , appLogger      :: Logger
     , appDict        :: DataDictionary IO
     , appIndex       :: SearchIndex Token Java
+    , appSemantic    :: SemanticAnalyzer TermVector
     , appNGramSize   :: Int
     }
 

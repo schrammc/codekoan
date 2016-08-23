@@ -33,6 +33,8 @@ import Thesis.Search.Index
 import Thesis.Data.Stackoverflow.Dictionary.Postgres
 import Thesis.Data.Stackoverflow.Dictionary
 import Thesis.Data.Stackoverflow.Dump.Source.Postgres
+import Thesis.CodeAnalysis.Semantic
+import Thesis.CodeAnalysis.Semantic.Chatter
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -43,6 +45,7 @@ import Handler.Submit
 import Handler.Display
 
 import Database.PostgreSQL.Simple as Psql
+import NLP.Types
 
 import qualified Data.Vector as V
 
@@ -70,9 +73,13 @@ makeFoundation appSettings = do
     connection <- (Psql.connect $ appPostgresConnectInfo appSettings :: IO Connection)
 
     appDict <- postgresDictionary connection
-    
+
     appIndex <- buildIndexForJava (answersWithTags connection ["java"]) appNGramSize
     appIndex `seq` pushLogStrLn (loggerSet appLogger) "Index complete"
+
+    pushLogStrLn (loggerSet appLogger) "Reading courpus, building analyzer"
+    appSemantic <- chatterAnalyzer <$> chatterDirectoryCorpus java (appCorpusPath appSettings)
+    pushLogStrLn (loggerSet appLogger) "Semantic analyzer ready!"
 
     -- Return the foundation
     return App {..}

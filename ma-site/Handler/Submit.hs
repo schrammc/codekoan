@@ -14,6 +14,7 @@ import qualified Data.Text as Text
 import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Language.Java (Java, java, Token)
 import Thesis.CodeAnalysis.Semantic.Blocks
+import Thesis.CodeAnalysis.Semantic
 
 import Thesis.Search
 import Thesis.Search.ResultSet
@@ -74,9 +75,19 @@ buildResultWidget SearchConfig{..} txt tks = do
                                                  javaBlockData
                                                  (token <$> tks)
                      else return result
+    displayResult' <- if similarityFilter
+                      then MaybeT $ ( Just <$>
+                             answersWithCoverage aggregationPercentage <$>
+                             (resultsWithSimilarity java
+                                                   appDict
+                                                   appSemantic
+                                                   (tks, txt)
+                                                   displayResult
+                                                   similarityThreshold))
+                      else return displayResult
     if debugOutput
       then do
-        return $ resultWidget appDict txt displayResult
+        return $ resultWidget appDict txt displayResult'
       else undefined
   case searchResultWidgetMaybe of
     Nothing -> [whamlet|Search Failure!|]
@@ -150,6 +161,8 @@ data SearchConfig = SearchConfig { levenSensitivity :: Int
                                  , aggregationPercentage :: Double
                                  , debugOutput :: Bool
                                  , blockAccordanceFilter :: Bool
+                                 , similarityFilter :: Bool
+                                 , similarityThreshold :: Double
                                  }
 
 submitCodeForm :: Html
@@ -159,8 +172,10 @@ submitCodeForm extra = do
   (sensVal, sensView) <- mreq sensitivityField "" (Just 0)
   (lenVal , lenView ) <- mreq sensitivityField" " (Just 20)
   (percVal, percView) <- mreq percField " " (Just 75.0)
-  (displayVal, displayView) <- mreq checkBoxField " " (Just False)
+  (displayVal, displayView) <- mreq checkBoxField " " (Just True)
   (blocksVal, blocksView) <- mreq checkBoxField " " (Just False)
+  (idWordVal, idWordView) <- mreq checkBoxField " " (Just False)
+  (idThreshVal, idThreshView) <- mreq percField " " (Just 25.0)
 
   ngramSize <- appNGramSize <$> getYesod
   
@@ -169,6 +184,8 @@ submitCodeForm extra = do
                                   <*> ((/ 100.0) <$> percVal)
                                   <*> displayVal
                                   <*> blocksVal
+                                  <*> idWordVal
+                                  <*> ((/ 100.0) <$> idThreshVal)
       queryVal = (,) <$> (langText <$> codeVal) <*> searchConfig
       widget = do
         toWidget 
@@ -217,6 +234,14 @@ submitCodeForm extra = do
                          <tr>
                            <td>
                              Block accordance filter: ^{fvInput blocksView}
+                         <tr>
+                           <td>
+                             Identifier word similarity filter:
+                             ^{fvInput idWordView}
+                         <tr>
+                           <td>
+                             Id similarity threshold:<br>
+                             ^{fvInput idThreshView}
                      
                    <tr>
                      <td>
