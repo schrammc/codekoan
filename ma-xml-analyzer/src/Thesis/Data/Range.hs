@@ -1,4 +1,4 @@
-module Thesis.Data.Range ( Range(..)
+ module Thesis.Data.Range ( Range(..)
                          , isSubRangeOf
                          , coveragePercentage
 
@@ -8,12 +8,18 @@ module Thesis.Data.Range ( Range(..)
                          , overlapOrBorder
 
                          , textInRange
+                         , textInRanges
+
+                         , convertRange
+                         , vectorInRange
 ) where
 
 import Data.List (sort, nub)
 
 import Data.Text (Text)
 import qualified Data.Text as Text
+
+import qualified Data.Vector as V
 
 data Range a = Range { rangeStart ::  Int
                      , rangeEnd :: Int
@@ -103,3 +109,23 @@ isSubRangeOf (Range a b) (Range c d) = c <= a && d >= b
 
 textInRange :: Range a -> Text -> Text
 textInRange (Range a b) txt = Text.take (b - a) (Text.drop a txt)
+
+-- | A helper function to convert the phantom type of a range
+convertRange :: Range a -> Range b
+convertRange (Range a b) = (Range a b)
+
+-- | /O(1)/ Get the slice of the vector that's in range. Caller must make sure,
+-- that the range is actually contained in the vector
+vectorInRange :: Range a -> V.Vector a -> V.Vector a
+vectorInRange (Range a b) vec = V.slice a (b-a) vec
+
+-- Helper function to get all ranges in a text in one pass because text has
+-- /O(n)/ random access
+textInRanges :: Text -> [Range Text] -> [Text]
+textInRanges t ranges = texts 0 t ranges
+  where
+    texts _ _ [] = []
+    texts pos t ((Range start stop):rs)  =
+      let t' = Text.drop (start-pos) t
+          (tkText, restText) = Text.splitAt (stop-start) t'
+      in tkText:(texts stop restText rs)
