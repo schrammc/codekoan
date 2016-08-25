@@ -12,6 +12,9 @@
 
                          , convertRange
                          , vectorInRange
+
+                         , rangeCover
+                         , merge
 ) where
 
 import Data.List (sort, nub)
