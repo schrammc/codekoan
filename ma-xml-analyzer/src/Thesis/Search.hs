@@ -7,25 +7,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search where
 
+import           Control.Parallel.Strategies
 import           Data.Hashable (Hashable)
 import qualified Data.Set as S
 import qualified Data.Vector as V
-
-
-
-import           Control.Parallel.Strategies
-
 import           Thesis.CodeAnalysis.Language
-
-import           Thesis.CodeAnalysis.Semantic.Blocks
-import           Thesis.Data.Stackoverflow.Answer
-
 import           Thesis.Data.Range
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.BloomFilter
+import           Thesis.Search.Index
 import           Thesis.Search.Levenstein
 import           Thesis.Search.NGrams
-import           Thesis.Search.Index
-import           Thesis.Search.SearchResult
 import           Thesis.Search.ResultSet
 
 findMatches :: (Ord t, Hashable t)
@@ -57,13 +50,13 @@ findMatches index@(SearchIndex{..}) n t = do
            let queryRange = Range start (start + length foundTokens)
            case ngramWithRange (take (length foundTokens) ts) of
              Nothing -> []
-             Just x -> return SearchResult { resultTextRange = fst x
-                                           , resultMatchedTokens = foundTokens
-                                           , resultQueryRange = queryRange
-                                           , resultMetaData = metadata
-                                           , resultFragmentRange = range
-                                           , resultLevenScore = score
-                                           }
+             Just x -> return AlignmentMatch { resultTextRange = fst x
+                                             , resultMatchedTokens = foundTokens
+                                             , resultQueryRange = queryRange
+                                             , resultMetaData = metadata
+                                             , resultFragmentRange = range
+                                             , resultLevenScore = score
+                                             }
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range

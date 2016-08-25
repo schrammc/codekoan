@@ -10,7 +10,7 @@ module Thesis.CodeAnalysis.Language ( Language(..)
                                     , identifiers) where
 
 import qualified Data.Vector as V
-import qualified Data.Text as T
+
 
 import Data.Text (Text)
 import Data.Hashable (Hashable)

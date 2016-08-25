@@ -8,7 +8,7 @@ import Thesis.Data.Stackoverflow.Dictionary
 import Thesis.Data.Range
 import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Semantic.IdentifierSplitter
-import Thesis.Search.SearchResult
+import Thesis.Search.AlignmentMatch
 import Thesis.Search.ResultSet
 import Control.Monad.Catch
 import Control.Monad.Trans.Maybe
@@ -50,17 +50,17 @@ resultsWithSimilarity lang dict analyzer@SemanticAnalyzer{..} queryDoc set thres
       forM (M.toList $ resultSetMap set) $ \(aId, fragMap) ->
       fromMaybe (aId, M.empty) <$> (runMaybeT $ do
         fragments <- answerFragments dict lang aId
-        answerGroup <- forM (M.toList $ fragMap) $ \(fragId, searchResults) -> do
+        answerGroup <- forM (M.toList $ fragMap) $ \(fragId, matches) -> do
           fragment <- MaybeT . return $ fragments !? fragId
           let filteredResults = do
-                result <- searchResults
+                match <- matches
                 let sim = searchResultSimilarity lang
                                                  analyzer
                                                  queryDoc
                                                  fragment
-                                                 result
+                                                 match
                 if sim > thresh
-                  then return result
+                  then return match
                   else []
           return (fragId, filteredResults)
         return (aId, M.fromList answerGroup))
@@ -71,19 +71,19 @@ searchResultSimilarity :: Language t l
                        -- ^ query document
                        -> (TokenVector t l, LanguageText l)
                        -- ^ answer fragment
-                       -> [SearchResult t l]
+                       -> [AlignmentMatch t l]
                        -> Double
-searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (rs) =
+searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (ms) =
   semanticSimilarity (semanticPreprocess queryIds) (semanticPreprocess fragIds)
   where
     queryIds :: [Text]
     queryIds = identifiers lang queryText $ V.concat $ do
-      SearchResult{..} <- rs
+      AlignmentMatch{..} <- ms
       let queryTokenRange = convertRange resultQueryRange
       return $ vectorInRange queryTokenRange queryTokens
     fragIds :: [Text]
     fragIds = identifiers lang fragText $ V.concat $ do
-      SearchResult{..} <- rs
+      AlignmentMatch{..} <- ms
       let fragmentTokenRange = convertRange resultFragmentRange
       return $ vectorInRange fragmentTokenRange fragTokens
       

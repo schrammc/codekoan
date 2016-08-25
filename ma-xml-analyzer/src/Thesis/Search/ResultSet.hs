@@ -21,11 +21,11 @@ import qualified Data.Map.Strict as M
 
 import           Thesis.Data.Range
 import           Thesis.Data.Stackoverflow.Answer
-import           Thesis.Search.SearchResult
+import           Thesis.Search.AlignmentMatch
 
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l =
-  ResultSet {resultSetMap :: (M.Map AnswerId (M.Map Int [[SearchResult t l]]))}
+  ResultSet {resultSetMap :: (M.Map AnswerId (M.Map Int [[AlignmentMatch t l]]))}
 
 -- | This function makes sure, that for each answer there is at least one
 -- fragment, that contains at least one search results.
@@ -41,7 +41,7 @@ filterEmptyResults ResultSet{..} = ResultSet . M.fromList $ do
         
   return (aId, mp')
 
-listOfResults :: ResultSet t l -> [SearchResult t l]
+listOfResults :: ResultSet t l -> [AlignmentMatch t l]
 listOfResults (ResultSet mp) = do
   (_, mp') <- M.toList mp
   (_, res) <- M.toList mp'
@@ -82,8 +82,8 @@ fragmentsLongerThan n resultSet =
 mapFragmentResults :: ResultSet t l
                    -> (AnswerId
                        -> Int
-                       -> [SearchResult t l]
-                       -> Maybe [SearchResult t l])
+                       -> [AlignmentMatch t l]
+                       -> Maybe [AlignmentMatch t l])
                    -> ResultSet t l
 mapFragmentResults ResultSet{..} f = ResultSet $ 
   (flip M.mapMaybeWithKey) resultSetMap $ \aId -> \mp ->
@@ -101,8 +101,8 @@ mapFragmentResults ResultSet{..} f = ResultSet $
 mapSplitFragmentResults :: ResultSet t l
                         -> (AnswerId
                             -> Int
-                            -> [SearchResult t l]
-                            -> [[SearchResult t l]])
+                            -> [AlignmentMatch t l]
+                            -> [[AlignmentMatch t l]])
                         -> ResultSet t l
 mapSplitFragmentResults ResultSet{..} f = ResultSet $ 
   (flip M.mapMaybeWithKey) resultSetMap $ \aId -> \mp ->
@@ -114,13 +114,13 @@ mapSplitFragmentResults ResultSet{..} f = ResultSet $
        then Nothing
        else Just mp'
 
--- | Build a result set from a list of search result in which there is no
--- alignment result for an answer is subsumed by another.
-buildResultSet :: Eq t => [SearchResult t l] -> ResultSet t l
+-- | Build a result set from a list of alignment matches in which there is no
+-- alignment match for an answer is subsumed by another.
+buildResultSet :: Eq t => [AlignmentMatch t l] -> ResultSet t l
 buildResultSet  = removeSubsumptionInSet . buildResultSet'
 
 -- | Build a result set from a list of search results.
-buildResultSet' :: (Eq t) => [SearchResult t l] -> ResultSet t l
+buildResultSet' :: (Eq t) => [AlignmentMatch t l] -> ResultSet t l
 buildResultSet' [] = ResultSet M.empty
 buildResultSet' results =
   let getAId = fragmentAnswerId . fragmentMetaId . resultMetaData
@@ -147,7 +147,7 @@ removeSubsumptionInSet ResultSet{..}  =
 -- another search result. Note that this will not remove all answer fragments
 -- from a search result set, as there is always at least one search result per
 -- answer fragment, that is not subsumed by another.
-removeSubsumption :: (Eq t) => [SearchResult t l] -> [SearchResult t l]
+removeSubsumption :: (Eq t) => [AlignmentMatch t l] -> [AlignmentMatch t l]
 removeSubsumption results = do
       r <- results
       if null $ filter (/= r) $ filter (subsumedByProper r) results

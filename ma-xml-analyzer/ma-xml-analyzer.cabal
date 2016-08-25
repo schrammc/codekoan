@@ -43,15 +43,14 @@ library
                      , Thesis.Data.Graph
 
                      , Thesis.Search
+                     , Thesis.Search.AlignmentMatch
                      , Thesis.Search.Index
                      , Thesis.Search.BloomFilter
                      , Thesis.Search.CompressedTrie
                      , Thesis.Search.Levenstein
                      , Thesis.Search.NGrams
                      , Thesis.Search.ResultSet
-                     , Thesis.Search.SearchResult
                      , Thesis.Search.Trie
-
                      , Thesis.Util.ConduitUtils
 
   build-depends:       aeson >= 0.11

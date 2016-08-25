@@ -15,7 +15,7 @@ import           Thesis.Data.Range
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Search.ResultSet
-import           Thesis.Search.SearchResult
+import           Thesis.Search.AlignmentMatch
 
 -- Specification:
 --
@@ -129,7 +129,7 @@ data BlockData t =
             , fragmentBlockString :: Range t -> [BlockDelim]
             }
 
-blockAccordance :: BlockData t -> SearchResult t l -> SearchResult t l -> Bool
+blockAccordance :: BlockData t -> AlignmentMatch t l -> AlignmentMatch t l -> Bool
 blockAccordance BlockData{..} resA resB =
   queryDist == fragmentDist
   && blockStringEquality
@@ -137,7 +137,7 @@ blockAccordance BlockData{..} resA resB =
   && noFragOverlap
   where
     queryDist = queryRelation (rangeStart $ resultQueryRange resA)
-                              (rangeStart $resultQueryRange resB)
+                              (rangeStart $ resultQueryRange resB)
     fragmentDist = fragmentRelation (rangeStart $ resultFragmentRange resA)
                                     (rangeStart $ resultFragmentRange resB)
     blockStringEquality = (queryBlockString $ resultQueryRange resA) ==
@@ -148,8 +148,8 @@ blockAccordance BlockData{..} resA resB =
                                    (resultFragmentRange resB)
 
 blockAnalysis :: BlockData t
-              -> [SearchResult t l] -- ^ result matches
-              -> [[SearchResult t l]]
+              -> [AlignmentMatch t l] -- ^ result matches
+              -> [[AlignmentMatch t l]]
 blockAnalysis blockData results = cliques accordanceGraph
   where
     resultV   = V.fromList results
