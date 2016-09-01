@@ -39,10 +39,10 @@ stringLiteral = do
 javaStyleComment :: Parser ()
 javaStyleComment = javaLineComment <|> javaBlockComment
 
--- | Java / C style comment (line)
-javaLineComment :: Parser ()
-javaLineComment = do
-  string "//"
+-- | A parser for a single line comment that is started by a delimiter. An example could be @--@ in haskell or @//@ in java.
+lineComment :: Text -> Parser ()
+lineComment commentStart = do
+  string commentStart
   let content = endOfLine <|>
                 endOfInput <|>
                 (do
@@ -50,6 +50,14 @@ javaLineComment = do
                     if xs == "" then return () else content )
   content
   return ()
+  
+-- | Java / C style comment (line)
+javaLineComment :: Parser ()
+javaLineComment = lineComment "//"
+
+-- | A single line comment in python / bash style (#)
+pythonLineComment :: Parser ()
+pythonLineComment = lineComment "#"
 
 -- | Java / C style comment (block)
 javaBlockComment :: Parser ()

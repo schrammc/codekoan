@@ -1,3 +1,12 @@
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- This module provides an implementation of the 'Langauge' datatype for the
+-- java language. This implementation includes a type 'Java', which is a type
+-- without content to be used as a phantom type, a java tokenizer, and other
+-- things necessary to analyzer java code.
+
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
