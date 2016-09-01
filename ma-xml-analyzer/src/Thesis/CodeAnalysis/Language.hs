@@ -1,4 +1,8 @@
--- | This module provides a common data type for language specific features of a
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- This module provides a common data type for language specific features of a
 -- processing pipeline
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -7,15 +11,19 @@ module Thesis.CodeAnalysis.Language ( Language(..)
                                     , processAndTokenize
                                     , TokenWithRange(..)
                                     , TokenVector
-                                    , identifiers) where
+                                    , identifiers
+                                      -- * Helper functions
+                                    , buildTokenVector ) where
 
 import qualified Data.Vector as V
 
 
 import Data.Text (Text)
 import Data.Hashable (Hashable)
+import Data.Maybe (mapMaybe)
 
 import Thesis.Data.Range
+import Data.List
 
 type TokenVector t l = V.Vector (TokenWithRange t l)
 
@@ -72,3 +80,10 @@ identifiers Language{..} txt tks = do
 -- language. Doing this prevents us from inadvertently mixing up e.g. bash and
 -- java code at any point in the program.
 newtype LanguageText l = LanguageText {langText :: Text}
+
+buildTokenVector :: [(Int, Maybe t)] -> TokenVector t l
+buildTokenVector res =
+  let (_, tokens) = mapAccumL f 0 res
+  in V.fromList $ mapMaybe (\(r, t) -> TokenWithRange r <$> t) tokens
+  where
+    f n (k,t) = (n+k, (Range n (n+k), t))

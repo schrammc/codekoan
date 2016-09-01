@@ -23,7 +23,6 @@ import           Data.Attoparsec.Text as AP
 
 import           Data.Binary (Binary)
 
-import  Data.List
 import           Data.Char
 
 import           Data.Hashable (Hashable)
@@ -35,10 +34,6 @@ import           GHC.Generics (Generic)
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 
-import qualified Data.Vector as V
-
-import           Thesis.Data.Range
-import Data.Maybe (mapMaybe)
 import Control.DeepSeq
 
 data Java
@@ -60,13 +55,8 @@ removeImportLines LanguageText{..} =
     ls = Text.lines langText
 
 tokenizeJ :: LanguageText Java -> Maybe (TokenVector Token Java)
-tokenizeJ LanguageText{..} = do
-  res <- parseResult
-  let (_, tokens) = mapAccumL f 0 res
-  return $! V.fromList $ mapMaybe (\(r, t) -> TokenWithRange r <$> t) tokens
+tokenizeJ LanguageText{..} = buildTokenVector <$> parseResult
   where
-    f n (k,t) = (n+k, (Range n (n+k), t))
-    
     parseResult :: Maybe [(Int, Maybe Token)]
     parseResult = case AP.parseOnly (many' lenParser) langText of
       Right xs -> Just xs
