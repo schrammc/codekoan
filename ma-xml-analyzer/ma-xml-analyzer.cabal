@@ -1,6 +1,6 @@
 name:                ma-xml-analyzer
 version:             0.6.0.0
-synopsis:            Code pattern search engine backend
+synopsis:            Language independent code pattern search engine backend
 description:         Please see README.md
 homepage:            https://github.com/githubuser/ma-xml-analyzer#readme
 license:             BSD3
@@ -18,17 +18,16 @@ library
                      , Thesis.CodeAnalysis.Language.Internal
                      , Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
-                     , Thesis.CodeAnalysis.StackoverflowBodyParser
-
                      , Thesis.CodeAnalysis.Semantic
                      , Thesis.CodeAnalysis.Semantic.Blocks
                      , Thesis.CodeAnalysis.Semantic.CamelCaseSplitter
                      , Thesis.CodeAnalysis.Semantic.Chatter
                      , Thesis.CodeAnalysis.Semantic.IdentifierSplitter
                      , Thesis.CodeAnalysis.Semantic.Source
+                     , Thesis.CodeAnalysis.StackoverflowBodyParser
 
-
-
+                     , Thesis.Data.Graph
+                     , Thesis.Data.Range
                      , Thesis.Data.Stackoverflow.XML.Helpers
                      , Thesis.Data.Stackoverflow.Answer
                      , Thesis.Data.Stackoverflow.Question
@@ -39,8 +38,6 @@ library
                      , Thesis.Data.Stackoverflow.Dump.Export.Postgres
                      , Thesis.Data.Stackoverflow.Dump.Source.Postgres
                      , Thesis.Data.Text.PositionRange
-                     , Thesis.Data.Range
-                     , Thesis.Data.Graph
 
                      , Thesis.Search
                      , Thesis.Search.AlignmentMatch
@@ -51,6 +48,7 @@ library
                      , Thesis.Search.NGrams
                      , Thesis.Search.ResultSet
                      , Thesis.Search.Trie
+
                      , Thesis.Util.ConduitUtils
 
   build-depends:       aeson >= 0.11
