@@ -12,26 +12,14 @@ module Thesis.CodeAnalysis.Language ( Language(..)
                                     , TokenWithRange(..)
                                     , TokenVector
                                     , identifiers
-                                      -- * Helper functions
-                                    , buildTokenVector ) where
-
-import qualified Data.Vector as V
-
+                                    ) where
 
 import Data.Text (Text)
 import Data.Hashable (Hashable)
-import Data.Maybe (mapMaybe)
+import qualified Data.Vector as V
 
 import Thesis.Data.Range
-import Data.List
-
-type TokenVector t l = V.Vector (TokenWithRange t l)
-
--- | Token combined with the range in a piece of language text, that it covers.
-data TokenWithRange t l = TokenWithRange { coveredRange :: Range (LanguageText l)
-                                         , token :: t
-                                         }
-                        deriving (Show, Eq)
+import Thesis.CodeAnalysis.Language.Internal
 
 -- | A datatype for a language polymorphic over two types
 -- * @t@ a type for tokens
@@ -72,18 +60,3 @@ identifiers Language{..} txt tks = do
       zip tksList (textInRanges normalizedText
                                 ((convertRange . coveredRange) <$> tksList))
     tksList = V.toList tks
-
-
--- | A type for the text representation fo program code in a langauge.
---
--- This type uses a phantom type @l@ to indicate that it belongs to a certain
--- language. Doing this prevents us from inadvertently mixing up e.g. bash and
--- java code at any point in the program.
-newtype LanguageText l = LanguageText {langText :: Text}
-
-buildTokenVector :: [(Int, Maybe t)] -> TokenVector t l
-buildTokenVector res =
-  let (_, tokens) = mapAccumL f 0 res
-  in V.fromList $ mapMaybe (\(r, t) -> TokenWithRange r <$> t) tokens
-  where
-    f n (k,t) = (n+k, (Range n (n+k), t))

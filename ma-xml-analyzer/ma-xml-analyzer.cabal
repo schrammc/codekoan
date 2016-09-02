@@ -16,6 +16,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Lib
                      , Thesis.CodeAnalysis.Language
+                     , Thesis.CodeAnalysis.Language.Internal
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
                      , Thesis.CodeAnalysis.Language.Java
                      , Thesis.CodeAnalysis.Language.Java.Internal

@@ -19,11 +19,11 @@ import           Data.Vector.Binary ()
 import Control.DeepSeq
 
 data CompressedTrie a v where
-  CTrieNode :: Ord a
+  CTrieNode :: (Ord a)
                => !(M.Map a (V.Vector a, CompressedTrie a v))
-               -- ^ Structural information of the trie
+               -- Structural information of the trie
             -> !(Maybe v)
-               -- ^ The annotation of a completed word
+               -- The annotation of a completed word
             -> CompressedTrie a v
   CTrieLeaf :: !v -> CompressedTrie a v
 

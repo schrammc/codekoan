@@ -25,8 +25,8 @@ import           Data.Attoparsec.Text as AP
 
 import           Data.Char
 import qualified Data.Text as Text
-import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Language.CommonTokenParsers
+import Thesis.CodeAnalysis.Language.Internal
 import Thesis.CodeAnalysis.Language.Java.Internal.Tokens
 import Thesis.CodeAnalysis.Language.Java.Internal.Type
 

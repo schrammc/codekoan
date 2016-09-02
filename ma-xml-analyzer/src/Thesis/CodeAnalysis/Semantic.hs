@@ -1,3 +1,14 @@
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- This module provides a data type 'SemanticAnalyzer' to analyze the similairty
+-- of words in the identifiers of a piece of code.
+--
+-- 'resultsWithSimilarity' is a function that calculates a similarity score in
+-- the interval @[0;1]@, where 0 is most dissimilar and 1 is maximal detectable
+-- similarity of identifier words.
+
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.CodeAnalysis.Semantic where
@@ -30,14 +41,20 @@ data SemanticAnalyzer a =
                      -- either identical or highly similar.
                    }
 
--- | This function filters all those results from a result set that don't have a semantic similarity value that is equal to or greater than the reference value
+-- | This function filters all those results from a result set that don't have a
+-- semantic similarity value that is equal to or greater than the reference
+-- value
 resultsWithSimilarity :: MonadThrow m =>
                          Language t l
+                         -- ^ We always work in relation to a given language
+                         -- with fixed tokens
                       -> DataDictionary m
+                      -- ^ An accessor for code pattern data
                       -> SemanticAnalyzer a
                       -> (TokenVector t l, LanguageText l)
                       -- ^ query document
                       -> ResultSet t l
+                      -- ^ The result set to be analyzed
                       -> Double
                       -- ^ Threshold value between 0 and 1
                       -> m (ResultSet t l)

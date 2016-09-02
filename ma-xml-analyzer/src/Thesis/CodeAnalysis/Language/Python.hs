@@ -24,18 +24,18 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
-import           Data.Char
-import           Data.Hashable (Hashable)
-import           GHC.Generics (Generic)
-import           Thesis.CodeAnalysis.Language
-import           Thesis.CodeAnalysis.Language.CommonTokenParsers
-import           Data.Maybe(fromJust)
-
-import Debug.Trace
-
-import qualified Data.Text as Text
 
 import           Data.Attoparsec.Text as AP
+import           Data.Char
+import           Data.Hashable (Hashable)
+import           Data.Maybe (fromJust)
+import qualified Data.Text as Text
+
+import           GHC.Generics (Generic)
+
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language.CommonTokenParsers
+import           Thesis.CodeAnalysis.Language.Internal
 
 data Python
 
@@ -175,7 +175,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       st@ParserState{..} <- get
       let valid = case blockWidth of
                     Nothing -> True
-                    Just x  -> traceShow (gcd n x) gcd n x > 1
+                    Just x  -> gcd n x > 1
           delta = indentationLevel - n
 
       put st{indentationLevel = n}
