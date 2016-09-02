@@ -37,8 +37,10 @@ resolver: lts-6.10
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - ./ma-xml-analyzer
-- ./ma-site
+#- ./ma-site
 - ./ma-postgres-indexer
+- ./ma-language-java
+- ./ma-language-python
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

@@ -18,7 +18,6 @@ import           NLP.Types
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.CodeAnalysis.Semantic.Source
-import Thesis.CodeAnalysis.Language.Java
 
 -- | Build a semantic analyzer based on a chatter-corpus.
 chatterAnalyzer :: Corpus -> SemanticAnalyzer TermVector
