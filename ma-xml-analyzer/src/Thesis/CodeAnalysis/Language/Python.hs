@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE MultiWayIf #-}
 -- |
 -- Copyright: Christof Schramm 2016
 -- License: All rights reserved
@@ -12,7 +10,8 @@
 -- This is designed to work with both python 2 and python 3. If a case should
 -- arise where a result is either incorrect for python 2 or python 3, always
 -- expect the python 2 result to be incorrect. 
-
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedStrings#-}
@@ -27,15 +26,13 @@ import           Control.Monad.Trans.State
 
 import           Data.Attoparsec.Text as AP
 import           Data.Char
-import           Data.Hashable (Hashable)
 import           Data.Maybe (fromJust)
 import qualified Data.Text as Text
-
-import           GHC.Generics (Generic)
 
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 import           Thesis.CodeAnalysis.Language.Internal
+import           Thesis.CodeAnalysis.Language.Python.Internal.Tokens
 
 data Python
 
@@ -47,59 +44,6 @@ python = Language{ languageFileExtension = ".py"
                  , isTokenIdentifier = (== PyTokenIdentifier)
                  , removeComments = LanguageText
                  }
-
-data PyToken = PyTokenIndent
-             | PyTokenUnindent
-             | PyTokenLT
-             | PyTokenGT
-             | PyTokenEQ
-             | PyTokenAssign
-             | PyTokenNot
-             | PyTokenIn
-             | PyTokenBinAnd
-             | PyTokenAnd
-             | PyTokenBinOr
-             | PyTokenOr
-             | PyTokenAdd
-             | PyTokenSub
-             | PyTokenPow
-             | PyTokenMult
-             | PyTokenDiv
-             | PyTokenMod
-             | PyTokenLBrace
-             | PyTokenRBrace
-             | PyTokenLBrack
-             | PyTokenRBrack
-             | PyTokenLParen
-             | PyTokenRParen
-             | PyTokenDot
-             | PyTokenComma
-             | PyTokenColon
-             | PyTokenQuestion
-             | PyTokenIf
-             | PyTokenElse
-             | PyTokenElif
-             | PyTokenTry
-             | PyTokenExcept
-             | PyTokenFinally
-             | PyTokenRaise
-             | PyTokenAs
-             | PyTokenWith
-             | PyTokenDef
-             | PyTokenPass
-             | PyTokenYield
-             | PyTokenSemicolon
-             | PyTokenKeyword
-             | PyTokenClass
-             | PyTokenImport
-             | PyTokenBreak
-             | PyTokenLoopWord
-             | PyTokenIdentifier
-             | PyTokenNumber
-             | PyTokenStringLiteral
-             | PyTokenCharacterLiteral
-             | PyTokenModifier
-             deriving (Eq, Ord, Show, Generic, Hashable)
 
 -- | State that the will use internally.
 data ParserState = ParserState{ blockWidth :: Maybe Int
