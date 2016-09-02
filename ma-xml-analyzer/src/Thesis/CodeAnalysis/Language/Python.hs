@@ -16,7 +16,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedStrings#-}
-module Thesis.CodeAnalysis.Language.Python where
+module Thesis.CodeAnalysis.Language.Python ( python
+                                           , Python
+                                           ) where
 
 import           Control.Applicative
 import           Control.Monad
@@ -77,6 +79,15 @@ data PyToken = PyTokenIndent
              | PyTokenIf
              | PyTokenElse
              | PyTokenElif
+             | PyTokenTry
+             | PyTokenExcept
+             | PyTokenFinally
+             | PyTokenRaise
+             | PyTokenAs
+             | PyTokenWith
+             | PyTokenDef
+             | PyTokenPass
+             | PyTokenYield
              | PyTokenSemicolon
              | PyTokenKeyword
              | PyTokenClass
@@ -94,8 +105,6 @@ data PyToken = PyTokenIndent
 data ParserState = ParserState{ blockWidth :: Maybe Int
                               , indentationLevel :: Int
                               }
-
-data IndentationFault = IndentationFault
 
 -- | Tokenize a piece of python code. It is critical, that this code is
 -- normalized beforehand. Normalization eliminates all tab characters in the
@@ -209,12 +218,20 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> "if" *> pure PyTokenIf
          <|> "else" *> pure PyTokenElse
          <|> "elif" *> pure PyTokenElif
+         <|> "try" *> pure PyTokenTry
+         <|> "except" *> pure PyTokenExcept
+         <|> "finally" *> pure PyTokenFinally
+         <|> "raise" *> pure PyTokenRaise
+         <|> "as"    *> pure PyTokenAs
+         <|> "with"  *> pure PyTokenWith
+         <|> "def"   *> pure PyTokenDef
+         <|> "pass"  *> pure PyTokenPass
+         <|> "yield" *> pure PyTokenYield
          <|> loopWord
          <|> pyStringLiteral
          <|> pyCharacterLiteral
+         <|> pyNumber
          <|> identifier
-         
-
 
 pyStringLiteral :: Parser PyToken
 pyStringLiteral = stringLiteral *> pure PyTokenStringLiteral
@@ -233,3 +250,6 @@ identifier = do
 
 loopWord :: Parser PyToken
 loopWord = ("for" <|> "while") *> pure PyTokenLoopWord
+
+pyNumber :: Parser PyToken
+pyNumber =  scientific *> pure PyTokenNumber
