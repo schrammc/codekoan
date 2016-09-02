@@ -60,6 +60,7 @@ data PyToken = PyTokenIndent
              | PyTokenOr
              | PyTokenAdd
              | PyTokenSub
+             | PyTokenPow
              | PyTokenMult
              | PyTokenDiv
              | PyTokenMod
@@ -73,6 +74,9 @@ data PyToken = PyTokenIndent
              | PyTokenComma
              | PyTokenColon
              | PyTokenQuestion
+             | PyTokenIf
+             | PyTokenElse
+             | PyTokenElif
              | PyTokenSemicolon
              | PyTokenKeyword
              | PyTokenClass
@@ -179,7 +183,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       else fail "Indentation fault"
 
 tokenP :: Parser PyToken
-tokenP = "<"      *> pure PyTokenLT
+tokenP =     "<"  *> pure PyTokenLT
          <|> ">"  *> pure PyTokenGT
          <|> "==" *> pure PyTokenEQ
          <|> "="  *> pure PyTokenAssign
@@ -188,6 +192,10 @@ tokenP = "<"      *> pure PyTokenLT
          <|> "."  *> pure PyTokenDot
          <|> "+"  *> pure PyTokenAdd
          <|> "-"  *> pure PyTokenSub
+         <|> "**" *> pure PyTokenPow
+         <|> "*"  *> pure PyTokenMult
+         <|> "/"  *> pure PyTokenDiv
+         <|> "%"  *> pure PyTokenMod
          <|> "("  *> pure PyTokenLParen
          <|> ")"  *> pure PyTokenRParen
          <|> "["  *> pure PyTokenLBrack
@@ -198,6 +206,10 @@ tokenP = "<"      *> pure PyTokenLT
          <|> "or"  *> pure PyTokenOr
          <|> "class" *> pure PyTokenClass
          <|> "import" *> pure PyTokenImport
+         <|> "if" *> pure PyTokenIf
+         <|> "else" *> pure PyTokenElse
+         <|> "elif" *> pure PyTokenElif
+         <|> loopWord
          <|> pyStringLiteral
          <|> pyCharacterLiteral
          <|> identifier
@@ -218,3 +230,6 @@ identifier = do
   return PyTokenIdentifier
   where
     nonDigit c = isAlpha c || c == '_'
+
+loopWord :: Parser PyToken
+loopWord = ("for" <|> "while") *> pure PyTokenLoopWord
