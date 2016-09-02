@@ -4,12 +4,10 @@ module Thesis.CodeAnalysis.Semantic.Blocks where
 import           Control.Monad
 import           Control.Monad.Trans.Maybe
 
-import           Data.Foldable (foldl')
 import qualified Data.Map as M
 import qualified Data.Vector as V
 
 import           Thesis.CodeAnalysis.Language
-import           Thesis.CodeAnalysis.Language.Java
 import           Thesis.Data.Graph
 import           Thesis.Data.Range
 import           Thesis.Data.Stackoverflow.Answer
@@ -78,46 +76,6 @@ data BlockDelim = BlockStart
                 | BlockEnd
                 deriving (Show, Eq)
 
-javaBlockData :: V.Vector Token -> V.Vector Token -> BlockData Token
-javaBlockData queryTokens fragmentTokens =
-  BlockData { queryRelation    = javaRelation queryTokens
-            , fragmentRelation = javaRelation fragmentTokens
-            , queryBlockString    = javaBlockStringInRegion queryTokens
-            , fragmentBlockString = javaBlockStringInRegion fragmentTokens
-            }
-
-javaBlockStringInRegion :: V.Vector Token -> Range t -> [BlockDelim]
-javaBlockStringInRegion tks (Range{..}) = javaBlockString subSlice
-  where
-    subSlice = V.unsafeSlice a (b - a) tks
-    a = normalizeV tks rangeStart
-    b = normalizeV tks rangeEnd
-
-javaBlockString :: V.Vector Token -> [BlockDelim]
-javaBlockString tks = do
-  token <- V.toList tks
-  case token of
-    TokenLBrace -> return BlockStart
-    TokenRBrace -> return BlockEnd
-    _ -> []
-
-javaRelation :: V.Vector Token -> Int -> Int -> BlockRelation
-javaRelation tks a b | V.length tks == 0 = inSameBlock
-                     | a == b = inSameBlock
-                     | otherwise = foldl' f inSameBlock relevantRegion
-  where
-    relevantRegion = V.unsafeSlice x (y-x) tks
-    f :: BlockRelation -> Token -> BlockRelation
-    f br@BlockRelation{..} TokenLBrace | down > 0 = br{down=down-1}
-                                       | otherwise = br{up=up+1}
-    f br@BlockRelation{..} TokenRBrace | up > 0 = br{up = up-1}
-                                       | otherwise = br{down = down+1}
-    f br _ = br
-
-    -- x and y are the minimum of a and b and the maximum of a and b after a
-    -- normalization that puts each value in the interval of 
-    x = normalizeV tks $ min a b
-    y = normalizeV tks $ max a b
 
 normalizeV :: V.Vector a -> Int -> Int
 normalizeV vector k = max 0 $ min k (V.length vector - 1)

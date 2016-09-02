@@ -18,6 +18,13 @@ library
                      , Thesis.CodeAnalysis.Language
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
                      , Thesis.CodeAnalysis.Language.Java
+                     , Thesis.CodeAnalysis.Language.Java.Internal
+                     , Thesis.CodeAnalysis.Language.Java.Internal.BlockAnalysis
+                     , Thesis.CodeAnalysis.Language.Java.Internal.Index
+                     , Thesis.CodeAnalysis.Language.Java.Internal.Parser
+                     , Thesis.CodeAnalysis.Language.Java.Internal.Tokens
+                     , Thesis.CodeAnalysis.Language.Java.Internal.Type
+                     , Thesis.CodeAnalysis.Language.Python
                      , Thesis.CodeAnalysis.StackoverflowBodyParser
 
                      , Thesis.CodeAnalysis.Semantic
