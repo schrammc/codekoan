@@ -1,3 +1,71 @@
+-- |
+-- 
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- This module provides functionality to analyze the block accordance of search
+-- results. This should be the first starting point in static analysis.
+--
+-- = Specification:
+--
+-- An algorithm for falsification of matches based on the hierarchical block
+-- structure of code.
+--
+-- == The notion of accordance:
+--
+-- Accordance is a symmetric relation between search results. Two search results
+-- are in accordance if:
+--
+--   * their pieces of the query document and their pieces of
+--     the answer fragment are in the same 'BlockRelation'.
+--
+--   * their pieces of the query document and their pieces of the answer
+--     fragment don't subsume each other and aren't equal.
+--
+-- Via this relationship a graph is built. What we look for are clusters in that
+-- graph. A cluster is nothing but a group of search results that are in
+-- accordance with each other.
+--
+-- == Example Case for Accordance
+--
+-- This is a simple example of a trivial pattern and to query document.
+--
+-- === Pattern:
+--
+-- @
+-- statement a;
+-- statement b;
+-- @
+--
+-- === Query Document -- /should be rejected/
+--
+-- @
+-- class Foo {
+--     function a{
+--         statement a; --|
+--     }                  |--- 'BlockRelation' 1 1
+--     function b{        |
+--         statement b; --|
+--     }
+-- }
+-- @
+--
+-- === Query Document -- /should be accepted/
+--
+-- @
+-- class Foo {
+--     function a {
+--         statement b; --| 
+--                        |
+--         for( ...) {    |
+--             ...        |--- 'BlockRelation' 0 0
+--         }              |
+--                        |
+--         statement a; --|
+--     } 
+-- }
+-- @
+--
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.CodeAnalysis.Semantic.Blocks where
 
@@ -15,60 +83,12 @@ import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Search.ResultSet
 import           Thesis.Search.AlignmentMatch
 
--- Specification:
---
--- An algorithm for falsification of matches based on the hierarchical block
--- structure of code.
---
---
--- Example Cases
---
--- Pattern:
---
--- statement a;
--- statement b;
---
--- Query Document -- should be rejected
---
--- class Foo {
---     function a{
---         statement a;
---     }
---     function b{
---         statement b;
---     }
--- }
---
--- Query Document -- should be accepted
---
--- class Foo {
---     function a {
---         statement b;
---
---         for( ...) {
---             ...
---         }
---
---         statement a;
---     } 
--- }
-
--- The notion of accordance:
---
--- Accordance is a symmetric relation between search results. Two search results
--- are in accordance if:
--- * their pieces of the query document and their pieces of
---   the answer fragment are in the same 'BlockRelation'.
--- * their pieces of the query document and their pieces of the answer fragment
---   don't subsume each other and aren't equal.
---
--- Via this relationship a graph is built. What we look for are clusters in that
--- graph. A cluster is nothing but a group of search results that are in
--- accordance with each other.
-
+-- | The minimal number of blocks that you have to go down and up again, to get
+-- from one point to another in a piece of code. This always pertains to going from the first to the second point (in order of occurrence).
 data BlockRelation = BlockRelation {up :: Int, down :: Int}
                    deriving (Eq)
 
+-- | @BlockRelation 0 0@
 inSameBlock :: BlockRelation
 inSameBlock = BlockRelation 0 0
 
@@ -80,13 +100,20 @@ data BlockDelim = BlockStart
 normalizeV :: V.Vector a -> Int -> Int
 normalizeV vector k = max 0 $ min k (V.length vector - 1)
 
+-- | A helper data structure for block accordance analysis. One value of this
+-- type is always generated for /one query document and one code fragment/.
 data BlockData t =
   BlockData { queryRelation :: Int -> Int -> BlockRelation
+              -- ^ Block - relationship of two points in the query
             , fragmentRelation :: Int -> Int -> BlockRelation
+              -- ^ Block - relationship of two points in the fragment
             , queryBlockString :: Range t -> [BlockDelim]
+              -- ^ String of block delimiters in the given range in the query
             , fragmentBlockString :: Range t -> [BlockDelim]
+              -- ^ String of block delimiters in the given range in the fragment
             }
 
+-- | Analyze the block accordance of two alignment matches
 blockAccordance :: BlockData t -> AlignmentMatch t l -> AlignmentMatch t l -> Bool
 blockAccordance BlockData{..} resA resB =
   queryDist == fragmentDist
@@ -105,6 +132,13 @@ blockAccordance BlockData{..} resA resB =
     noFragOverlap  = not $ overlap (resultFragmentRange resA)
                                    (resultFragmentRange resB)
 
+-- | Build groups of alignment matches from the original set.
+--
+-- This function constructs an undirected graph, in which alignment matches are
+-- the nodes. Edges in the graph are inserted between alignment matches that are
+-- in 'blockAccordance'.
+--
+-- This function then yields all maximal cliques of that graph.
 blockAnalysis :: BlockData t
               -> [AlignmentMatch t l] -- ^ result matches
               -> [[AlignmentMatch t l]]
@@ -121,6 +155,9 @@ blockAnalysis blockData results = cliques accordanceGraph
         then [(k, n)]
         else []
 
+-- | Build a result set from a result set, that contains results, where each
+-- result only contains maximal groups of alignment matches that are in
+-- accordace.
 resultSetBlockAnalysis :: (Monad m) =>
                           DataDictionary m
                        -> Language t l

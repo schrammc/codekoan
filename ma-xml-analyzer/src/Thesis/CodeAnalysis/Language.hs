@@ -6,11 +6,14 @@
 -- processing pipeline
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.CodeAnalysis.Language ( Language(..)
+module Thesis.CodeAnalysis.Language ( -- * Basic Types
+                                      Language(..)
                                     , LanguageText(..)
-                                    , processAndTokenize
+                                      -- * Tokens
                                     , TokenWithRange(..)
                                     , TokenVector
+                                      -- * Basic functions
+                                    , processAndTokenize
                                     , identifiers
                                     ) where
 
@@ -30,15 +33,20 @@ import Thesis.CodeAnalysis.Language.Internal
 data Language t l where
   Language :: (Ord t, Show t, Hashable t) =>
               { languageFileExtension :: String
+                -- ^ Typical file extension for the given language. Examples
+                -- would be ".java" for java, ".py" for python, etc.
               , removeComments :: Text -> LanguageText l
               , normalize :: LanguageText l -> LanguageText l
                 -- ^ Normalize a piece of language text. This function should be
                 -- idempotent. I.e. it should hold that
-                -- @ normalize txt == normalize $ normalize txt
+                -- @ normalize txt == normalize $ normalize txt @
               , tokenize :: LanguageText l -> Maybe (TokenVector t l)
               , isTokenIdentifier :: t -> Bool
+                -- ^ If the token is an identifier token, the underlying
+                -- identifier will be used in word similarity filtering
               } -> Language t l
 
+-- | Normalize and then tokenize the given language text.
 processAndTokenize :: Language t l
                    -> LanguageText l
                    -> Maybe (TokenVector t l)

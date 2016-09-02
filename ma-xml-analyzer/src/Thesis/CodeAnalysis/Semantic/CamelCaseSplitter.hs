@@ -1,3 +1,8 @@
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- A module to split words in a camel case identifier.
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.CodeAnalysis.Semantic.CamelCaseSplitter ( camelCaseWords

@@ -1,3 +1,9 @@
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- A module that splits identifiers first by underscores and then those split
+-- results by camel case.
 module Thesis.CodeAnalysis.Semantic.IdentifierSplitter where
 
 import Data.Text (Text)
@@ -6,6 +12,7 @@ import Thesis.CodeAnalysis.Semantic.CamelCaseSplitter
 
 import Data.List.Split (splitOn)
 
+-- | A 'T.Text' version of 'splitId'
 splitIdText :: Text -> [Text]
 splitIdText = (fmap T.pack) . splitId  . T.unpack
 
