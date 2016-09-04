@@ -61,10 +61,13 @@ rangeCover rangeList =
 -- original ranges.
 --
 -- Example:
+--
+-- @
 -- A:   |------------|
 -- B:          |-------------|
 -- Result:
 --      |------|-----|-------|
+-- @
 rangeSplits :: [Range a] -> [Range a]
 rangeSplits rangeList =
   case rangeList of
