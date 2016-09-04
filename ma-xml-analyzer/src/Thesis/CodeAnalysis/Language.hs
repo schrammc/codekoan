@@ -25,8 +25,10 @@ import Thesis.Data.Range
 import Thesis.CodeAnalysis.Language.Internal
 
 -- | A datatype for a language polymorphic over two types
--- * @t@ a type for tokens
--- * @l@ a specialized language type
+--
+--   * @t@ a type for tokens
+--
+--   * @l@ a specialized language type
 --
 -- A specific instance would look somewhat like
 -- > Language Token Java
