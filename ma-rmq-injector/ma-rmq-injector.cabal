@@ -1,0 +1,28 @@
+name:               ma-rmq-injector
+version:            0.0.0
+cabal-version:      >= 1.8
+build-type:         Simple
+extra-source-files: routes
+
+executable          ma-rmq-injector
+  main-is:          Main.hs
+  other-modules:    Application
+                  , Foundation
+                  , Settings
+
+                  , Handler.Submit
+                  , Handler.Status
+
+  ghc-options:      -Wall -fwarn-tabs -O2
+
+  build-depends:  aeson >= 0.11
+                , base
+                , exceptions >= 0.8
+                , yesod-core
+                , ma-search-backend >= 0.6.0
+                , ma-messaging >= 0.1.0.0
+                , text >= 1.2.2
+                
+                
+
+  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N
