@@ -1,5 +1,22 @@
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- A graph data structure along with some basic -- fairly performantly
+-- implemented -- algorithms.
+
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.Data.Graph where
+module Thesis.Data.Graph
+       ( -- * Graphs
+         Graph
+
+         -- * Construction
+       , buildGraph
+
+         -- * Algorithms
+       , connected
+       , cliques
+       ) where
 
 import Data.Algorithm.MaximalCliques
 

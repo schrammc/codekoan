@@ -1,21 +1,40 @@
- module Thesis.Data.Range ( Range(..)
-                         , isSubRangeOf
-                         , coveragePercentage
+-- |
+-- Copyright: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- Integer ranges with a phantom type to specify, what data the range actually
+-- covers.
+module Thesis.Data.Range
+        ( -- * Ranges
+          Range(..)
+          -- * Overlapping and sub-ranges
+          -- ** Overlap detection
+        , overlap
+        , overlapOrBorder
 
-                         , rangeSplits
+          -- ** Sub-range detection
+        , isSubRangeOf
 
-                         , overlap
-                         , overlapOrBorder
+          -- * Splitting
+        , rangeSplits
 
-                         , textInRange
-                         , textInRanges
+          -- * Unions
+        , rangeCover
+        , merge
 
-                         , convertRange
-                         , vectorInRange
+          -- * Coverages
+        , coveragePercentage
 
-                         , rangeCover
-                         , merge
-) where
+          -- * Type conversion
+        , convertRange
+
+          -- * Specialized accessors
+        , textInRange
+        , textInRanges
+        , vectorInRange
+
+
+         ) where
 
 import Data.List (sort, nub)
 
@@ -24,6 +43,8 @@ import qualified Data.Text as Text
 
 import qualified Data.Vector as V
 
+-- | An integer range with a phantom type @a@, that allows us to specify, /what/
+-- the range pertains to. So e.g. a range in a @[a]@ would be a @'Range' a@.
 data Range a = Range { rangeStart ::  Int
                      , rangeEnd :: Int
                      }
