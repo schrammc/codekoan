@@ -37,6 +37,7 @@ resolver: lts-6.10
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - ./ma-search-backend
+- ./ma-messaging
 #- ./ma-site
 - ./ma-postgres-indexer
 - ./ma-language-java
