@@ -1,4 +1,4 @@
-name:                ma-xml-analyzer
+name:                ma-search-backend
 version:             0.6.0.0
 synopsis:            Language independent code pattern search engine backend
 description:         Please see README.md

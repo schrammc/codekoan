@@ -19,7 +19,7 @@ library
                      , Thesis.CodeAnalysis.Language.Python.Internal.BlockAnalysis
                      , Thesis.CodeAnalysis.Language.Python.Internal.Tokens
   build-depends:       base >= 4.7 && < 5
-                     , ma-xml-analyzer >= 0.6.0.0
+                     , ma-search-backend >= 0.6.0.0
                      , attoparsec >= 0.13
                      , binary >= 0.7.5
                      , bloomfilter >= 2.0
