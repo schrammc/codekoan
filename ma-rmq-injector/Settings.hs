@@ -9,12 +9,14 @@ import Data.Yaml
 
 data AppSettings = AppSettings { appRmqSettings :: RabbitMQSettings
                                , appLogSettings :: LogSettings
+                               , appSettingsPort :: Int
                                }
 
 instance FromJSON AppSettings where
   parseJSON = withObject "AppSettings" $ \o -> do
-    appRmqSettings <- o .: "rabbitmq-settings"
-    appLogSettings <- o .: "log-settings"
+    appRmqSettings  <- o .: "rabbitmq-settings"
+    appLogSettings  <- o .: "log-settings"
+    appSettingsPort <- o .: "application-port"
     return AppSettings{..}
                    
 

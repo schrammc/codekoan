@@ -15,11 +15,11 @@ import Data.Text
 
 postSubmitR :: Handler Value
 postSubmitR = do
-  logDebugN "Received a submit"
   query <- requireJsonBody :: Handler Query
   App{..} <- getYesod
   n <- liftIO $ do
     k <- takeMVar appRequestCounter
     putMVar appRequestCounter (k+1)
     return k
+  $(logInfo) $ pack $ "Submitted a query with id " ++ (show n) ++ "."
   return $ object ["queryId" .= n]

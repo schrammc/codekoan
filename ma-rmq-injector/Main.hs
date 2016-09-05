@@ -14,7 +14,9 @@ main = do
   case settingsMaybe of
     Nothing -> putStrLn $ "Failed to parse settings file" ++ settingsPath
     Just settings -> do
-      requestCounter <- newMVar 0
-      warp 3000 (App requestCounter settings)
+
+      foundation <- buildFoundation settings
+      
+      warp (appSettingsPort settings) foundation
   where
-    settingsPath = "settings.yaml"
+    settingsPath = "settings.yaml"    

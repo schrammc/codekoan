@@ -10,6 +10,7 @@ executable          ma-rmq-injector
                   , Foundation
 
                   , Settings
+                  , Settings.LogSettings
                   , Settings.RabbitMQ
 
                   , Handler.Submit
@@ -18,6 +19,7 @@ executable          ma-rmq-injector
   ghc-options:      -Wall -fwarn-tabs -O2
 
   build-depends:  aeson >= 0.11
+                , amqp >= 0.13
                 , base
                 , exceptions >= 0.8
                 , ma-messaging >= 0.1.0.0
