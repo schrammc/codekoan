@@ -1,0 +1,7 @@
+rabbitmq-settings:
+  rabbitmq-user: "guest"
+  rabbitmq-pwd : "guest"
+  rabbitmq-host: "localhost"
+  rabbitmq-virtual-host: "/"
+log-settings:
+  log-level: debug
