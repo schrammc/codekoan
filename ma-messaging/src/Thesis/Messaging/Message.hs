@@ -55,7 +55,7 @@ prepareToForwardMessage sender (Message header content) = do
 
 -- | Build a message with current timestamp
 buildMessage :: (Show a, Eq a, ToJSON a, FromJSON a) =>
-                SenderId
+                Text
                 -- ^ Id of the sender
              -> Text
              -- ^ Content type description
@@ -65,7 +65,7 @@ buildMessage :: (Show a, Eq a, ToJSON a, FromJSON a) =>
 buildMessage sender contentInfo content = do
   time <- getPOSIXTime
   let header = MessageHeader { headerSendTime = time
-                             , headerSender = sender
+                             , headerSender = SenderId sender
                              , headerContentType = contentInfo
                              , forwardedBy = []
                              }

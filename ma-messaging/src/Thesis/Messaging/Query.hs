@@ -24,11 +24,11 @@ data Query = Query { queryText :: Text
                      -- ^ Text representation of the query
                    , queryLanguage :: Text
                      -- ^ Programming language of the query
-                   , queryId :: Maybe Integer
+                   , queryId :: Maybe Int
                    , querySettings :: SearchSettings
                      -- ^ Settings for the querie's search
                    }
-           deriving (Eq, Generic, ToJSON, FromJSON)
+           deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 -- | Build a query for a document plus it's language
 buildQuery :: Text -> Text -> SearchSettings -> Query

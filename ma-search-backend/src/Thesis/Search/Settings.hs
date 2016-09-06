@@ -12,4 +12,4 @@ data SearchSettings =
                  , blockFiltering :: Bool
                  , semanticThreshold :: Maybe Double
                  }
-  deriving (Eq, Generic, ToJSON, FromJSON)
+  deriving (Show, Eq, Generic, ToJSON, FromJSON)
