@@ -22,7 +22,6 @@ module Thesis.Messaging.Message
 import           Control.Monad (mzero)
 import           Data.Aeson
 import           Data.Text (Text)
-import qualified Data.Text as T
 import           Data.Time.Clock.POSIX
 
 import           GHC.Generics

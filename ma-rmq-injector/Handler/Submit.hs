@@ -16,12 +16,9 @@ import Data.Text
 import Data.Monoid
 
 import Foundation
-import Settings
 
 import Network.AMQP hiding (Handler, Message)
 import qualified Network.AMQP as AMQP
-
-import Settings.RabbitMQ
 
 import Thesis.Messaging.Message
 import Thesis.Messaging.Query
