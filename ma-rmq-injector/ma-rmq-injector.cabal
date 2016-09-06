@@ -31,4 +31,4 @@ executable          ma-rmq-injector
                 
                 
 
-  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N
+  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N -Wall
