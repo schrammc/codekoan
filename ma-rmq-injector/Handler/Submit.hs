@@ -41,7 +41,7 @@ postSubmitR = do
   let queryWithId = query{queryId = Just qId}
 
   $(logInfo) $ pack $ "Parsed query, assigned id " ++ (show qId) ++ "."
-  submitToRabbitMQ app queryWithId
+  submitToRabbitMQ app queryWithId $
 
   return $ object ["queryId" .= qId]
 
@@ -49,12 +49,22 @@ postSubmitR = do
 -- the query's language.
 submitToRabbitMQ :: App -> Query -> Handler ()
 submitToRabbitMQ App{..} query = do
-  rmqChannel <- liftIO $ do
-    chan <- openChannel appRmqConnection
-    liftIO $ addChannelExceptionHandler chan $ \e ->
-      print $ "Exception:" ++ (show e)
-    return chan
 
+  -- Open a RabbitMQ channel for submitting a query
+  rmqChannel <- do
+    logF <- askLoggerIO -- Logger function of this logging monad
+    liftIO $ do
+      chan <- openChannel appRmqConnection
+
+      -- Log all channel exceptions that we receive
+      liftIO $ addChannelExceptionHandler chan $ \e ->
+        (flip runLoggingT) logF $
+          $(logError) $ pack ("Exception: " ++ (show e))
+
+      return chan
+
+  -- Build a sendable message with a bit of meta information like the
+  -- generation-time
   msg <- liftIO $ prepareQueryMessage query
 
   let queryLang = queryLanguage query
@@ -63,6 +73,7 @@ submitToRabbitMQ App{..} query = do
 
   $(logDebug) $ "Publishing query to RabbitMQ exchange " <> exchangeName
 
+  -- Publish the message and close the channel
   liftIO $ do
     AMQP.publishMsg rmqChannel exchangeName queryLang amqpMessage
     closeChannel rmqChannel
