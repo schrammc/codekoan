@@ -7,8 +7,8 @@ engine including a web-application to acces it.
 
 It is structured as a multi-package [stack][] project.
 
-## Packages:
-### ma-search-backend
+# Packages:
+## ma-search-backend
 
 This package contains a programming language-agnostic library that provides:
 
@@ -24,14 +24,14 @@ This package contains a programming language-agnostic library that provides:
   * Blocks analysis
   * Word similiarity analysis
 
-### ma-messaging
+## ma-messaging
 
 This package contains types that are used for communicating between
 microservices.
 
-### Language Implementations
-#### ma-language-java
-#### ma-language-python
+## Language Implementations
+### ma-language-java
+### ma-language-python
 
 ## ma-postgres-indexer
 
