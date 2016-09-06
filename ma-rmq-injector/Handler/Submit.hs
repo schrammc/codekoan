@@ -61,7 +61,7 @@ submitToRabbitMQ App{..} query = do
   msg <- liftIO $ prepareQueryMessage query
 
   let queryLang = queryLanguage query
-      amqpMessage = newMsg{ msgBody = encode query}
+      amqpMessage = newMsg{ msgBody = encode msg}
       exchangeName = "queries"
 
   $(logDebug) $ "Publishing query to RabbitMQ exchange " <> exchangeName
