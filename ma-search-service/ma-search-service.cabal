@@ -17,10 +17,13 @@ library
   hs-source-dirs:    src
   exposed-modules:   Thesis.ServiceSettings
                    , Thesis.SearchService.ApplicationType
+                   , Thesis.SearchService.InitializationException
   build-depends:     aeson >= 0.11
                    , amqp >= 0.13
                    , base >= 4.7 && < 5
                    , exceptions >= 0.8.3
+                   , ma-language-java >= 0.1.0.0
+                   , ma-language-python >= 0.1.0.0
                    , ma-messaging >= 0.1.0.0
                    , ma-search-backend >= 0.6.0
                    , monad-logger >= 0.3.19
