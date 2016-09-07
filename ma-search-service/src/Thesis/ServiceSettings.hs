@@ -18,14 +18,16 @@ import           Data.Text
 
 -- | Settings for the service that are loaded at startup.
 data ServiceSettings =
-  ServiceSettings { serviceLanguage :: Text
+  ServiceSettings { serviceLanguage :: !Text
                     -- ^ Programming language that the service operates on.
-                  , serviceQuestionTag :: Text
+                  , serviceExchange :: !Text
+                    -- ^ The RabbitMQ exchange that we pull pull requests from
+                  , serviceQuestionTag :: !Text
                     -- ^ The Stackoverflow tag by which the service locates
                     -- relevant fragments
-                  , serviceRMQSettings :: RabbitMQSettings
+                  , serviceRMQSettings :: !RabbitMQSettings
                     -- ^ RabbitMQ connection settings
-                  , serviceIndexPercentages :: Range Int
+                  , serviceIndexPercentages :: !(Range Int)
                     -- ^ How much of the whole of stackoverflow is covered by
                     -- this service (temporally). So a value of 'Range' 0 100
                     -- would mean everything; a value of 'Range' 0 50 would mean
@@ -35,6 +37,7 @@ data ServiceSettings =
 instance FromJSON ServiceSettings where
   parseJSON = withObject "ServiceSettings" $ \o -> do
     serviceLanguage         <- o .: "search-language"
+    serviceExchange         <- o .: "search-exchange"
     serviceQuestionTag      <- o .: "search-question-tag"
     serviceRMQSettings      <- o .: "search-rabbitmq-settings"
     serviceIndexPercentages <- parseSearchRange o
@@ -50,10 +53,10 @@ instance FromJSON ServiceSettings where
 
 -- | Settings for connecting to RabbitMQ.
 data RabbitMQSettings =
-  RabbitMQSettings { rmqUser        :: Text
-                   , rmqPassword    :: Text
-                   , rmqHost        :: Text
-                   , rmqVirtualHost :: Text
+  RabbitMQSettings { rmqUser        :: !Text
+                   , rmqPassword    :: !Text
+                   , rmqHost        :: !Text
+                   , rmqVirtualHost :: !Text
                    }
 
 instance FromJSON RabbitMQSettings where
