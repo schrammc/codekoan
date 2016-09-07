@@ -8,6 +8,8 @@ packages:
 - '.'
 - ../ma-search-backend
 - ../ma-messaging
+- ../ma-language-java
+- ../ma-language-python
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps: [chatter-0.9.0.0, cereal-text-0.1.0.2, fullstop-0.1.4, tokenize-0.3.0]
