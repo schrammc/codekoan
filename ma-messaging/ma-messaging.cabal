@@ -15,8 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-                     , Thesis.Messaging.Message
+  exposed-modules:     Thesis.Messaging.Message
                      , Thesis.Messaging.Query
   build-depends:       aeson >= 0.11
                      , base >= 4.7 && < 5
