@@ -41,7 +41,7 @@ postSubmitR = do
   let queryWithId = query{queryId = Just qId}
 
   $(logInfo) $ pack $ "Parsed query, assigned id " ++ (show qId) ++ "."
-  submitToRabbitMQ app queryWithId $
+  submitToRabbitMQ app queryWithId
 
   return $ object ["queryId" .= qId]
 
