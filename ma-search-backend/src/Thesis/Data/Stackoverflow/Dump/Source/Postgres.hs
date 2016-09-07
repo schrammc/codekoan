@@ -34,7 +34,7 @@ answerSource connection = go 0
 -- | Count the number of answers, where the questions have the given tags.
 answerWithTagsCount :: Connection -> [Text] -> IO Int
 answerWithTagsCount connection tags = do
-  results <- query connection "SELECT COUNT * FROM answers AS a JOIN (SELECT * FROM questions) as q ON a.parent = q.id WHERE ? <@ tags" (Only $ V.fromList tags)
+  results <- query connection "SELECT COUNT (*) FROM answers AS a JOIN (SELECT * FROM questions) as q ON a.parent = q.id WHERE ? <@ tags" (Only $ V.fromList tags)
   case results of
     ((x:_):_) -> return x
     _ -> return 0
