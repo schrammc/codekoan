@@ -31,6 +31,14 @@ answerSource connection = go 0
       forM_ answers yield
       go maxId
 
+-- | Count the number of answers, where the questions have the given tags.
+answerWithTagsCount :: Connection -> [Text] -> IO Int
+answerWithTagsCount connection tags = do
+  results <- query connection "SELECT COUNT * FROM answers AS a JOIN (SELECT * FROM questions) as q ON a.parent = q.id WHERE ? <@ tags" (Only $ V.fromList tags)
+  case results of
+    ((x:_):_) -> return x
+    _ -> return 0
+
 -- | Create a source of 'StackoverflowPost's that have all of a given list of
 -- tags
 answersWithTags :: Connection -> [Text] -> Source (ResourceT IO) Answer
