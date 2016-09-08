@@ -15,7 +15,8 @@ import Control.Monad.IO.Class
 import Control.Monad
 
 -- | Create a source of 'StackoverflowPost's from an XML dump file
-answerSource :: Connection -> Source (ResourceT IO) Answer
+answerSource :: (MonadResource m, MonadIO m) =>
+                Connection -> Source m Answer
 answerSource connection = go 0
   where
     chunkSize = 250 :: Int
@@ -41,7 +42,9 @@ answerWithTagsCount connection tags = do
 
 -- | Create a source of 'StackoverflowPost's that have all of a given list of
 -- tags
-answersWithTags :: Connection -> [Text] -> Source (ResourceT IO) Answer
+answersWithTags :: (MonadResource m, MonadIO m)
+                   => Connection
+                -> [Text] -> Source m Answer
 answersWithTags connection tags = go 0
   where
     chunkSize = 250 :: Int
