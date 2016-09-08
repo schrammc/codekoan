@@ -1,11 +1,9 @@
 search-language: "java"
 search-exchange: "java-cluster-1"
 search-question-tag: "java"
+search-answer-digits: [1]
 search-rabbitmq-settings:
   rabbitmq-user: "guest"
   rabbitmq-pwd: "guest"
   rabbitmq-host: "localhost"
   rabbitmq-virtual-host: "/"
-index-percentage-start: 0
-index-percentage-stop: 100
-  
