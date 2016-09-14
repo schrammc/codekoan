@@ -27,6 +27,7 @@ library
                    , ma-messaging >= 0.1.0.0
                    , ma-search-backend >= 0.6.0
                    , monad-logger >= 0.3.19
+                   , postgresql-simple >= 0.5.2
                    , text >= 1.2.2
                    , transformers >= 0.4
                    , yaml >= 0.8.18.1
@@ -45,6 +46,7 @@ executable           ma-search-service
                    , ma-search-backend >= 0.6.0
                    , ma-search-service
                    , monad-logger >= 0.3.19
+                   , postgresql-simple >= 0.5.2
                    , text >= 1.2.2
                    , transformers >= 0.4
                    , yaml >= 0.8.18.1

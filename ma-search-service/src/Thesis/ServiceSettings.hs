@@ -13,6 +13,7 @@ import           Control.Monad
 import           Data.Aeson
 import qualified Data.Yaml as Yaml
 import           Data.Text hiding (null)
+import           Database.PostgreSQL.Simple (ConnectInfo(..))
 
 -- | Settings for the service that are loaded at startup.
 data ServiceSettings =
@@ -28,6 +29,7 @@ data ServiceSettings =
                   , serviceAnswerDigits :: [Int]
                     -- ^ Answers with what ending-digits in their ID will be
                     -- indexed by this service?
+                  , serviceDBConnectInfo :: !ConnectInfo
                   }
 
 instance FromJSON ServiceSettings where
@@ -37,8 +39,15 @@ instance FromJSON ServiceSettings where
     serviceQuestionTag      <- o .: "search-question-tag"
     serviceRMQSettings      <- o .: "search-rabbitmq-settings"
     serviceAnswerDigits     <- o .: "search-answer-digits"
+    serviceDBConnectInfo    <- readPostgresConnectInfo o
     when (null serviceAnswerDigits) $ fail "No answer digits specified!"
     return ServiceSettings{..}
+    where
+      readPostgresConnectInfo o = ConnectInfo <$> o .: "db-host"
+                                              <*> o .: "db-port"
+                                              <*> o .: "db-user"
+                                              <*> o .: "db-pwd"
+                                              <*> o .: "db-name"
 
 -- | Settings for connecting to RabbitMQ.
 data RabbitMQSettings =
