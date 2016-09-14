@@ -9,6 +9,7 @@ import qualified Data.Conduit.List as CL
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class
 import Control.Monad
+import Control.Monad.Logger
 
 -- | This conduit will pass through a maximum of 'n' input values before
 -- stopping processing.
@@ -33,7 +34,7 @@ maxElements (Just n) = do
 -- | Every 'n' elements call the given monadic action with the number of
 -- processed elements. This is useful for e.g. logging a message for showing
 -- progress.
-everyN :: (MonadIO m) => Int -> (Int -> m ()) -> Conduit a m a
+everyN :: (MonadIO m, Monad m) => Int -> (Int -> m ()) -> Conduit a m a
 everyN n action = do
     counterVar <- liftIO $ newMVar 0
     CL.iterM $ \_ -> do
