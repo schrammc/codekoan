@@ -6,7 +6,7 @@
 -- Settings for the search service that are loaded from a config file at startup
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.ServiceSettings where
+module Thesis.SearchService.ServiceSettings where
 
 import           Control.Monad
 

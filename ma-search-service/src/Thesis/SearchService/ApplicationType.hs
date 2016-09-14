@@ -13,7 +13,7 @@ import           Data.Monoid ((<>))
 import qualified Data.Text as Text
 
 import           Network.AMQP
-import           Thesis.ServiceSettings
+import           Thesis.SearchService.ServiceSettings
 import           Thesis.SearchService.InitializationException
 
 import           Thesis.CodeAnalysis.Language
