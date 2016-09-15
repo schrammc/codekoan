@@ -23,6 +23,7 @@ library
                    , base >= 4.7 && < 5
                    , conduit >= 1.2.6
                    , exceptions >= 0.8.3
+                   , hashable >= 1.2
                    , ma-language-java >= 0.1.0.0
                    , ma-language-python >= 0.1.0.0
                    , ma-messaging >= 0.1.0.0
@@ -43,6 +44,7 @@ executable           ma-search-service
                    , amqp >= 0.13
                    , base >= 4.7 && < 5
                    , exceptions >= 0.8.3
+                   , hashable >= 1.2
                    , ma-messaging >= 0.1.0.0
                    , ma-search-backend >= 0.6.0
                    , ma-search-service
