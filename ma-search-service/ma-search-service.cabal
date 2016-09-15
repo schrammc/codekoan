@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:    src
-  exposed-modules:   Thesis.ServiceSettings
+  exposed-modules:   Thesis.SearchService.ServiceSettings
                    , Thesis.SearchService.ApplicationType
                    , Thesis.SearchService.InitializationException
   build-depends:     aeson >= 0.11
