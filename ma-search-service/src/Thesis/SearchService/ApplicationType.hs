@@ -9,8 +9,12 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Logger
 import           Control.Monad.Catch
 
+import           Data.Conduit
+import qualified Data.Conduit.List as CL
 import           Data.Monoid ((<>))
 import qualified Data.Text as Text
+
+import qualified Database.PostgreSQL.Simple as PSQL
 
 import           Network.AMQP
 import           Thesis.SearchService.ServiceSettings
@@ -19,6 +23,9 @@ import           Thesis.SearchService.InitializationException
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.Java
 import           Thesis.CodeAnalysis.Language.Python
+
+import           Thesis.Data.Stackoverflow.Dump.Source.Postgres
+import           Thesis.Data.Stackoverflow.Answer
 
 import           Thesis.Search.Index
 
@@ -35,6 +42,7 @@ buildFoundation :: (MonadThrow m, MonadIO m, MonadLogger m)
                 -> m Application
 buildFoundation settings@ServiceSettings{..} = do
 
+  $(logInfo) $ "Connecting to RabbitMQ on host: " <> rmqHost serviceRMQSettings
   conn <- liftIO $ openConnection (Text.unpack $ rmqHost serviceRMQSettings)
                                   (rmqVirtualHost serviceRMQSettings)
                                   (rmqUser serviceRMQSettings)
@@ -46,11 +54,25 @@ buildFoundation settings@ServiceSettings{..} = do
                -> Application
       buildApp = Application conn settings "queries-java"
 
+  $(logInfo) "Connecting to postgresql..."
+  psqlConnection <- liftIO $ PSQL.connect serviceDBConnectInfo
+  $(logInfo) "PostgreSQL connection established!"
+
+  let filteredAnswerSource =
+        answersWithTags psqlConnection [serviceQuestionTag]
+        =$= (CL.filter $ \Answer{..} ->
+              let lastDigit = (answerIdInt answerId) `mod` 10
+              in lastDigit `elem` serviceAnswerDigits
+              )
+
   -- Building language specifics
   case serviceLanguage of
     "java" -> do
       $(logInfo) "Application language: java"
-      return $ buildApp java undefined
+
+      index <- buildIndexForJava filteredAnswerSource 7
+      return $ buildApp java index
+
     "python" -> do
       $(logInfo) "Application language: python"
       return $ buildApp python undefined

@@ -43,11 +43,13 @@ instance FromJSON ServiceSettings where
     when (null serviceAnswerDigits) $ fail "No answer digits specified!"
     return ServiceSettings{..}
     where
-      readPostgresConnectInfo o = ConnectInfo <$> o .: "db-host"
-                                              <*> o .: "db-port"
-                                              <*> o .: "db-user"
-                                              <*> o .: "db-pwd"
-                                              <*> o .: "db-name"
+      readPostgresConnectInfo o = do
+        dbObject <- o .: "search-postgres-database"
+        ConnectInfo <$> dbObject .: "db-host"
+                    <*> dbObject .: "db-port"
+                    <*> dbObject .: "db-user"
+                    <*> dbObject .: "db-pwd"
+                    <*> dbObject .: "db-name"
 
 -- | Settings for connecting to RabbitMQ.
 data RabbitMQSettings =

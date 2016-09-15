@@ -18,7 +18,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Logger
 import Control.Monad.Trans.Class
 import Control.Monad.Catch
-import Thesis.SearchServicel.ServiceSettings
+import Thesis.SearchService.ServiceSettings
 import Thesis.Messaging.Query
 import Thesis.Messaging.Message
 
