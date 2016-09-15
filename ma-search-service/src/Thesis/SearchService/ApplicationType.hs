@@ -28,9 +28,10 @@ import           Thesis.Data.Stackoverflow.Dump.Source.Postgres
 import           Thesis.Data.Stackoverflow.Answer
 
 import           Thesis.Search.Index
-
+import Data.Hashable (Hashable)
 data Application where
-  Application :: { appRabbitConnection :: !Connection
+  Application :: (Hashable t, Ord t) =>
+                 { appRabbitConnection :: !Connection
                  , appSettings         :: !ServiceSettings
                  , appQueue            :: !Text.Text
                  , appLanguage         :: Language t l
@@ -48,7 +49,7 @@ buildFoundation settings@ServiceSettings{..} = do
                                   (rmqUser serviceRMQSettings)
                                   (rmqPassword serviceRMQSettings)
 
-  let buildApp :: forall t . forall l .
+  let buildApp :: forall t . forall l . (Ord t, Hashable t) =>
                   Language t l
                -> SearchIndex t l
                -> Application

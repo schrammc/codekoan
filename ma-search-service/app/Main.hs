@@ -21,6 +21,10 @@ import Control.Monad.Catch
 import Thesis.SearchService.ServiceSettings
 import Thesis.Messaging.Query
 import Thesis.Messaging.Message
+import Thesis.CodeAnalysis.Language
+import Thesis.Search
+import Thesis.Search.Settings
+
 
 import qualified Network.AMQP as AMQP
 
@@ -62,9 +66,17 @@ appLoop foundation@(Application{..}) channel = do
   case decode $ AMQP.msgBody amqpMessage of
     Just (message :: Message Query) -> do
       let MessageHeader{..} = messageHeader message
-          query@(Query{..}) = messageContent message
+          Query{..} = messageContent message
       $(logInfo) $ pack $ "Received query (" ++ (show queryId) ++
                           ") from " ++ show headerSender
+      case findMatches appIndex
+                       (minMatchLength querySettings)
+                       (LanguageText queryText) of
+        Nothing -> undefined
+        Just matches -> do
+          $(logInfo) $ pack $ "Alignment for query " ++ show queryId ++
+                              " produced a result."
+          liftIO $ AMQP.ackEnv envelope
       return ()
     Nothing -> do
       $(logError) "Failed to parse amqpMesage."
