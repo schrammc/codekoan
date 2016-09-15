@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- |
 -- Copyright: Christof Schramm 2016
 -- License: All rights reserved
@@ -50,6 +51,8 @@ buildIndexForJava :: ( MonadIO m
                   -> Int -- ^ NGram size
                   -> m (SearchIndex Token Java)
 buildIndexForJava postSource ngramSize = do
+  $(logInfo) "Building an index for java"
+
   let (bloomSize, bloomNumberFs) = BF.Easy.suggestSizing 1000000 0.01
       hashF = BF.Hash.hashes bloomNumberFs  
 
