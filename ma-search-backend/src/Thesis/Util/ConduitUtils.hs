@@ -9,7 +9,7 @@ import qualified Data.Conduit.List as CL
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class
 import Control.Monad
-import Control.Monad.Logger
+
 
 -- | This conduit will pass through a maximum of 'n' input values before
 -- stopping processing.

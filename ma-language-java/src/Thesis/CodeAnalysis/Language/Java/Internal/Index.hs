@@ -13,10 +13,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Thesis.CodeAnalysis.Language.Java.Internal.Index where
 
+import           Control.Monad (void)
 import           Control.Monad.IO.Class
-import           Control.Monad.ST
 import           Control.Monad.Logger
-import           Control.Monad.Trans.Class
+import           Control.Monad.ST
+
 import           Control.Monad.Trans.Resource
 
 import qualified Data.BloomFilter as BF
@@ -42,9 +43,8 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.Index
 import           Thesis.Util.ConduitUtils
 
-buildIndexForJava :: ( MonadBaseControl IO m
-                     , MonadIO m
-                     , MonadLogger m) => Source (ResourceT m) Answer
+buildIndexForJava :: ( MonadIO m
+                     , MonadLogger m) => Source m Answer
                      -- ^ A source of answers with java code. To get this use
                      -- one of the Thesis.Data.Stackoverflow.Dump.* modules
                   -> Int -- ^ NGram size
@@ -55,10 +55,8 @@ buildIndexForJava postSource ngramSize = do
 
   mutableBF <- liftIO $ stToIO $ BF.Mutable.new hashF bloomSize
   
-  tr <- runResourceT $ do
-    postSource
-      $$ maxElements (Just 400000)
-      =$= everyN 25000 (\n ->
+  tr <- postSource
+      $$ everyN 25000 (\n ->
                          $(logDebug) $ pack $ "Build index (java) processed " ++
                                               (show n) ++ "answers")
       =$= (CL.map $ \Answer{..} -> do

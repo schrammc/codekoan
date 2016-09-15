@@ -10,12 +10,11 @@ import Database.PostgreSQL.Simple
 import Data.Text hiding (maximum)
 import qualified Data.Vector as V
 import Data.Conduit hiding (connect)
-import Control.Monad.Trans.Resource
 import Control.Monad.IO.Class
 import Control.Monad
 
 -- | Create a source of 'StackoverflowPost's from an XML dump file
-answerSource :: (MonadResource m, MonadIO m) =>
+answerSource :: (MonadIO m) =>
                 Connection -> Source m Answer
 answerSource connection = go 0
   where
@@ -42,9 +41,7 @@ answerWithTagsCount connection tags = do
 
 -- | Create a source of 'StackoverflowPost's that have all of a given list of
 -- tags
-answersWithTags :: (MonadResource m, MonadIO m)
-                   => Connection
-                -> [Text] -> Source m Answer
+answersWithTags :: MonadIO m => Connection -> [Text] -> Source m Answer
 answersWithTags connection tags = go 0
   where
     chunkSize = 250 :: Int
