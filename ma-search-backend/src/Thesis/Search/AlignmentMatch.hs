@@ -7,15 +7,15 @@ import Thesis.Data.Range
 import Thesis.Data.Stackoverflow.Answer
 
 data AlignmentMatch t l =
-  AlignmentMatch { resultTextRange :: Range (LanguageText l)
+  AlignmentMatch { resultTextRange :: !(Range (LanguageText l))
                    -- ^ The matched text range in the query document
                  , resultMatchedTokens :: [t]
-                 , resultQueryRange :: Range t
-                 , resultMetaData :: AnswerFragmentMetaData
+                 , resultQueryRange :: !(Range t)
+                 , resultMetaData :: !AnswerFragmentMetaData
                    -- ^ Meta information about the matched answer fragment
-                 , resultFragmentRange :: Range t
+                 , resultFragmentRange :: !(Range t)
                    -- ^ The range of matched tokens in the answer fragment
-                 , resultLevenScore :: Int
+                 , resultLevenScore :: !Int
                    -- ^ Levenshtein distance of the search match
                  }
   deriving (Eq, Show)
