@@ -20,7 +20,7 @@ data ResultSetMsg =
                , resultSetQueryId :: QueryId
                , resultSetResultList :: [ResultMsg]
                }
-  deriving (Generic, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 -- | Merge a list of result sets. It is checked if these 'ResultSetMsg's all
 -- have the same language.
@@ -61,13 +61,13 @@ data ResultMsg =
   ResultMsg { resultSource :: Text
             , resultAlignmentMatches :: [AlignmentMatchMsg]
             }
-  deriving (Generic, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 data AlignmentMatchMsg =
   AlignmentMatchMsg { alignmentMatchLevenScore :: !Int
                     , alignmentMatchResultTextRange :: (Range Text)
                     }
-  deriving (Generic, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 alignmentMatchToMsg :: AlignmentMatch t l -> AlignmentMatchMsg
 alignmentMatchToMsg AlignmentMatch{..} =
