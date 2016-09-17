@@ -4,6 +4,8 @@
 --
 -- Integer ranges with a phantom type to specify, what data the range actually
 -- covers.
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Thesis.Data.Range
         ( -- * Ranges
           Range(..)
@@ -38,6 +40,9 @@ module Thesis.Data.Range
 
 import Data.List (sort, nub)
 
+import Data.Aeson
+import GHC.Generics(Generic)
+
 import Data.Text (Text)
 import qualified Data.Text as Text
 
@@ -48,7 +53,7 @@ import qualified Data.Vector as V
 data Range a = Range { rangeStart ::  Int
                      , rangeEnd :: Int
                      }
-           deriving (Eq, Ord, Show)
+           deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON)
 
 
 -- | The number of characters in a range
