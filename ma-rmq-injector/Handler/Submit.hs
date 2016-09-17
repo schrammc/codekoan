@@ -17,7 +17,7 @@ import Data.Monoid
 
 import Foundation
 
-import Network.AMQP hiding (Handler, Message)
+import Network.AMQP hiding (Message)
 import qualified Network.AMQP as AMQP
 
 import Thesis.Messaging.Message
@@ -36,9 +36,9 @@ postSubmitR = do
   qId <- liftIO $ do
     k <- takeMVar appRequestCounter
     putMVar appRequestCounter (k+1)
-    return k
+    return $ QueryId k
 
-  let queryWithId = query{queryId = Just qId}
+  let queryWithId = query{queryId = Just $ qId}
 
   $(logInfo) $ pack $ "Parsed query, assigned id " ++ (show qId) ++ "."
   submitToRabbitMQ app queryWithId

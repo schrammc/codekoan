@@ -8,6 +8,8 @@
 module Thesis.Messaging.Query
        ( -- * A query type
          Query(..)
+         -- * An id type for queries
+       , QueryId(..)
          -- * Building a query
        , buildQuery
        )where
@@ -19,12 +21,15 @@ import Data.Aeson
 
 import Thesis.Search.Settings
 
+newtype QueryId = QueryId Int
+                deriving (Eq, Show, Generic, ToJSON, FromJSON)
+
 -- | A single query document
 data Query = Query { queryText :: Text
                      -- ^ Text representation of the query
                    , queryLanguage :: Text
                      -- ^ Programming language of the query
-                   , queryId :: Maybe Int
+                   , queryId :: Maybe QueryId
                    , querySettings :: SearchSettings
                      -- ^ Settings for the querie's search
                    }
