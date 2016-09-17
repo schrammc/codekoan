@@ -3,6 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiWayIf #-}
 module Thesis.SearchService.ApplicationType where
 
 import           Control.Monad.IO.Class
@@ -67,16 +68,15 @@ buildFoundation settings@ServiceSettings{..} = do
               )
 
   -- Building language specifics
-  case serviceLanguage of
-    "java" -> do
-      $(logInfo) "Application language: java"
+  if | serviceLanguage == languageName java -> do
+         $(logInfo) "Application language: java"
 
-      index <- buildIndexForJava filteredAnswerSource 7
-      return $ buildApp java index
+         index <- buildIndexForJava filteredAnswerSource 7
+         return $ buildApp java index
 
-    "python" -> do
-      $(logInfo) "Application language: python"
-      return $ buildApp python undefined
-    _ -> do
-      $(logError) $ "Unrecognized language: " <> serviceLanguage
-      throwM InitializationException
+     | serviceLanguage == languageName python -> do
+         $(logInfo) "Application language: python"
+         return $ buildApp python undefined
+     | otherwise -> do
+         $(logError) $ "Unrecognized language: " <> serviceLanguage
+         throwM InitializationException
