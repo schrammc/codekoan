@@ -37,7 +37,7 @@ data Language t l where
               { languageFileExtension :: String
                 -- ^ Typical file extension for the given language. Examples
                 -- would be ".java" for java, ".py" for python, etc.
-              , languageName :: String
+              , languageName :: Text
                 -- ^ Lowercas name of the given language "java" for java,
                 -- "python" for python, "haskell" for haskell, etc.
               , removeComments :: Text -> LanguageText l
