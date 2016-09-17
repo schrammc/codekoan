@@ -38,6 +38,7 @@ data Python
 
 python :: Language PyToken Python
 python = Language{ languageFileExtension = ".py"
+                 , languageName = "python"
                  , tokenize = tokenizePy
                  , normalize = \LanguageText{..} ->
                      LanguageText $ Text.replace "\t" "    " langText
