@@ -55,7 +55,6 @@ resultSetToMsg lang replyTo ResultSet{..} = ResultSetMsg lang replyTo list
       let msgGroup = alignmentMatchToMsg <$> group
           sourceString = (show answerIdInt) ++ "(" ++ (show fragId) ++ ")"
       return $ ResultMsg (pack sourceString) msgGroup
-      undefined
 
 data ResultMsg =
   ResultMsg { resultSource :: Text

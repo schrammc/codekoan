@@ -92,7 +92,8 @@ appLoop foundation@(Application{..}) channel = do
             replyMessage <- buildMessage "search service" "reply" reply
             AMQP.publishMsg channel "replies" ""
               AMQP.newMsg{AMQP.msgBody = encode replyMessage}
-  
+
+  $(logDebug) "Acknowledging message..."
   liftIO $ AMQP.ackEnv envelope
   
   appLoop foundation channel
