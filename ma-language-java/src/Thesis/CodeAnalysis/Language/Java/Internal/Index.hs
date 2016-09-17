@@ -14,12 +14,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Thesis.CodeAnalysis.Language.Java.Internal.Index where
 
-import           Control.Monad (void)
+
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
 import           Control.Monad.ST
-
-import           Control.Monad.Trans.Resource
 
 import qualified Data.BloomFilter as BF
 import qualified Data.BloomFilter.Easy as BF.Easy
@@ -30,18 +28,18 @@ import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import           Data.Hashable (hash)
 import qualified Data.Set as S
-import qualified Data.Vector as V
 import           Data.Text (pack)
+import qualified Data.Vector as V
 
-import           Thesis.CodeAnalysis.StackoverflowBodyParser
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.Java.Internal
 import           Thesis.CodeAnalysis.Language.Java.Internal.Tokens
+import           Thesis.CodeAnalysis.StackoverflowBodyParser
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Search.BloomFilter
 import           Thesis.Search.CompressedTrie as Trie
-import           Thesis.Search.NGrams
 import           Thesis.Search.Index
+import           Thesis.Search.NGrams
 import           Thesis.Util.ConduitUtils
 
 buildIndexForJava :: ( MonadIO m
