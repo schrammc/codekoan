@@ -12,6 +12,7 @@ module Main where
 
 import Data.Aeson
 import Data.Text (pack)
+import Data.Maybe (fromJust)
 
 import Control.Concurrent
 import Control.Monad.IO.Class
@@ -21,6 +22,7 @@ import Control.Monad.Catch
 import Thesis.SearchService.ServiceSettings
 import Thesis.Messaging.Query
 import Thesis.Messaging.Message
+import Thesis.Messaging.ResultSet
 import Thesis.CodeAnalysis.Language
 import Thesis.Search
 import Thesis.Search.Settings
@@ -64,6 +66,9 @@ appLoop foundation@(Application{..}) channel = do
   (amqpMessage, envelope) <- getMessage 0
 
   case decode $ AMQP.msgBody amqpMessage of
+    -- Just log an error if we can't decode the amqp-message
+    Nothing -> do
+      $(logError) "Failed to parse amqpMesage."
     Just (message :: Message Query) -> do
       let MessageHeader{..} = messageHeader message
           Query{..} = messageContent message
@@ -72,14 +77,21 @@ appLoop foundation@(Application{..}) channel = do
       case findMatches appIndex
                        (minMatchLength querySettings)
                        (LanguageText queryText) of
-        Nothing -> undefined
+        -- Log an error if we can't find a search result in the index for the query
+        Nothing -> $(logError) $ pack $
+                     "Failed to produce a result for query" ++ show queryId
         Just matches -> do
-          $(logInfo) $ pack $ "Alignment for query " ++ show queryId ++
-                              " produced a result."
-          liftIO $ AMQP.ackEnv envelope
-      return ()
-    Nothing -> do
-      $(logError) "Failed to parse amqpMesage."
+          $(logInfo) $ pack $ "Sending reply to query " ++ show queryId ++
+                              " back to rabbitmq..."
+
+          let reply =
+                resultSetToMsg (languageName appLanguage) (fromJust queryId) matches
+
+          -- Send the reply to the replies queue in rabbitmq
+          liftIO $ do
+            replyMessage <- buildMessage "search service" "reply" reply
+            AMQP.publishMsg channel "replies" ""
+              AMQP.newMsg{AMQP.msgBody = encode replyMessage}
   
   liftIO $ AMQP.ackEnv envelope
   
@@ -97,7 +109,6 @@ appLoop foundation@(Application{..}) channel = do
           let newWait = if wait < 10000 then wait + 100 else wait
           liftIO $ threadDelay newWait
           getMessage newWait
-      
   
 -- | Get a value from a 'Maybe' or throw an 'error' with the given string.
 getOrFail :: (MonadLogger m) => String -> (Maybe a) -> m a
