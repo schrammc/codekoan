@@ -57,6 +57,10 @@ answersWithTags connection tags = go 0
                             aBody
                             aRating
                             aParent
-          maxId = maximum $ (\(i, _, _, _) -> i)<$> results
+          maxId = case results of
+            [] -> Nothing
+            _ -> Just . maximum $ (\(i, _, _, _) -> i) <$> results
+
       forM_ answers yield
-      go maxId
+
+      forM_ maxId go
