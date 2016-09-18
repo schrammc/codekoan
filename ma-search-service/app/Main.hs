@@ -13,6 +13,7 @@ module Main where
 import Data.Aeson
 import Data.Text (pack)
 import Data.Maybe (fromJust)
+import Data.Monoid ((<>))
 
 import Control.Concurrent
 import Control.Monad.IO.Class
@@ -74,9 +75,7 @@ appLoop foundation@(Application{..}) channel = do
           Query{..} = messageContent message
       $(logInfo) $ pack $ "Received query (" ++ (show queryId) ++
                           ") from " ++ show headerSender
-      case findMatches appIndex
-                       (minMatchLength querySettings)
-                       (LanguageText queryText) of
+      case findMatches appIndex 0 (LanguageText queryText) of
         -- Log an error if we can't find a search result in the index for the query
         Nothing -> $(logError) $ pack $
                      "Failed to produce a result for query" ++ show queryId
@@ -90,10 +89,8 @@ appLoop foundation@(Application{..}) channel = do
           -- Send the reply to the replies queue in rabbitmq
           replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
 
-          $(logDebug) "Reply message built"
-
           liftIO $ AMQP.publishMsg channel "replies" ""
-              AMQP.newMsg{AMQP.msgBody = encode replyMessage}
+            AMQP.newMsg{AMQP.msgBody = encode replyMessage}
 
   $(logDebug) "Acknowledging message..."
   liftIO $ AMQP.ackEnv envelope
