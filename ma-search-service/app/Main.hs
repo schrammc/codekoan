@@ -88,9 +88,11 @@ appLoop foundation@(Application{..}) channel = do
                 resultSetToMsg (languageName appLanguage) (fromJust queryId) matches
 
           -- Send the reply to the replies queue in rabbitmq
-          liftIO $ do
-            replyMessage <- buildMessage "search service" "reply" reply
-            AMQP.publishMsg channel "replies" ""
+          replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
+
+          $(logDebug) "Reply message built"
+
+          liftIO $ AMQP.publishMsg channel "replies" ""
               AMQP.newMsg{AMQP.msgBody = encode replyMessage}
 
   $(logDebug) "Acknowledging message..."
