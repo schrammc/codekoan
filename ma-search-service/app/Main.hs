@@ -27,6 +27,7 @@ import Thesis.Messaging.ResultSet
 import Thesis.CodeAnalysis.Language
 import Thesis.Search
 import Thesis.Search.Settings
+import Thesis.Search.ResultSet
 
 
 import qualified Network.AMQP as AMQP
@@ -75,9 +76,14 @@ appLoop foundation@(Application{..}) channel = do
           Query{..} = messageContent message
       $(logInfo) $ pack $ "Received query (" ++ (show queryId) ++
                           ") from " ++ show headerSender
-      case findMatches appIndex
-                       (levenshteinDistance querySettings)
-                       (LanguageText queryText) of
+
+      let searchResult = answersWithCoverage (coveragePercentage querySettings) <$>
+                         fragmentsLongerThan (minMatchLength querySettings) <$>
+                         findMatches appIndex
+                                     (levenshteinDistance querySettings)
+                                     (LanguageText queryText)
+
+      case searchResult of
         -- Log an error if we can't find a search result in the index for the query
         Nothing -> $(logError) $ pack $
                      "Failed to produce a result for query" ++ show queryId
