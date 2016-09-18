@@ -17,8 +17,10 @@ library
   hs-source-dirs:      src
   exposed-modules:     Thesis.Messaging.Message
                      , Thesis.Messaging.Query
+                     , Thesis.Messaging.ResultSet
   build-depends:       aeson >= 0.11
                      , base >= 4.7 && < 5
+                     , containers >= 0.5.6
                      , ma-search-backend >= 0.6.0.0
                      , time >= 1.5
                      , text >= 1.2.2
