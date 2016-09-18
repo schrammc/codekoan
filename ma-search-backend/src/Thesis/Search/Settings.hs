@@ -8,6 +8,7 @@ import Data.Aeson
 
 data SearchSettings =
   SearchSettings { minMatchLength :: Int
+                 , levenshteinDistance :: Int
                  , coveragePercentage :: Double
                  , blockFiltering :: Bool
                  , semanticThreshold :: Maybe Double

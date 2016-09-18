@@ -13,7 +13,7 @@ module Main where
 import Data.Aeson
 import Data.Text (pack)
 import Data.Maybe (fromJust)
-import Data.Monoid ((<>))
+
 
 import Control.Concurrent
 import Control.Monad.IO.Class
@@ -75,7 +75,9 @@ appLoop foundation@(Application{..}) channel = do
           Query{..} = messageContent message
       $(logInfo) $ pack $ "Received query (" ++ (show queryId) ++
                           ") from " ++ show headerSender
-      case findMatches appIndex 0 (LanguageText queryText) of
+      case findMatches appIndex
+                       (levenshteinDistance querySettings)
+                       (LanguageText queryText) of
         -- Log an error if we can't find a search result in the index for the query
         Nothing -> $(logError) $ pack $
                      "Failed to produce a result for query" ++ show queryId
