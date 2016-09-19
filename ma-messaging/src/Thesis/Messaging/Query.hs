@@ -22,7 +22,7 @@ import Data.Aeson
 import Thesis.Search.Settings
 
 newtype QueryId = QueryId Int
-                deriving (Eq, Show, Generic, ToJSON, FromJSON)
+                deriving (Eq, Ord, Read, Show, Generic, ToJSON, FromJSON)
 
 -- | A single query document
 data Query = Query { queryText :: Text
