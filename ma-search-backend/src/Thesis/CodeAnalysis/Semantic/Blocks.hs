@@ -134,15 +134,15 @@ blockAnalysis blockData results = cliques accordanceGraph
 -- accordace.
 resultSetBlockAnalysis :: (Monad m) =>
                           DataDictionary m
+                          -- ^ Access to source code of fragments
                        -> Language t l
+                       -- ^ The language that we work with
                        -> ResultSet t l
-                       -> (V.Vector t -> V.Vector t -> BlockData t)
-                       -- ^ A function that takes the vector of query doc tokens
-                       -- and the vector of answr fragment tokens and builds a
-                       -- 'BlockData' object.
+                       -- ^ The result set that is to be analyzed
                        -> V.Vector t
+                       -- ^ The token vector of the query document
                        -> MaybeT m (ResultSet t l)
-resultSetBlockAnalysis dict lang ResultSet{..} mkBlockData queryTokens = do
+resultSetBlockAnalysis dict lang ResultSet{..} queryTokens = do
   updatedLst <- forM (M.toList resultSetMap) $ \(aId, fragMap) -> do
     fragMap' <- forM (M.toList fragMap) $ \(fragId, groups) -> do
       (fragTks,_)  <- answerFragmentTokens dict lang (AnswerFragmentId aId fragId)
@@ -152,3 +152,5 @@ resultSetBlockAnalysis dict lang ResultSet{..} mkBlockData queryTokens = do
       return (fragId, analyzedGroups)
     return (aId, M.fromList fragMap')
   return $ ResultSet (M.fromList updatedLst)
+  where
+    mkBlockData = languageGenBlockData lang
