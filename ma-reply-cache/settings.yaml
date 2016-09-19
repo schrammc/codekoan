@@ -5,9 +5,11 @@ rabbitmq-settings:
   rabbitmq-host: "localhost"
   rabbitmq-virtual-host: "/"
 
+reply-queue: "replies-1"
+
 # Settings pertaining to logging
 log-settings:
   log-level: debug
 
 # The port that the application is run on
-application-port: 3000
+application-port: 3500

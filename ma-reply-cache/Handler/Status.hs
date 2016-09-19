@@ -7,7 +7,6 @@ import Foundation
 import Yesod.Core
 
 import qualified Data.Map as M
-import Data.Aeson
 import Data.Text
 import Control.Concurrent.MVar
 
@@ -20,14 +19,14 @@ getStatusR = do
   n <- M.size <$> (liftIO $ readMVar appReplyCache)
   selectRep $ do -- Provide different responses depending on content type
     provideRep $ return [shamlet|
-      <h1> RabbitMQ Injector
+      <h1> Reply Cache status
       Status: #{status} <br>
       Details: #{msg} <br>
       Replies to #{n} requests
       |]
     provideRep $ returnJson $ object [ "status" .= status
                                      , "message" .= msg
-                                     , "requestCound" .= n
+                                     , "replycount" .= n
                                      ]
   where
     getStatus :: IO (Int, Text) 

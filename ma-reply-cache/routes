@@ -1,2 +1,2 @@
 /status        StatusR GET
-/submit        SubmitR POST
+/get/#QueryId  GetR GET

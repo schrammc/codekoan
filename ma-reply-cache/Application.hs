@@ -9,6 +9,6 @@ import Foundation
 import Yesod.Core
 
 import Handler.Status
-import Handler.Submit
+import Handler.Get
 
 mkYesodDispatch "App" resourcesApp

@@ -4,7 +4,7 @@ cabal-version:      >= 1.8
 build-type:         Simple
 extra-source-files: routes
 
-executable          ma-rmq-injector
+executable          ma-reply-cache
   main-is:          Main.hs
   other-modules:    Application
                   , Foundation
@@ -13,7 +13,7 @@ executable          ma-rmq-injector
                   , Settings.LogSettings
                   , Settings.RabbitMQ
 
-                  , Handler.Submit
+                  , Handler.Get
                   , Handler.Status
 
   ghc-options:      -Wall -fwarn-tabs -O2

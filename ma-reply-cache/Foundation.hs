@@ -17,6 +17,10 @@ import Network.AMQP
 
 import Data.Text (unpack)
 
+instance PathPiece QueryId where
+  fromPathPiece t = QueryId <$> (fromPathPiece t)
+  toPathPiece (QueryId n) = toPathPiece n
+
 data App = App { appReplyCache :: MVar (M.Map QueryId [ResultSetMsg])
                , appSettings :: AppSettings
                , appRmqConnection :: Connection
