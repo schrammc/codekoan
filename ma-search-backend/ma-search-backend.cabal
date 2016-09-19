@@ -19,6 +19,7 @@ library
                      , Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
                      , Thesis.CodeAnalysis.Semantic
+                     , Thesis.CodeAnalysis.Semantic.BlockData
                      , Thesis.CodeAnalysis.Semantic.Blocks
                      , Thesis.CodeAnalysis.Semantic.CamelCaseSplitter
                      , Thesis.CodeAnalysis.Semantic.Chatter

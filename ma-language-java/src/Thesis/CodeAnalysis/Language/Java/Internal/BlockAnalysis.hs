@@ -12,7 +12,7 @@
 module Thesis.CodeAnalysis.Language.Java.Internal.BlockAnalysis where
 
 import qualified Data.Vector as V
-import           Thesis.CodeAnalysis.Semantic.Blocks (BlockData)
+import           Thesis.CodeAnalysis.Semantic.BlockData (BlockData)
 import           Thesis.CodeAnalysis.Language.Java.Internal.Tokens
 import           Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
 

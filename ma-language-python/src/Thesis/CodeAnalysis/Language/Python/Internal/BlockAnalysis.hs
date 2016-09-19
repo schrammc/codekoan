@@ -12,7 +12,7 @@ module Thesis.CodeAnalysis.Language.Python.Internal.BlockAnalysis where
 
 import           Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
 import           Thesis.CodeAnalysis.Language.Python.Internal.Tokens
-import           Thesis.CodeAnalysis.Semantic.Blocks (BlockData)
+import           Thesis.CodeAnalysis.Semantic.BlockData (BlockData)
 
 import qualified Data.Vector as V
 

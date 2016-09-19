@@ -37,6 +37,7 @@ java = Language { removeComments = LanguageText
                 , isTokenIdentifier = (== TokenIdentifier)
                 , languageFileExtension = ".java"
                 , languageName = "java"
+                , languageGenBlockData = javaBlockData
                 }
 
 -- | Remove all lines starting with import 

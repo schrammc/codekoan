@@ -17,6 +17,7 @@ module Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
 
 import           Data.Foldable (foldl')
 import qualified Data.Vector as V
+import           Thesis.CodeAnalysis.Semantic.BlockData
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Range
 

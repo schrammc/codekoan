@@ -33,6 +33,7 @@ import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 import           Thesis.CodeAnalysis.Language.Internal
 import           Thesis.CodeAnalysis.Language.Python.Internal.Tokens
+import           Thesis.CodeAnalysis.Language.Python.Internal.BlockAnalysis
 
 data Python
 
@@ -44,6 +45,7 @@ python = Language{ languageFileExtension = ".py"
                      LanguageText $ Text.replace "\t" "    " langText
                  , isTokenIdentifier = (== PyTokenIdentifier)
                  , removeComments = LanguageText
+                 , languageGenBlockData = pythonBlockData
                  }
 
 -- | State that the will use internally.

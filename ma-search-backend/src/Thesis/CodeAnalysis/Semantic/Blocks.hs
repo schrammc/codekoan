@@ -82,36 +82,10 @@ import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Search.ResultSet
 import           Thesis.Search.AlignmentMatch
-
--- | The minimal number of blocks that you have to go down and up again, to get
--- from one point to another in a piece of code. This always pertains to going from the first to the second point (in order of occurrence).
-data BlockRelation = BlockRelation {up :: Int, down :: Int}
-                   deriving (Eq)
-
--- | @BlockRelation 0 0@
-inSameBlock :: BlockRelation
-inSameBlock = BlockRelation 0 0
-
-data BlockDelim = BlockStart
-                | BlockEnd
-                deriving (Show, Eq)
-
+import           Thesis.CodeAnalysis.Semantic.BlockData
 
 normalizeV :: V.Vector a -> Int -> Int
 normalizeV vector k = max 0 $ min k (V.length vector - 1)
-
--- | A helper data structure for block accordance analysis. One value of this
--- type is always generated for /one query document and one code fragment/.
-data BlockData t =
-  BlockData { queryRelation :: Int -> Int -> BlockRelation
-              -- ^ Block - relationship of two points in the query
-            , fragmentRelation :: Int -> Int -> BlockRelation
-              -- ^ Block - relationship of two points in the fragment
-            , queryBlockString :: Range t -> [BlockDelim]
-              -- ^ String of block delimiters in the given range in the query
-            , fragmentBlockString :: Range t -> [BlockDelim]
-              -- ^ String of block delimiters in the given range in the fragment
-            }
 
 -- | Analyze the block accordance of two alignment matches
 blockAccordance :: BlockData t -> AlignmentMatch t l -> AlignmentMatch t l -> Bool
