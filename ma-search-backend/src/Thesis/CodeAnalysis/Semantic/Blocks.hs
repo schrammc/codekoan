@@ -137,12 +137,12 @@ resultSetBlockAnalysis :: (Monad m) =>
                           -- ^ Access to source code of fragments
                        -> Language t l
                        -- ^ The language that we work with
-                       -> ResultSet t l
-                       -- ^ The result set that is to be analyzed
                        -> V.Vector t
                        -- ^ The token vector of the query document
+                       -> ResultSet t l
+                       -- ^ The result set that is to be analyzed
                        -> MaybeT m (ResultSet t l)
-resultSetBlockAnalysis dict lang ResultSet{..} queryTokens = do
+resultSetBlockAnalysis dict lang queryTokens ResultSet{..} = do
   updatedLst <- forM (M.toList resultSetMap) $ \(aId, fragMap) -> do
     fragMap' <- forM (M.toList fragMap) $ \(fragId, groups) -> do
       (fragTks,_)  <- answerFragmentTokens dict lang (AnswerFragmentId aId fragId)

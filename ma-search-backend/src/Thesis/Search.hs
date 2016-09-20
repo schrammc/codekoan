@@ -7,19 +7,23 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search where
 
+import           Control.Monad.Trans.Maybe
 import           Control.Parallel.Strategies
 import           Data.Hashable (Hashable)
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Language
-import           Thesis.Data.Range
+import           Thesis.Data.Range hiding (coveragePercentage)
 import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.BloomFilter
 import           Thesis.Search.Index
 import           Thesis.Search.Levenstein
 import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
+import           Thesis.Search.Settings
+import           Thesis.CodeAnalysis.Semantic.Blocks
 
 findMatches :: (Ord t, Hashable t)
                => SearchIndex t l
@@ -92,3 +96,30 @@ buildRange AnswerFragmentMetaData{..} tks d =
   where
     n = length tks
     
+
+-- | Perform a search based on a set of search settings.
+--
+-- TODO: Doesn't incorporate word similarity measurement yet
+performSearch :: (Hashable t, Ord t, Monad m) =>
+                 SearchIndex t l
+              -> Language t l
+              -> DataDictionary m
+              -> SearchSettings
+              -> LanguageText l
+              -> m (Maybe (ResultSet t l))
+performSearch index lang dict SearchSettings{..} txt = runMaybeT $ do
+  initialMatches <- MaybeT . return $ findMatches index levenshteinDistance txt
+  let minLengthMatches = fragmentsLongerThan minMatchLength initialMatches
+      coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
+  queryTokens <- MaybeT . return $ getQueryTokens
+  if blockFiltering
+    then do
+      r <- resultSetBlockAnalysis dict
+                                  lang
+                                  (token <$> queryTokens)
+                                  coverageAnalyzed
+      return $ answersWithCoverage coveragePercentage r
+    else MaybeT . return . Just $  coverageAnalyzed
+  where
+    getQueryTokens = processAndTokenize lang txt
+
