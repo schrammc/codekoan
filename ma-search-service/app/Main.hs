@@ -61,7 +61,7 @@ openChannel connection = do
 
 
 -- | The application's main loop, that never terminates
-appLoop :: (MonadIO m, MonadLogger m) => Application -> AMQP.Channel -> m ()
+appLoop :: (MonadIO m, MonadLogger m) => Application m -> AMQP.Channel -> m ()
 appLoop foundation@(Application{..}) channel = do
   $(logDebug) "Listeing for queries..."
 

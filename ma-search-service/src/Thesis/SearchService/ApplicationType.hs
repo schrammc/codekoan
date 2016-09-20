@@ -1,6 +1,11 @@
+-- |
+-- Author: Christof Schramm 2016
+-- License: All rights reserved
+--
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -27,21 +32,24 @@ import           Thesis.CodeAnalysis.Language.Python
 
 import           Thesis.Data.Stackoverflow.Dump.Source.Postgres
 import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Dictionary
+import           Thesis.Data.Stackoverflow.Dictionary.Postgres
 
 import           Thesis.Search.Index
 import Data.Hashable (Hashable)
-data Application where
-  Application :: (Hashable t, Ord t) =>
+data Application m where
+  Application :: (MonadThrow m, MonadIO m, Hashable t, Ord t) =>
                  { appRabbitConnection :: !Connection
                  , appSettings         :: !ServiceSettings
                  , appQueue            :: !Text.Text
+                 , appDictionary       :: DataDictionary m
                  , appLanguage         :: Language t l
                  , appIndex            :: SearchIndex t l
-                 }  -> Application
+                 }  -> Application m
 
-buildFoundation :: (MonadThrow m, MonadIO m, MonadLogger m)
+buildFoundation :: forall m . (MonadThrow m, MonadIO m, MonadLogger m)
                    => ServiceSettings
-                -> m Application
+                -> m (Application m)
 buildFoundation settings@ServiceSettings{..} = do
 
   $(logInfo) $ "Connecting to RabbitMQ on host: " <> rmqHost serviceRMQSettings
@@ -50,15 +58,17 @@ buildFoundation settings@ServiceSettings{..} = do
                                   (rmqUser serviceRMQSettings)
                                   (rmqPassword serviceRMQSettings)
 
-  let buildApp :: forall t . forall l . (Ord t, Hashable t) =>
-                  Language t l
-               -> SearchIndex t l
-               -> Application
-      buildApp = Application conn settings "queries-java"
 
   $(logInfo) "Connecting to postgresql..."
   psqlConnection <- liftIO $ PSQL.connect serviceDBConnectInfo
   $(logInfo) "PostgreSQL connection established!"
+  appDictionary <- postgresDictionary psqlConnection
+
+  let buildApp :: forall t l . (Ord t, Hashable t) =>
+                  Language t l
+               -> SearchIndex t l
+               -> Application m
+      buildApp = Application conn settings "queries-java" appDictionary
 
   let filteredAnswerSource =
         answersWithTags psqlConnection [serviceQuestionTag]
