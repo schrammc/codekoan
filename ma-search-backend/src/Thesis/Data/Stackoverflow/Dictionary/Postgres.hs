@@ -1,4 +1,8 @@
--- | A 'DataDictionary' implementation using a PostgresSQL backend
+-- |
+-- Author: Christof Schramm 2016
+-- License: All rights reserved
+--
+-- A 'DataDictionary' implementation using a PostgresSQL backend
 {-# LANGUAGE RecordWildCards#-}
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.Data.Stackoverflow.Dictionary.Postgres where
@@ -13,12 +17,15 @@ import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Stackoverflow.Question
 
 import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.Class
+import Control.Monad.IO.Class
+import Control.Monad.Catch
 
 import qualified Data.Set as S (fromList, Set)
 
 -- | A 'DataDictionary' that accesses a PostgresSQL database.
-postgresDictionary :: Connection -> IO (DataDictionary IO)
+postgresDictionary :: (MonadThrow m, MonadIO m) =>
+                      Connection
+                   -> m (DataDictionary m)
 postgresDictionary connection =
   return $ DataDictionary{ answerParent = postgresAnswerParent connection
                          , questionTags = postgresQuestionTags connection
@@ -27,9 +34,12 @@ postgresDictionary connection =
                          }
 
 -- | Get the parent question id for an answer id from postgres
-postgresAnswerParent :: Connection -> AnswerId -> MaybeT IO QuestionId
+postgresAnswerParent :: (MonadIO m) =>
+                        Connection
+                     -> AnswerId
+                     -> MaybeT m QuestionId
 postgresAnswerParent connection AnswerId{..} = do
-  i <- lift $ concat <$>
+  i <- liftIO $ concat <$>
                query connection
                     "SELECT questions.id FROM questions WHERE questions.id = (SELECT parent FROM answers where id = ?) "
                     [answerIdInt] 
@@ -38,9 +48,12 @@ postgresAnswerParent connection AnswerId{..} = do
     qId:_ -> return $ QuestionId qId
 
 -- | Get the tags for a question from postgres
-postgresQuestionTags :: Connection -> QuestionId -> MaybeT IO (S.Set Text)
+postgresQuestionTags :: (MonadIO m) =>
+                        Connection
+                     -> QuestionId
+                     -> MaybeT m (S.Set Text)
 postgresQuestionTags connection QuestionId{..} = do
-  i <- lift $ concat <$>
+  i <- liftIO $ concat <$>
                query connection
                      "SELECT questions.tags FROM questions WHERE questions.id = ?"
                      [questionIdInt]
@@ -50,9 +63,12 @@ postgresQuestionTags connection QuestionId{..} = do
 
 
 -- | Get an answer from postgres by id
-postgresGetAnswer :: Connection -> AnswerId  -> MaybeT IO Answer
+postgresGetAnswer :: (MonadIO m) =>
+                     Connection
+                  -> AnswerId
+                  -> MaybeT m Answer
 postgresGetAnswer connection AnswerId{..} = do
-  results <- lift $ query connection
+  results <- liftIO $ query connection
                           "SELECT * FROM answers WHERE answers.id = ?"
                           [answerIdInt]
   let answers = do
@@ -66,9 +82,11 @@ postgresGetAnswer connection AnswerId{..} = do
     (a:_) -> return a
   
 -- | Get a question from postgres by id
-postgresGetQuestion :: Connection -> QuestionId  -> MaybeT IO Question
+postgresGetQuestion :: (MonadIO m) => Connection
+                    -> QuestionId
+                    -> MaybeT m Question
 postgresGetQuestion connection QuestionId{..} = do
-  results <- lift $ query connection
+  results <- liftIO $ query connection
                           "SELECT * FROM questions WHERE questions.id = ?"
                           [questionIdInt]
   let questions = do
