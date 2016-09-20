@@ -68,7 +68,7 @@ buildFoundation settings@ServiceSettings{..} = do
                   Language t l
                -> SearchIndex t l
                -> Application m
-      buildApp = Application conn settings "queries-java" appDictionary
+      buildApp = Application conn settings serviceExchange appDictionary
 
   let filteredAnswerSource =
         answersWithTags psqlConnection [serviceQuestionTag]
