@@ -10,29 +10,27 @@
 {-# LANGUAGE ScopedTypeVariables#-}
 module Main where
 
-import Data.Aeson
-import Data.Text (pack)
-import Data.Maybe (fromJust)
+import           Control.Concurrent
+import           Control.Monad.Catch
+import           Control.Monad.IO.Class
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Class
 
-
-import Control.Concurrent
-import Control.Monad.IO.Class
-import Control.Monad.Logger
-import Control.Monad.Trans.Class
-import Control.Monad.Catch
-import Thesis.SearchService.ServiceSettings
-import Thesis.Messaging.Query
-import Thesis.Messaging.Message
-import Thesis.Messaging.ResultSet
-import Thesis.CodeAnalysis.Language
-import Thesis.Search
-import Thesis.Search.Settings
-import Thesis.Search.ResultSet
-
+import           Data.Aeson
+import           Data.Maybe (fromJust)
+import           Data.Text (pack)
 
 import qualified Network.AMQP as AMQP
 
-import Thesis.SearchService.ApplicationType
+import           Thesis.CodeAnalysis.Language
+
+import           Thesis.Messaging.Message
+import           Thesis.Messaging.Query
+import           Thesis.Messaging.ResultSet
+
+import           Thesis.Search
+import           Thesis.SearchService.ApplicationType
+import           Thesis.SearchService.ServiceSettings
 
 main :: IO ()
 main = runStdoutLoggingT $ do
@@ -77,11 +75,14 @@ appLoop foundation@(Application{..}) channel = do
       $(logInfo) $ pack $ "Received query (" ++ (show queryId) ++
                           ") from " ++ show headerSender
 
-      let searchResult = answersWithCoverage (coveragePercentage querySettings) <$>
-                         fragmentsLongerThan (minMatchLength querySettings) <$>
-                         findMatches appIndex
-                                     (levenshteinDistance querySettings)
-                                     (LanguageText queryText)
+      let langText = LanguageText queryText
+
+
+      searchResult <- performSearch appIndex
+                                    appLanguage
+                                    appDictionary
+                                    querySettings
+                                    langText
 
       case searchResult of
         -- Log an error if we can't find a search result in the index for the query
@@ -92,7 +93,7 @@ appLoop foundation@(Application{..}) channel = do
                               " back to rabbitmq..."
 
           let reply =
-                resultSetToMsg (languageName appLanguage) (fromJust queryId) matches
+                resultSetToMsg (serviceClusterSize appSettings)(languageName appLanguage) (fromJust queryId) matches
 
           -- Send the reply to the replies queue in rabbitmq
           replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
