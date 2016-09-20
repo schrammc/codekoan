@@ -16,9 +16,10 @@ import           Thesis.Search.ResultSet
 import           Thesis.Messaging.Query
 
 data ResultSetMsg =
-  ResultSetMsg { resultSetLanguage :: Text
-               , resultSetQueryId :: QueryId
+  ResultSetMsg { resultSetLanguage :: !Text
+               , resultSetQueryId :: !QueryId
                , resultSetResultList :: [ResultMsg]
+               , resultClusterSize :: !Int
                }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
@@ -34,18 +35,15 @@ mergeResultSetMsgs :: [ResultSetMsg] -> Maybe ResultSetMsg
 mergeResultSetMsgs [] = Nothing
 mergeResultSetMsgs rs@(r:_) =
   if langValid && queryIdValid
-  then Just $ ResultSetMsg { resultSetLanguage = resultSetLanguage r
-                           , resultSetQueryId = resultSetQueryId r
-                           , resultSetResultList =
-                               mconcat $ resultSetResultList <$> rs
-                           }
+  then Just $ r{ resultSetResultList = mconcat $ resultSetResultList <$> rs}
   else Nothing
   where
     langValid = and $ (\r' -> resultSetLanguage r == resultSetLanguage r') <$> rs
     queryIdValid = and $ (\r' -> resultSetQueryId r == resultSetQueryId r') <$> rs
 
-resultSetToMsg :: Text -> QueryId -> ResultSet t l -> ResultSetMsg
-resultSetToMsg lang replyTo ResultSet{..} = ResultSetMsg lang replyTo list
+resultSetToMsg :: Int -> Text -> QueryId -> ResultSet t l -> ResultSetMsg
+resultSetToMsg clusterSize lang replyTo ResultSet{..} =
+  ResultSetMsg lang replyTo list clusterSize
   where
     list = do
       (AnswerId{..}, mp) <- M.toList resultSetMap
