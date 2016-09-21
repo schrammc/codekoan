@@ -19,7 +19,6 @@ import           System.Directory
 import           System.FilePath
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
-import           Thesis.CodeAnalysis.Semantic.IdentifierSplitter
 
 -- | A conduit that recursively traverses a directory and returns all files that
 -- have a given extension. This does not follow symlinks.
