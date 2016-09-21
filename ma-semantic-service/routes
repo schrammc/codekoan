@@ -1,0 +1,2 @@
+/status        StatusR GET
+/submit        SubmitR POST
