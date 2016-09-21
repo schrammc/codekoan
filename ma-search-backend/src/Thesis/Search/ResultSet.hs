@@ -13,6 +13,9 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , numberOfGroups
 
                                , filterEmptyResults
+                                 -- * Helper functions
+                               , flattenSet
+                               , buildSet
                                )where
 
 import           Data.List (groupBy)
@@ -171,3 +174,32 @@ numberOfGroups ResultSet{..} = sum $ do
   (_, fragMap) <- M.toList resultSetMap
   (_, groupList) <- M.toList fragMap
   return $ length groupList
+
+-- | A helper function to flatten a result set into a list
+flattenSet :: ResultSet t l -> [(AnswerId, Int, [AlignmentMatch t l])]
+flattenSet ResultSet{..} = do
+  (aId, frags) <- M.toList resultSetMap
+  (fragId, matches) <- M.toList frags
+  match <- matches
+  return (aId, fragId, match)
+
+-- | A helper function to build a result set from a list, it should hold that
+-- @
+-- (buildSet . flattenSet) s == s
+-- @
+buildSet :: [(AnswerId, Int, [AlignmentMatch t l])] -> ResultSet t l
+buildSet lst = ResultSet $ M.fromList $ do
+  answerGroup <- mergedGroups
+  let (aId, _, _) = head answerGroup
+  return (aId, M.fromList $ fmap (\(_, fragId, ms) -> (fragId, ms)) answerGroup)
+  where
+    fragGroups = groupBy (\(aId, fragId, _) (aId', fragId', _) ->
+                           aId == aId' && fragId == fragId'
+                         ) lst
+
+    mergedGroups = groupBy (\(aId, _, _) -> \(aId', _, _) -> aId == aId')
+                           (mergeGroup <$> fragGroups)
+
+    mergeGroup :: [(AnswerId, Int, [AlignmentMatch t l])] -> (AnswerId, Int, [[AlignmentMatch t l]])
+    mergeGroup [] = error "Thesis.CodeAnalysis.Semantic - impossible case"
+    mergeGroup xs@((aId, fragId, _):_) = (aId, fragId, (\(_,_,x) -> x) <$> xs)

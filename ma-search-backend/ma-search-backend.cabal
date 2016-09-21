@@ -24,6 +24,7 @@ library
                      , Thesis.CodeAnalysis.Semantic.CamelCaseSplitter
                      , Thesis.CodeAnalysis.Semantic.Chatter
                      , Thesis.CodeAnalysis.Semantic.IdentifierSplitter
+                     , Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
                      , Thesis.CodeAnalysis.Semantic.Source
                      , Thesis.CodeAnalysis.StackoverflowBodyParser
 
