@@ -21,16 +21,19 @@ import           Data.Maybe (fromJust)
 import           Data.Text (pack)
 
 import qualified Network.AMQP as AMQP
+import           Network.HTTP.Simple
 
 import           Thesis.CodeAnalysis.Language
 
 import           Thesis.Messaging.Message
 import           Thesis.Messaging.Query
 import           Thesis.Messaging.ResultSet
+import           Thesis.Messaging.SemanticQuery
 
 import           Thesis.Search
 import           Thesis.SearchService.ApplicationType
 import           Thesis.SearchService.ServiceSettings
+import           Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
 
 main :: IO ()
 main = runStdoutLoggingT $ do
@@ -77,12 +80,12 @@ appLoop foundation@(Application{..}) channel = do
 
       let langText = LanguageText queryText
 
-
       searchResult <- performSearch appIndex
                                     appLanguage
                                     appDictionary
                                     querySettings
                                     langText
+                                    remoteAnalyzer
 
       case searchResult of
         -- Log an error if we can't find a search result in the index for the query
@@ -118,6 +121,14 @@ appLoop foundation@(Application{..}) channel = do
           let newWait = if wait < 10000 then wait + 100 else wait
           liftIO $ threadDelay newWait
           getMessage newWait
+    remoteAnalyzer = buildMonadicAnalyzer getSimilarity
+    getSimilarity a b = do
+      let submitR = setRequestMethod "POST" $
+                    setRequestBodyJSON (SemanticQuery a b) $ 
+                            parseRequest_ (serviceSemanticURL appSettings)
+      resp <- httpJSON submitR
+      return $ getResponseBody resp
+
   
 -- | Get a value from a 'Maybe' or throw an 'error' with the given string.
 getOrFail :: (MonadLogger m) => String -> (Maybe a) -> m a

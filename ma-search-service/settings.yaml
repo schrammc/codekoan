@@ -12,4 +12,5 @@ search-postgres-database:
   db-pwd: "mnl07xs"
   db-name: "testdb"
   db-port: 5432
-  db-host: "lethe"
+  db-host: "localhost"
+search-semantic-url: "http://localhost:3666/submit"

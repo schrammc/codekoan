@@ -24,6 +24,7 @@ library
                    , conduit >= 1.2.6
                    , exceptions >= 0.8.3
                    , hashable >= 1.2
+                   , http-conduit >= 2.2
                    , ma-language-java >= 0.1.0.0
                    , ma-language-python >= 0.1.0.0
                    , ma-messaging >= 0.1.0.0

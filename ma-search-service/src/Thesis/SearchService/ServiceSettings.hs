@@ -32,6 +32,7 @@ data ServiceSettings =
                   , serviceDBConnectInfo :: !ConnectInfo
                   , serviceClusterSize :: Int
                     -- ^ The size of the cluster, that this instance is part of.
+                  , serviceSemanticURL :: String
                   }
 
 instance FromJSON ServiceSettings where
@@ -42,6 +43,7 @@ instance FromJSON ServiceSettings where
     serviceRMQSettings      <- o .: "search-rabbitmq-settings"
     serviceAnswerDigits     <- o .: "search-answer-digits"
     serviceClusterSize      <- o .: "search-cluster-size"
+    serviceSemanticURL      <- o .: "search-semantic-url"
     serviceDBConnectInfo    <- readPostgresConnectInfo o
     when (null serviceAnswerDigits) $ fail "No answer digits specified!"
     return ServiceSettings{..}

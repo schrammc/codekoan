@@ -10,6 +10,6 @@ module Thesis.CodeAnalysis.Semantic.MonadicAnalyzer where
 import Data.Text
 import Thesis.CodeAnalysis.Semantic
 
-buildIOAnalyzer :: (Monad m) => ([Text] -> [Text] -> m Double)
-                -> SemanticAnalyzer m [Text]
-buildIOAnalyzer f = SemanticAnalyzer id f
+buildMonadicAnalyzer :: (Monad m) => ([Text] -> [Text] -> m Double)
+                     -> SemanticAnalyzer m [Text]
+buildMonadicAnalyzer f = SemanticAnalyzer id f
