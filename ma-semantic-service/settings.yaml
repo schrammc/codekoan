@@ -1,9 +1,6 @@
-# Settings pertaining to the RabbitMQ connection
-rabbitmq-settings:
-  rabbitmq-user: "guest"
-  rabbitmq-pwd : "guest"
-  rabbitmq-host: "localhost"
-  rabbitmq-virtual-host: "/"
+corpus-directory: /home/kryo/temp/javacorpus/elasticsearch
+
+corpus-language: java
 
 # Settings pertaining to logging
 log-settings:

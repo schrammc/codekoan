@@ -1,6 +1,7 @@
 search-language: "java"
 search-exchange: "java-cluster-1"
 search-question-tag: "java"
+search-cluster-size: 1
 search-answer-digits: [1]
 search-rabbitmq-settings:
   rabbitmq-user: "guest"

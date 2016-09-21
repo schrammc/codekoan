@@ -3,6 +3,7 @@
 -- License: All rights reserved
 --
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Handler.Submit where
 
 import Import
@@ -69,9 +70,10 @@ submitQuery :: (MonadIO m, MonadLogger m) =>
             -> (Text, Text, SearchSettings)
             -> m QueryId
 submitQuery AppSettings{..} (code, language, settings) = do
+  $(logDebug) $ (Text.pack $ show settings)
   let query = buildQuery code language settings
       submitR = parseRequest_ appSubmitURL
-  
+
       submitRWithBody = setRequestBodyJSON query $
                         submitR{ method = methodPost }
 
@@ -182,11 +184,18 @@ submitCodeForm extra = do
   (idThreshVal, idThreshView) <- mreq percField " " (Just 25.0)
   (langVal, langView) <- mreq (selectFieldList [("Java" :: Text,"java" :: Text), ("Python3","python")]) " " (Just "java")
   
-  let searchConfig = SearchSettings <$> lenVal
+  let idFilter = case idWordVal of
+        FormSuccess True ->
+          case idThreshVal of
+            FormSuccess n -> Just (n / 100.0)
+            _ -> Nothing
+        _ -> Nothing
+
+      searchConfig = SearchSettings <$> lenVal
                                     <*> sensVal
                                     <*> ((/ 100.0) <$> percVal)
                                     <*> blocksVal
-                                    <*> pure Nothing
+                                    <*> pure idFilter
                                     
       queryVal = (,,) <$> (unTextarea <$> codeVal) <*> langVal <*> searchConfig
       widget = do
