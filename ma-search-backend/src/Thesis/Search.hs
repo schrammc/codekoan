@@ -7,12 +7,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search where
 
+import           Control.Monad.Catch
 import           Control.Monad.Trans.Maybe
 import           Control.Parallel.Strategies
 import           Data.Hashable (Hashable)
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Semantic
 import           Thesis.Data.Range hiding (coveragePercentage)
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Stackoverflow.Dictionary
@@ -100,26 +102,38 @@ buildRange AnswerFragmentMetaData{..} tks d =
 -- | Perform a search based on a set of search settings.
 --
 -- TODO: Doesn't incorporate word similarity measurement yet
-performSearch :: (Hashable t, Ord t, Monad m) =>
+performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m) =>
                  SearchIndex t l
               -> Language t l
               -> DataDictionary m
               -> SearchSettings
               -> LanguageText l
+              -> SemanticAnalyzer m a
               -> m (Maybe (ResultSet t l))
-performSearch index lang dict SearchSettings{..} txt = runMaybeT $ do
+performSearch index lang dict SearchSettings{..} txt analyzer = runMaybeT $ do
   initialMatches <- MaybeT . return $ findMatches index levenshteinDistance txt
   let minLengthMatches = fragmentsLongerThan minMatchLength initialMatches
       coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
   queryTokens <- MaybeT . return $ getQueryTokens
-  if blockFiltering
-    then do
-      r <- resultSetBlockAnalysis dict
-                                  lang
-                                  (token <$> queryTokens)
-                                  coverageAnalyzed
-      return $ answersWithCoverage coveragePercentage r
-    else MaybeT . return . Just $  coverageAnalyzed
+  blockFiltered <- if blockFiltering
+                   then do
+                     r <- resultSetBlockAnalysis dict
+                                                 lang
+                                                 (token <$> queryTokens)
+                                                 coverageAnalyzed
+                     return $ answersWithCoverage coveragePercentage r
+                   else MaybeT . return . Just $  coverageAnalyzed
+  semanticFiltered <- case semanticThreshold of
+    Nothing -> return blockFiltered
+    Just  t -> do
+      qData <- MaybeT $ return queryData
+      res <- MaybeT $ resultsWithSimilarity lang dict analyzer qData blockFiltered t
+      return $ answersWithCoverage coveragePercentage res
+
+  return $ semanticFiltered
   where
+    queryData = do
+      qt <- getQueryTokens
+      return (qt, normalize lang txt)
     getQueryTokens = processAndTokenize lang txt
 
