@@ -5,7 +5,10 @@
 -- This module provides functionality to build semantic analyzers backed by the
 -- chaatter NLP libray.
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.CodeAnalysis.Semantic.Chatter where
+module Thesis.CodeAnalysis.Semantic.Chatter
+       ( module Thesis.CodeAnalysis.Semantic.Chatter
+       , TermVector
+       )where
 
 import           Control.Monad.Trans.Resource
 
