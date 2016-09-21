@@ -101,7 +101,6 @@ buildRange AnswerFragmentMetaData{..} tks d =
 
 -- | Perform a search based on a set of search settings.
 --
--- TODO: Doesn't incorporate word similarity measurement yet
 performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m) =>
                  SearchIndex t l
               -> Language t l
