@@ -1,0 +1,8 @@
+<h1 class="jumbotron">
+  <center>
+    Submit your code for analysis
+<form method=post action=@{SubmitR}#form enctype=#{formEnctype}>
+  ^{formWidget}
+
+$maybe resultWidget <- resultWidgetMaybe
+  ^{resultWidget}
