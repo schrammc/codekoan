@@ -16,13 +16,16 @@ module Thesis.CodeAnalysis.Semantic where
 import Data.Text (Text)
 
 import Thesis.Data.Stackoverflow.Dictionary
+import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Range
 import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Semantic.IdentifierSplitter
 import Thesis.Search.AlignmentMatch
 import Thesis.Search.ResultSet
+import Control.Monad.Trans.Class
 import Control.Monad.Catch
 import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.List
 
 import qualified Data.Map as M
 
@@ -33,9 +36,9 @@ import Data.Vector ((!?))
 import qualified Data.Vector as V
 
 -- | An interface to a semantic analysis method
-data SemanticAnalyzer a =
-  SemanticAnalyzer { semanticPreprocess :: [Text] -> a
-                   , semanticSimilarity :: a -> a -> Double
+data SemanticAnalyzer m a =
+  SemanticAnalyzer { semanticPreprocess :: [Text] -> m a
+                   , semanticSimilarity :: a -> a -> m Double
                      -- ^ This function must return double values on a scale of
                      -- 0.0 to 1.0. 0.0 is maximally dissimilar while 1.0 is
                      -- either identical or highly similar.
@@ -50,7 +53,7 @@ resultsWithSimilarity :: MonadThrow m =>
                          -- with fixed tokens
                       -> DataDictionary m
                       -- ^ An accessor for code pattern data
-                      -> SemanticAnalyzer a
+                      -> SemanticAnalyzer m a
                       -> (TokenVector t l, LanguageText l)
                       -- ^ query document
                       -> ResultSet t l
@@ -58,10 +61,7 @@ resultsWithSimilarity :: MonadThrow m =>
                       -> Double
                       -- ^ Threshold value between 0 and 1
                       -> m (ResultSet t l)
-resultsWithSimilarity lang dict analyzer@SemanticAnalyzer{..} queryDoc set thresh =
-  do
-  newMap <- M.fromList <$> buildNewMapList
-  return $ filterEmptyResults $ ResultSet newMap
+resultsWithSimilarity lang dict analyzer@SemanticAnalyzer{..} queryDoc set thresh = undefined
   where
     buildNewMapList =
       forM (M.toList $ resultSetMap set) $ \(aId, fragMap) ->
@@ -69,29 +69,31 @@ resultsWithSimilarity lang dict analyzer@SemanticAnalyzer{..} queryDoc set thres
         fragments <- answerFragments dict lang aId
         answerGroup <- forM (M.toList $ fragMap) $ \(fragId, matches) -> do
           fragment <- MaybeT . return $ fragments !? fragId
-          let filteredResults = do
-                match <- matches
+          let filteredResults = runListT $ do
+                match <- return matches
                 let sim = searchResultSimilarity lang
                                                  analyzer
                                                  queryDoc
                                                  fragment
-                                                 match
+                                                   match
                 if sim > thresh
                   then return match
-                  else []
+                  else return undefined
           return (fragId, filteredResults)
-        return (aId, M.fromList answerGroup))
+        return (aId, answerGroup))
   
-searchResultSimilarity :: Language t l
-                       -> SemanticAnalyzer a
+searchResultSimilarity :: (Monad m) => Language t l
+                       -> SemanticAnalyzer m a
                        -> (TokenVector t l, LanguageText l)
                        -- ^ query document
                        -> (TokenVector t l, LanguageText l)
                        -- ^ answer fragment
                        -> [AlignmentMatch t l]
-                       -> Double
-searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (ms) =
-  semanticSimilarity (semanticPreprocess queryIds) (semanticPreprocess fragIds)
+                       -> m Double
+searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (ms) = do
+  a <- semanticPreprocess queryIds
+  b <- semanticPreprocess fragIds
+  semanticSimilarity a b
   where
     queryIds :: [Text]
     queryIds = identifiers lang queryText $ V.concat $ do
