@@ -10,12 +10,14 @@ import Yesod.Core
 import Settings
 import Settings.LogSettings
 
+import Data.Functor.Identity
+
 import Thesis.CodeAnalysis.Semantic
 import Thesis.CodeAnalysis.Semantic.Chatter
 import Thesis.CodeAnalysis.Language.Java
 import Thesis.CodeAnalysis.Language.Python
 
-data App = App { appSemanticAnalyzer :: SemanticAnalyzer TermVector
+data App = App { appSemanticAnalyzer :: SemanticAnalyzer Identity TermVector
                , appSettings :: AppSettings
                }
 

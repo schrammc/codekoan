@@ -10,4 +10,4 @@ log-settings:
   log-level: debug
 
 # The port that the application is run on
-application-port: 3000
+application-port: 3666
