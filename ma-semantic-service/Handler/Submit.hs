@@ -35,4 +35,4 @@ postSubmitR = do
   let sim = semanticSimilarity (semanticPreprocess setOne)
                                (semanticPreprocess setTwo)
   
-  return $ object ["similarity" .= sim]
+  return $ toJSON sim
