@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables#-}
 -- |
 -- Copyright: Christof Schramm 2016
 -- License: All rights reserved
@@ -14,6 +16,7 @@
 module Thesis.CodeAnalysis.Semantic where
 
 import Data.Text (Text)
+import qualified Data.List as List
 
 import Thesis.Data.Stackoverflow.Dictionary
 import Thesis.Data.Stackoverflow.Answer
@@ -37,7 +40,7 @@ import qualified Data.Vector as V
 
 -- | An interface to a semantic analysis method
 data SemanticAnalyzer m a =
-  SemanticAnalyzer { semanticPreprocess :: [Text] -> m a
+  SemanticAnalyzer { semanticPreprocess :: [Text] -> a
                    , semanticSimilarity :: a -> a -> m Double
                      -- ^ This function must return double values on a scale of
                      -- 0.0 to 1.0. 0.0 is maximally dissimilar while 1.0 is
@@ -46,7 +49,9 @@ data SemanticAnalyzer m a =
 
 -- | This function filters all those results from a result set that don't have a
 -- semantic similarity value that is equal to or greater than the reference
--- value
+-- value.
+--
+-- This will return 'Nothing' if a fragment can't be found in the dictionary
 resultsWithSimilarity :: MonadThrow m =>
                          Language t l
                          -- ^ We always work in relation to a given language
@@ -60,27 +65,48 @@ resultsWithSimilarity :: MonadThrow m =>
                       -- ^ The result set to be analyzed
                       -> Double
                       -- ^ Threshold value between 0 and 1
-                      -> m (ResultSet t l)
-resultsWithSimilarity lang dict analyzer@SemanticAnalyzer{..} queryDoc set thresh = undefined
+                      -> m (Maybe (ResultSet t l))
+resultsWithSimilarity lang
+                      dict
+                      analyzer@SemanticAnalyzer{..}
+                      queryDoc
+                      set
+                      thresh = do
+  patternData <- runMaybeT relevantPatterns
+  let flattenedSet = flattenSet set
+  case patternData of
+    Nothing -> return Nothing
+    Just patternMap -> do
+      flattened' <- runMaybeT $ do
+        forM flattenedSet $ \(aId, fragId, matches) -> do
+          fragMap <- MaybeT $ return (M.lookup aId patternMap)
+          fragData <- MaybeT $ return (M.lookup fragId fragMap)
+          sim <- lift $ searchResultSimilarity lang
+                                               analyzer
+                                               queryDoc
+                                               fragData
+                                               matches
+          if sim > thresh
+            then MaybeT . return $ Just (aId, fragId, matches)
+            else MaybeT $ return Nothing
+      return $ buildSet <$> flattened'
   where
-    buildNewMapList =
-      forM (M.toList $ resultSetMap set) $ \(aId, fragMap) ->
-      fromMaybe (aId, M.empty) <$> (runMaybeT $ do
-        fragments <- answerFragments dict lang aId
-        answerGroup <- forM (M.toList $ fragMap) $ \(fragId, matches) -> do
-          fragment <- MaybeT . return $ fragments !? fragId
-          let filteredResults = runListT $ do
-                match <- return matches
-                let sim = searchResultSimilarity lang
-                                                 analyzer
-                                                 queryDoc
-                                                 fragment
-                                                   match
-                if sim > thresh
-                  then return match
-                  else return undefined
-          return (fragId, filteredResults)
-        return (aId, answerGroup))
+    -- | Builds up a map with data on all fragments in the result set.
+    relevantPatterns = fmap M.fromList $ forM fragmentMap $ \(aId, frags) -> do
+      fragments <- answerFragments dict lang aId
+      fragVectors <- sequence $ do
+        fragId <- frags
+        return $ MaybeT $ return $ (fragId,) <$> fragments !? fragId
+      return $ (aId, M.fromList $ fragVectors)
+      where
+        relevantFragments = List.nub $ do
+          (aId, fragId, _) <- flattenSet set
+          return $ (aId, fragId)
+        fragmentMap = do
+          group <- List.groupBy (\a -> \b -> fst a == fst b) relevantFragments
+          let (aId, _) = head group
+          return (aId, snd <$> group)
+
   
 searchResultSimilarity :: (Monad m) => Language t l
                        -> SemanticAnalyzer m a
@@ -90,10 +116,8 @@ searchResultSimilarity :: (Monad m) => Language t l
                        -- ^ answer fragment
                        -> [AlignmentMatch t l]
                        -> m Double
-searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (ms) = do
-  a <- semanticPreprocess queryIds
-  b <- semanticPreprocess fragIds
-  semanticSimilarity a b
+searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (ms) =
+  semanticSimilarity (semanticPreprocess queryIds) (semanticPreprocess fragIds)
   where
     queryIds :: [Text]
     queryIds = identifiers lang queryText $ V.concat $ do

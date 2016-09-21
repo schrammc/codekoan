@@ -11,7 +11,7 @@ module Thesis.CodeAnalysis.Semantic.Chatter
        )where
 
 import           Control.Monad.Trans.Resource
-
+import           Data.Functor.Identity
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
 
@@ -23,10 +23,10 @@ import           Thesis.CodeAnalysis.Semantic
 import           Thesis.CodeAnalysis.Semantic.Source
 
 -- | Build a semantic analyzer based on a chatter-corpus.
-chatterAnalyzer :: Corpus -> SemanticAnalyzer TermVector
+chatterAnalyzer :: Corpus -> SemanticAnalyzer Identity TermVector
 chatterAnalyzer corp =
   SemanticAnalyzer { semanticPreprocess = (mkVector corp) . mkDocument
-                   , semanticSimilarity = tvSim
+                   , semanticSimilarity = \a b -> Identity $ tvSim a b
                    }
 
 -- | Build a corpus by recursively searching through the given directory for
