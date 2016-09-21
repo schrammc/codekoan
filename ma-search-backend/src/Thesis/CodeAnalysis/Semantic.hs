@@ -19,7 +19,6 @@ import Data.Text (Text)
 import qualified Data.List as List
 
 import Thesis.Data.Stackoverflow.Dictionary
-import Thesis.Data.Stackoverflow.Answer
 import Thesis.Data.Range
 import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Semantic.IdentifierSplitter
@@ -28,12 +27,10 @@ import Thesis.Search.ResultSet
 import Control.Monad.Trans.Class
 import Control.Monad.Catch
 import Control.Monad.Trans.Maybe
-import Control.Monad.Trans.List
 
 import qualified Data.Map as M
 
 import Control.Monad
-import Data.Maybe(fromMaybe)
 
 import Data.Vector ((!?))
 import qualified Data.Vector as V
