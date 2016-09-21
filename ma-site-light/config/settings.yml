@@ -29,5 +29,5 @@ postgres-connect-info:
   db-port: 5432
   db-host: "localhost"
 
-rmq-injector-url: "localhost:3000/submit"
-reply-cache-url: "localhost:3500/get/"
+rmq-injector-url: "http://localhost:3000/submit"
+reply-cache-url: "http://localhost:3500/get/"

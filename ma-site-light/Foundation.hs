@@ -9,6 +9,10 @@ import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 
+import Thesis.Data.Stackoverflow.Dictionary
+import Thesis.Data.Stackoverflow.Dictionary.Postgres
+import Database.PostgreSQL.Simple
+
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
 -- starts running, such as database connections. Every handler will have
@@ -18,6 +22,7 @@ data App = App
     , appStatic      :: Static -- ^ Settings for static file serving.
     , appHttpManager :: Manager
     , appLogger      :: Logger
+    , appDict        :: DataDictionary IO
     }
 
 -- This is where we define all of the routes in our application. For a full
