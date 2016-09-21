@@ -1,3 +1,7 @@
+-- |
+-- Author: Christof Schramm
+-- License: All rights reserved
+--
 {-# LANGUAGE ScopedTypeVariables #-}
 module Handler.Submit where
 
@@ -13,19 +17,13 @@ import Text.Printf
 import qualified Data.Text as Text
 
 import Thesis.CodeAnalysis.Language
---import Thesis.CodeAnalysis.Language.Java
---import Thesis.CodeAnalysis.Language.Python
---import Thesis.CodeAnalysis.Semantic.Blocks
---import Thesis.CodeAnalysis.Semantic
 
---import Thesis.Search
---import Thesis.Search.ResultSet
 import Thesis.Search.Settings
 
 import Thesis.Data.Range
---import Thesis.Data.Range (coveragePercentage)
+
 import Thesis.Data.Stackoverflow.Answer
---import Thesis.Data.Stackoverflow.Question
+
 import Thesis.Data.Stackoverflow.Dictionary as Dict
 
 import Thesis.Messaging.Message
@@ -34,11 +32,6 @@ import Thesis.Messaging.ResultSet
 
 import Prelude (read)
 import Data.Char (isDigit)
---import Helpers
---import Handler.Display
-
---import qualified Data.Vector as V
-
 
 getSubmitR :: Handler Html
 getSubmitR = do
@@ -70,6 +63,7 @@ postSubmitR = do
     setTitle "Code Analysis"
     $(widgetFile "submit")
 
+-- | Submit a query to the rabbitmq injector and return the resulting query id
 submitQuery :: (MonadIO m, MonadLogger m) =>
                AppSettings
             -> (Text, Text, SearchSettings)
@@ -95,6 +89,7 @@ submitQuery AppSettings{..} (code, language, settings) = do
   
   return qId
 
+-- | Wait until there is a reply for the given query id in the reply-cache
 waitForReply :: (MonadIO m, MonadLogger m) =>
                 AppSettings
              -> QueryId
@@ -134,7 +129,7 @@ resultWidget normalizedText ResultSetMsg{..} = do
 
           |]
 
-    mapM_ (resultMsg normalizedText) resultSetResultList
+    mapM_ (resultMsg normalizedText) (sortOn resultSource resultSetResultList)
   where
     clusterSizeW = [whamlet|Backend cluster size: #{resultClusterSize}|]
     internalIdW  = [whamlet|Internal search id:   #{show $ resultSetQueryId}|]
@@ -144,7 +139,11 @@ resultMsg :: Text -> ResultMsg -> Widget
 resultMsg code ResultMsg{..} = do
   detailId <- newIdent
   [whamlet|<h3><a href=#{link}> Answer #{show aIdInt}, Fragment #{show fragIdInt}</a></h3>
-^{genDetails detailId}
+
+<a .btn .btn-info data-toggle="collapse" data-target="##{detailId}">Details</button>
+
+<div id="#{detailId}" class="collapse">
+  ^{genDetails detailId}
 <br>|]
   where
     (aIdTxt, rest) = Text.span isDigit resultSource
