@@ -8,31 +8,25 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Handler.Submit where
 
-import Control.Concurrent.MVar
-import Control.Monad.Logger
-
-import Data.Aeson (encode)
-import Data.Text
-import Data.Monoid
+import Data.Functor.Identity
 
 import Foundation
 
 import Thesis.CodeAnalysis.Semantic
-import Thesis.Messaging.Message
 import Thesis.Messaging.SemanticQuery
 
 import Yesod.Core
-import Yesod.Core.Handler
 
 postSubmitR :: Handler Value
 postSubmitR = do
   SemanticQuery{..} <- requireJsonBody
 
-  app@App{..} <- getYesod
+  App{..} <- getYesod
 
   let SemanticAnalyzer{..} = appSemanticAnalyzer
 
-  let sim = semanticSimilarity (semanticPreprocess setOne)
-                               (semanticPreprocess setTwo)
+  let sim :: Double
+      sim = runIdentity $ semanticSimilarity (semanticPreprocess setOne)
+                                             (semanticPreprocess setTwo)
   
   return $ toJSON sim

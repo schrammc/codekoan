@@ -18,6 +18,8 @@ import Text.Printf
 import qualified Data.Text as Text
 
 import Thesis.CodeAnalysis.Language
+import Thesis.CodeAnalysis.Language.Java
+import Thesis.CodeAnalysis.Language.Python
 
 import Thesis.Search.Settings
 
@@ -53,7 +55,11 @@ postSubmitR = do
       qId <- submitQuery appSettings (code, language, settings)
       searchReply <- waitForReply appSettings qId
 
-      resultW <- resultWidget code searchReply
+      let code' = if language == "java"
+                  then langText $ normalize java (LanguageText code)
+                  else langText $ normalize python (LanguageText code)
+
+      resultW <- resultWidget code' searchReply
 
       return . Just $ resultW
     _ -> return . Just $ [whamlet| <div .alert .alert-danger>
