@@ -126,7 +126,7 @@ performSearch index lang dict SearchSettings{..} txt analyzer = runMaybeT $ do
     Nothing -> return blockFiltered
     Just  t -> do
       qData <- MaybeT $ return queryData
-      res <- MaybeT $ resultsWithSimilarity lang dict analyzer qData blockFiltered t
+      res <- resultsWithSimilarity lang dict analyzer qData blockFiltered t
       return $ answersWithCoverage coveragePercentage res
 
   return $ semanticFiltered

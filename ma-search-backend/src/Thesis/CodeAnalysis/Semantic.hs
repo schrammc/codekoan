@@ -28,6 +28,8 @@ import Control.Monad.Trans.Class
 import Control.Monad.Catch
 import Control.Monad.Trans.Maybe
 
+import Data.Maybe
+
 import qualified Data.Map as M
 
 import Control.Monad
@@ -62,31 +64,28 @@ resultsWithSimilarity :: MonadThrow m =>
                       -- ^ The result set to be analyzed
                       -> Double
                       -- ^ Threshold value between 0 and 1
-                      -> m (Maybe (ResultSet t l))
+                      -> MaybeT m (ResultSet t l)
 resultsWithSimilarity lang
                       dict
                       analyzer@SemanticAnalyzer{..}
                       queryDoc
                       set
                       thresh = do
-  patternData <- runMaybeT relevantPatterns
+  patternMap <- relevantPatterns
   let flattenedSet = flattenSet set
-  case patternData of
-    Nothing -> return Nothing
-    Just patternMap -> do
-      flattened' <- runMaybeT $ do
-        forM flattenedSet $ \(aId, fragId, matches) -> do
-          fragMap <- MaybeT $ return (M.lookup aId patternMap)
-          fragData <- MaybeT $ return (M.lookup fragId fragMap)
-          sim <- lift $ searchResultSimilarity lang
-                                               analyzer
-                                               queryDoc
-                                               fragData
-                                               matches
-          if sim > thresh
-            then MaybeT . return $ Just (aId, fragId, matches)
-            else MaybeT $ return Nothing
-      return $ buildSet <$> flattened'
+  flattened' <- do
+    catMaybeTs $ (flip fmap) flattenedSet $ \(aId, fragId, matches) -> do
+      fragMap <- MaybeT $ return (M.lookup aId patternMap)
+      fragData <- MaybeT $ return (M.lookup fragId fragMap)
+      sim <- lift $ searchResultSimilarity lang
+                                           analyzer
+                                           queryDoc
+                                           fragData
+                                           matches
+      if sim > thresh
+        then MaybeT . return $ Just (aId, fragId, matches)
+        else MaybeT $ return Nothing
+  return $ buildSet flattened'
   where
     -- | Builds up a map with data on all fragments in the result set.
     relevantPatterns = fmap M.fromList $ forM fragmentMap $ \(aId, frags) -> do
@@ -103,6 +102,15 @@ resultsWithSimilarity lang
           group <- List.groupBy (\a -> \b -> fst a == fst b) relevantFragments
           let (aId, _) = head group
           return (aId, snd <$> group)
+
+catMaybeTs :: (Functor f, Monad f) => [MaybeT f a] -> MaybeT f [a]
+catMaybeTs xs = do
+  lst <- MaybeT $ Just <$> maybeList
+  case lst of
+    [] -> MaybeT $ return Nothing
+    ys -> return lst
+  where
+    maybeList = catMaybes <$> (mapM runMaybeT xs)
 
   
 searchResultSimilarity :: (Monad m) => Language t l
