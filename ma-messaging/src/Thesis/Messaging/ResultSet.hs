@@ -20,6 +20,7 @@ data ResultSetMsg =
                , resultSetQueryId :: !QueryId
                , resultSetResultList :: [ResultMsg]
                , resultClusterSize :: !Int
+               , resultNumber :: !Int
                }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
@@ -35,15 +36,18 @@ mergeResultSetMsgs :: [ResultSetMsg] -> Maybe ResultSetMsg
 mergeResultSetMsgs [] = Nothing
 mergeResultSetMsgs rs@(r:_) =
   if langValid && queryIdValid
-  then Just $ r{ resultSetResultList = mconcat $ resultSetResultList <$> rs}
+  then Just $ r{ resultSetResultList = mconcat $ resultSetResultList <$> rs
+               , resultNumber = newNumber
+               }
   else Nothing
   where
     langValid = and $ (\r' -> resultSetLanguage r == resultSetLanguage r') <$> rs
     queryIdValid = and $ (\r' -> resultSetQueryId r == resultSetQueryId r') <$> rs
+    newNumber = sum $ resultNumber <$> rs
 
 resultSetToMsg :: Int -> Text -> QueryId -> ResultSet t l -> ResultSetMsg
 resultSetToMsg clusterSize lang replyTo ResultSet{..} =
-  ResultSetMsg lang replyTo list clusterSize
+  ResultSetMsg lang replyTo list clusterSize 1
   where
     list = do
       (AnswerId{..}, mp) <- M.toList resultSetMap

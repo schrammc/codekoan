@@ -20,11 +20,10 @@ getGetR qId = do
   let resultValue :: Maybe (ResultSetMsg, Text.Text)
       resultValue = do
         val <- M.lookup qId cacheContent
-        let n = length val
-            clusterSize = resultClusterSize $ head val
-        if n == clusterSize
-          then mergeResultSetMsgs val >>= return . (, "finished")
-          else mergeResultSetMsgs val >>= return . (, "pending")
+        merged <- mergeResultSetMsgs val
+        if resultNumber merged  == resultClusterSize merged
+          then return (merged , "finished")
+          else return (merged, "pending")
   case resultValue of
     Nothing -> return $ object [ "result" .= Null
                                , "status" .= ("nothing" :: Text.Text)]
