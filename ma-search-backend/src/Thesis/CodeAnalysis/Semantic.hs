@@ -82,7 +82,7 @@ resultsWithSimilarity lang
                                            queryDoc
                                            fragData
                                            matches
-      if sim > thresh
+      if sim >= thresh
         then MaybeT . return $ Just (aId, fragId, matches)
         else MaybeT $ return Nothing
   return $ buildSet flattened'
@@ -104,11 +104,8 @@ resultsWithSimilarity lang
           return (aId, snd <$> group)
 
 catMaybeTs :: (Functor f, Monad f) => [MaybeT f a] -> MaybeT f [a]
-catMaybeTs xs = do
-  lst <- MaybeT $ Just <$> maybeList
-  case lst of
-    [] -> MaybeT $ return Nothing
-    ys -> return lst
+catMaybeTs xs = MaybeT $ Just <$> maybeList
+
   where
     maybeList = catMaybes <$> (mapM runMaybeT xs)
 
