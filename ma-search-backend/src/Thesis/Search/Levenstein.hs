@@ -1,4 +1,5 @@
- {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Search.Levenstein where
 
@@ -56,6 +57,7 @@ stepL LevensteinAutomaton{..} LevenState{..} x =
       (i,v) | v < levenN -> [(i, v+1)]
       _                  -> []
 
+    f :: [(Int,Int)] -> ((Int,Int), Maybe (Int,Int)) -> [(Int,Int)]
     f l ((i,v), suc) = let cost = if levenIndex i == x then 0 else 1
                            fromLeft = case l of
                              (_,v'):_ -> ((v'+1):)
@@ -159,14 +161,23 @@ lookupSuff acceptScore aut (CTrieLeaf v) st _ =
   maybe [] (\score -> [([],[(v, 0)],score)]) (acceptScore aut st)
 lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
   (_,(xs, t)) <- M.toList mp
-  newState <- toList $ foldlM f st xs
-  extend (V.toList xs) <$> lookupSuff acceptScore aut t newState (d + length xs)
+  case walkThrough acceptScore aut st xs of
+    LevenDone st' ->
+      extend (V.toList xs) <$> lookupSuff acceptScore aut t st' (d + length xs)
+    LevenPartial (nMatched, dist) ->
+      if | nMatched == 0 -> []
+         | nMatched >  0 -> [( V.toList $ V.take nMatched xs
+                             , trieLeavesDist t
+                             , dist
+                             )
+                            ]
+         | otherwise ->  error "Levenshtein.lookupSuff: Matched a negative amount of characters!"
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
    extend cs (cs', v', s) = (cs <> cs', v', s)
    cur = let score = toList $ acceptScore aut st
-             hits = if d > 10
+             hits = if d > minDepth
                     then do
                       _ <- score -- Do nothing if we fail to calculate the score
                       trieLeavesDist nd
@@ -174,6 +185,32 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
          in case hits of
            [] -> []
            hs@(_:_) -> length hs `seq` [([], hs ,)] <*> score
+   minDepth = 1
+
+data LevenResult = LevenDone !LevenState
+                 | LevenPartial !(Int, Int)
+                       
+walkThrough :: (Eq a) =>
+               (LevensteinAutomaton a -> LevenState -> Maybe Int)
+            -> LevensteinAutomaton a
+            -> LevenState
+            -> V.Vector a
+            -> LevenResult
+walkThrough acceptScore = walkThrough' 0
+  where
+    walkThrough' _ _   _  v | V.null v =
+      error "Levenshtein.walkthrough: empty vector!"
+    walkThrough' i aut st v =
+      if i == V.length v
+      then LevenDone st
+      else
+        let st' = stepL aut st (V.unsafeIndex v i)
+        in case acceptScore aut st' of
+          Just score -> walkThrough' (i+1) aut st' v
+          Nothing    -> case acceptScore aut st of
+            Just x -> LevenPartial (i,x)
+            Nothing -> error "Levenshtein.walkthrough: unexpected failure!"
+
 
 eliminateRedundantHits :: (Ord a, Ord v) =>
                           [([a], S.Set v, Int)]
