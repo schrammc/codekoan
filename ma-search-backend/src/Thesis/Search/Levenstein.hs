@@ -164,6 +164,8 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
+   -- Performance improvement possibility: replace cs <> cs' with cs : cs' and
+   -- concatenate just once
    extend cs (cs', v', s) = (cs <> cs', v', s)
    cur = let score = toList $ acceptScore aut st
              hits = if d > 10
