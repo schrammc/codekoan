@@ -91,7 +91,7 @@ normalizeV vector k = max 0 $ min k (V.length vector - 1)
 blockAccordance :: BlockData t -> AlignmentMatch t l -> AlignmentMatch t l -> Bool
 blockAccordance BlockData{..} resA resB =
   queryDist == fragmentDist
-  && blockStringEquality
+--  && blockStringEquality
   && noQueryOverlap
   && noFragOverlap
   where
