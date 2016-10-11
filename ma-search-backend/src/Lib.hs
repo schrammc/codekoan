@@ -7,45 +7,16 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Lib where
 
-import           Control.Monad.Trans.Class
-import           Control.Exception
-import           Control.Concurrent.MVar
-import           Data.IntMap.Strict (IntMap)
-import qualified Data.IntMap.Strict as IM
-import           Data.Conduit
-import qualified Data.Conduit.List as CL
-import qualified Data.Set as S
-import qualified Data.Map.Strict as M
-import Data.Foldable (toList)
-import           Data.Hashable (Hashable)
-import           Data.List (sortOn)
-import           Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.Vector as V
-import           Thesis.CodeAnalysis.Language
-import           Thesis.CodeAnalysis.Language.Java
-
-import Thesis.Data.Stackoverflow.StackoverflowPost
-import Thesis.Data.Stackoverflow.Answer
-import Thesis.Data.Stackoverflow.Question
-import Thesis.Data.Stackoverflow.Dictionary
-import Thesis.Data.Range
-
-import Thesis.Search
-import Thesis.Search.SearchResult
-import Thesis.Search.ResultSet
-import Thesis.Search.Index
-
-dictPath :: String
-dictPath = "/home/kryo/data/stackoverflow_dump/data_dictionary"
-
-xmlFilePath :: String
-xmlFilePath = "/home/kryo/data/stackoverflow_dump/posts_abridged.xml"
---xmlFilePath = "/home/kryo/data/stackoverflow_dump/xmlfiles/Posts.xml"
+import Thesis.CodeAnalysis.Language.Java
+-- import Thesis.CodeAnalysis.Semantic
+import Thesis.CodeAnalysis.Semantic.Chatter
+import NLP.Types
 
 someFunc :: IO ()
-someFunc = undefined
-{-
+someFunc = do
+  corpus <- chatterDirectoryCorpus java "/Users/kryo/temp/storm/"
+  putStrLn $ show $ corpus
+  {-
   dict <- readDictionary dictPath
   putStrLn "The dictionary is complete"
   index <- dict `seq` buildIndexForJava dict xmlFilePath 10

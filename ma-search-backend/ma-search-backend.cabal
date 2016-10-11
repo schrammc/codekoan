@@ -12,6 +12,17 @@ category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
 
+executable ma-search-backend-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  build-depends:       base >= 4.8
+                     , ma-search-backend
+                     , random >= 1.1
+                     , vector >= 0.11
+                     , containers >= 0.5.6
+                     , deepseq >= 1.4.1
+  
+                     
 library
   hs-source-dirs:      src
   exposed-modules:     Thesis.CodeAnalysis.Language
@@ -85,7 +96,7 @@ library
                      , xml-types >= 0.3.6
   default-language:    Haskell2010
 
-test-suite ma-xml-analyzer-test
+test-suite ma-search-backend-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
@@ -100,7 +111,7 @@ test-suite ma-xml-analyzer-test
                      , filepath >= 1.4.0.0
                      , hashable >= 1.2.4.0
                      , hspec >= 2.2.3
-                     , ma-xml-analyzer
+                     , ma-search-backend
                      , resourcet >= 1.1.7.4
                      , split >= 0.2.3.1
                      , text >= 1.2.2.1
