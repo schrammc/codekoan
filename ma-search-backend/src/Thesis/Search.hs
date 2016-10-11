@@ -5,14 +5,18 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Thesis.Search where
 
 import           Control.Monad.Catch
 import           Control.Monad.Trans.Maybe
 import           Control.Parallel.Strategies
+import           Control.Monad.Logger
 import           Data.Hashable (Hashable)
+import           Data.Monoid ((<>))
 import qualified Data.Set as S
 import qualified Data.Vector as V
+import qualified Data.Text as Text
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.Data.Range hiding (coveragePercentage)
@@ -101,7 +105,7 @@ buildRange AnswerFragmentMetaData{..} tks d =
 
 -- | Perform a search based on a set of search settings.
 --
-performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m) =>
+performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m) =>
                  SearchIndex t l
               -> Language t l
               -> DataDictionary m
@@ -110,21 +114,38 @@ performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m) =>
               -> SemanticAnalyzer m a
               -> m (Maybe (ResultSet t l))
 performSearch index lang dict SearchSettings{..} txt analyzer = runMaybeT $ do
+  $(logDebug) "Running search pipeline..."
+  $(logDebug) "Levenshtein - search..."
+
   initialMatches <- MaybeT . return $ findMatches index levenshteinDistance txt
+
+  $(logDebug) $ "Initial fragments: " <> printNumberOfFrags initialMatches
+
   let minLengthMatches = fragmentsLongerThan minMatchLength initialMatches
       coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
+
+  $(logDebug) $ "After coverage / length: " <> printNumberOfFrags coverageAnalyzed
+
   queryTokens <- MaybeT . return $ getQueryTokens
+
+  $(logDebug) "Proceeding with semantic analysis"
   blockFiltered <- if blockFiltering
                    then do
+                     $(logDebug) "Performing block analysis..."
                      r <- resultSetBlockAnalysis dict
                                                  lang
                                                  (token <$> queryTokens)
                                                  coverageAnalyzed
                      return $ answersWithCoverage coveragePercentage r
-                   else MaybeT . return . Just $  coverageAnalyzed
+                   else do
+                     $(logDebug) "Skipping block analysis."
+                     MaybeT . return . Just $  coverageAnalyzed
   semanticFiltered <- case semanticThreshold of
-    Nothing -> return blockFiltered
+    Nothing -> do
+      $(logDebug) "Skipping word similarity analysis."
+      return blockFiltered
     Just  t -> do
+      $(logDebug) "Proceeding with similarity analysis..."
       qData <- MaybeT $ return queryData
       res <- resultsWithSimilarity lang dict analyzer qData blockFiltered t
       return $ answersWithCoverage coveragePercentage res
@@ -135,4 +156,5 @@ performSearch index lang dict SearchSettings{..} txt analyzer = runMaybeT $ do
       qt <- getQueryTokens
       return (qt, normalize lang txt)
     getQueryTokens = processAndTokenize lang txt
+    printNumberOfFrags = Text.pack . show . numberOfFragments
 
