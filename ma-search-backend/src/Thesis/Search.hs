@@ -35,8 +35,9 @@ findMatches :: (Ord t, Hashable t)
                => SearchIndex t l
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
+               -> Int            -- ^ The minimal match length
                -> Maybe (ResultSet t l)
-findMatches index@(SearchIndex{..}) n t = do
+findMatches index@(SearchIndex{..}) n t minMatchLength = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> ngramRelevant ngr)
@@ -52,7 +53,7 @@ findMatches index@(SearchIndex{..}) n t = do
 
     searchFor (start, ts)  = 
       let tokenVector = V.fromList $ token <$> ts
-          result = search index n tokenVector
+          result = search index n tokenVector minMatchLength
       in do
            (foundTokens, metadata, range, score) <- result
            -- TODO: instead of length foundTokens we need the length of the
@@ -84,9 +85,10 @@ ngramWithRange xs = let (rs, ts) = unzip $ (\(TokenWithRange r t) -> (r,t)) <$> 
 search :: (Ord t) => SearchIndex t l
        -> Int  -- ^ Levenshtein distance
        -> V.Vector t
+       -> Int -- ^ Minimal length of an alignment match
        -> [([t], AnswerFragmentMetaData, Range t , Int)]
-search SearchIndex{..} n xs = do
-  (tks, results, levenD) <- lookupAllSuff aut indexTrie
+search SearchIndex{..} n xs minMatchLength = do
+  (tks, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
   (mds, dist) <- results
   md <- S.toList mds
   let rg = buildRange md tks dist
@@ -117,7 +119,10 @@ performSearch index lang dict SearchSettings{..} txt analyzer = runMaybeT $ do
   $(logDebug) "Running search pipeline..."
   $(logDebug) "Levenshtein - search..."
 
-  initialMatches <- MaybeT . return $ findMatches index levenshteinDistance txt
+  initialMatches <- MaybeT . return $ findMatches index
+                                                  levenshteinDistance
+                                                  txt
+                                                  minMatchLength
 
   $(logDebug) $ "Initial fragments: " <> printNumberOfFrags initialMatches
 

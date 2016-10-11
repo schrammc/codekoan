@@ -143,10 +143,11 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur ++ do
 
 lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
+           -> Int -- ^ Minimum match length
            -> [([a], [(S.Set v, Int)], Int)]
-lookupAllSuff aut t | t == empty = []
-                    | otherwise =
-  lookupSuff acceptAllScoreL aut t (startL aut) 0
+lookupAllSuff aut trie minMatchLength | trie == empty = []
+                                      | otherwise =
+  lookupSuff acceptAllScoreL aut trie (startL aut) (0, minMatchLength)
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
@@ -155,24 +156,28 @@ lookupSuff :: (Ord a, Ord v)
            -> LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
            -> LevenState
-           -> Int -- ^ Depth
+           -> (Int, Int) -- ^ (Depth, Minimal result depth)
            -> [([a], [(S.Set v, Int)] , Int)]
 lookupSuff acceptScore aut (CTrieLeaf v) st _ =
   maybe [] (\score -> [([],[(v, 0)],score)]) (acceptScore aut st)
-lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
+lookupSuff acceptScore aut nd@(CTrieNode mp _) st (d, minDepth) = cur ++ do
   (_,(xs, t)) <- M.toList mp
   case walkThrough acceptScore aut st xs of
     LevenDone st' ->
-      extend (V.toList xs) <$> lookupSuff acceptScore aut t st' (d + length xs)
-    LevenPartial (nMatched, dist) ->
+      extend (V.toList xs) <$> lookupSuff acceptScore
+                                          aut
+                                          t
+                                          st'
+                                          (d + length xs, minDepth)
+    LevenPartial (nMatched, levenDist) ->
       let k = (V.length xs - nMatched)
       in if | nMatched == 0 -> []
-            | nMatched >  0 -> [( V.toList $ V.take nMatched xs
-                                , (\(s, dist) -> (s, dist+k)) <$> trieLeavesDist t
-                                , dist
-                                )
-                               ]
-            | otherwise ->  error "Levenshtein.lookupSuff: Matched a negative amount of characters!"
+            | nMatched >  0 ->
+              let valuesWithDepth = (\(s, d) -> (s, d + k)) <$> trieLeavesDist t
+                  valuesFiltered = filter ((> minDepth) . snd) valuesWithDepth
+              in [( V.toList $ V.take nMatched xs, valuesFiltered, levenDist)]
+            | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
+                                   "a negative amount of characters!"
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
@@ -188,7 +193,6 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
          in case hits of
            [] -> []
            hs@(_:_) -> length hs `seq` [([], hs ,)] <*> score
-   minDepth = 1
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial !(Int, Int) -- The tuple contains:
@@ -196,6 +200,16 @@ data LevenResult = LevenDone !LevenState
                                             --
                                             --   * The levenshtein score of the
                                             --      automaton
+
+trA = buildSuffixTrie Nothing (V.fromList "abcdef") (S.singleton 1)
+trB = buildSuffixTrie Nothing (V.fromList "qqqqqqabcdeyyyyyyyyf") (S.singleton 2)
+trC = buildSuffixTrie Nothing (V.fromList "abcdexxxf") (S.singleton 3)
+
+trie = mergeTriesWith (S.union) trC (mergeTries trA trB)
+
+v = V.fromList "cde"
+aut = LevensteinAutomaton (V.length v) 0 (V.unsafeIndex v)
+
 walkThrough :: (Eq a) =>
                (LevensteinAutomaton a -> LevenState -> Maybe Int)
             -> LevensteinAutomaton a

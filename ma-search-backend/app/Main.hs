@@ -31,7 +31,7 @@ doSearch tr v = sum $ do
   xs `deepseq` n `deepseq` l `deepseq` return $ 1 + (length l)
   where
     la = LevensteinAutomaton (V.length v) 0 (V.unsafeIndex v)
-    resList = lookupAllSuff la tr
+    resList = lookupAllSuff la tr 7
 
 randomTrie :: IO (CompressedTrie Char (S.Set Int), [(S.Set Int,V.Vector Char)])
 randomTrie = do
