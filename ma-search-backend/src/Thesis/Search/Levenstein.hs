@@ -165,13 +165,14 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
     LevenDone st' ->
       extend (V.toList xs) <$> lookupSuff acceptScore aut t st' (d + length xs)
     LevenPartial (nMatched, dist) ->
-      if | nMatched == 0 -> []
-         | nMatched >  0 -> [( V.toList $ V.take nMatched xs
-                             , trieLeavesDist t
-                             , dist
-                             )
-                            ]
-         | otherwise ->  error "Levenshtein.lookupSuff: Matched a negative amount of characters!"
+      let k = (V.length xs - nMatched)
+      in if | nMatched == 0 -> []
+            | nMatched >  0 -> [( V.toList $ V.take nMatched xs
+                                , (\(s, dist) -> (s, dist+k)) <$> trieLeavesDist t
+                                , dist
+                                )
+                               ]
+            | otherwise ->  error "Levenshtein.lookupSuff: Matched a negative amount of characters!"
   where
    f st c | canAcceptL aut st = Just $! stepL aut st c
           | otherwise = Nothing
@@ -190,8 +191,11 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) st d = cur ++ do
    minDepth = 1
 
 data LevenResult = LevenDone !LevenState
-                 | LevenPartial !(Int, Int)
-                       
+                 | LevenPartial !(Int, Int) -- The tuple contains:
+                                            --   * The number of matched tokens
+                                            --
+                                            --   * The levenshtein score of the
+                                            --      automaton
 walkThrough :: (Eq a) =>
                (LevensteinAutomaton a -> LevenState -> Maybe Int)
             -> LevensteinAutomaton a
