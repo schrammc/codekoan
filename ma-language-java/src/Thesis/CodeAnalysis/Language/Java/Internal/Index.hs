@@ -65,7 +65,7 @@ buildIndexForJava postSource ngramSize = do
               return $ (code, AnswerFragmentId answerId n))
       =$= CL.concat
       =$= (CL.map $ \(c, aId) -> do
-              tokenV <- tokenize java (LanguageText c)
+              tokenV <- processAndTokenize java (LanguageText c)
               Just $ (token <$> tokenV,AnswerFragmentMetaData aId (V.length tokenV))
           )
       =$= CL.catMaybes

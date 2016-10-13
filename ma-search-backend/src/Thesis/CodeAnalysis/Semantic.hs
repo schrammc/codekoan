@@ -125,12 +125,16 @@ searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragT
     queryIds = identifiers lang queryText $ V.concat $ do
       AlignmentMatch{..} <- ms
       let queryTokenRange = convertRange resultQueryRange
-      return $ vectorInRange queryTokenRange queryTokens
+      case vectorInRange queryTokenRange queryTokens of
+        Just vector -> return vector
+        Nothing     -> error $ "Failure: slice (queryTokenRange) " ++ (show queryTokenRange) ++ " -- " ++ (show $ V.length queryTokens)
     fragIds :: [Text]
     fragIds = identifiers lang fragText $ V.concat $ do
       AlignmentMatch{..} <- ms
       let fragmentTokenRange = convertRange resultFragmentRange
-      return $ vectorInRange fragmentTokenRange fragTokens
+      case vectorInRange fragmentTokenRange fragTokens of
+        Just vector -> return vector
+        Nothing     -> error $ "Failure: slice (fragmentTokenRange)"  ++ (show fragmentTokenRange) ++ " -- " ++ (show $ V.length fragTokens)
       
 
 -- | Get the words in all identifiers that underly identifier tokens as split by

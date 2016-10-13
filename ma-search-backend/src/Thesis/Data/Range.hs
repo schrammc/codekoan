@@ -148,8 +148,10 @@ convertRange (Range a b) = (Range a b)
 
 -- | /O(1)/ Get the slice of the vector that's in range. Caller must make sure,
 -- that the range is actually contained in the vector
-vectorInRange :: Range a -> V.Vector a -> V.Vector a
-vectorInRange (Range a b) vec = V.slice a (b-a) vec
+vectorInRange :: Range a -> V.Vector a -> Maybe (V.Vector a)
+vectorInRange (Range a b) vec | b - a >= 0 && b <= V.length vec  =
+                                Just $ V.slice a (b-a) vec
+                              | otherwise = Nothing
 
 -- Helper function to get all ranges in a text in one pass because text has
 -- /O(n)/ random access
