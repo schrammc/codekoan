@@ -30,6 +30,7 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.CodeAnalysis.Semantic.Blocks
+import           Thesis.SearchException
 
 findMatches :: (Ord t, Hashable t)
                => SearchIndex t l
@@ -107,6 +108,7 @@ buildRange AnswerFragmentMetaData{..} tks d =
 
 -- | Perform a search based on a set of search settings.
 --
+-- Can throw a 'SemanticException' if something goes wrong in semantic processing.
 performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m) =>
                  SearchIndex t l
               -> Language t l

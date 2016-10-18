@@ -1,5 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables#-}
 -- |
 -- Copyright: Christof Schramm 2016
 -- License: All rights reserved
@@ -13,17 +11,25 @@
 
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
-module Thesis.CodeAnalysis.Semantic where
+{-# LANGUAGE TemplateHaskell #-}
+module Thesis.CodeAnalysis.Semantic
+       ( SemanticAnalyzer(..)
+       , resultsWithSimilarity
+       , identifierWordsInCode
+       )where
 
 import Data.Text (Text)
+import qualified Data.Text as Text
 import qualified Data.List as List
 
+import Control.Monad.Logger
 import Thesis.Data.Stackoverflow.Dictionary
 import Thesis.Data.Range
 import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Semantic.IdentifierSplitter
 import Thesis.Search.AlignmentMatch
 import Thesis.Search.ResultSet
+import Thesis.SearchException
 import Control.Monad.Trans.Class
 import Control.Monad.Catch
 import Control.Monad.Trans.Maybe
@@ -51,7 +57,7 @@ data SemanticAnalyzer m a =
 -- value.
 --
 -- This will return 'Nothing' if a fragment can't be found in the dictionary
-resultsWithSimilarity :: MonadThrow m =>
+resultsWithSimilarity :: (MonadLogger m, MonadThrow m) =>
                          Language t l
                          -- ^ We always work in relation to a given language
                          -- with fixed tokens
@@ -110,7 +116,7 @@ catMaybeTs xs = MaybeT $ Just <$> maybeList
     maybeList = catMaybes <$> (mapM runMaybeT xs)
 
   
-searchResultSimilarity :: (Monad m) => Language t l
+searchResultSimilarity :: (MonadLogger m, MonadThrow m) => Language t l
                        -> SemanticAnalyzer m a
                        -> (TokenVector t l, LanguageText l)
                        -- ^ query document
@@ -118,24 +124,43 @@ searchResultSimilarity :: (Monad m) => Language t l
                        -- ^ answer fragment
                        -> [AlignmentMatch t l]
                        -> m Double
-searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) (ms) =
+searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) matches = do
+  fragIds <- getIds lang (fragTokens, fragText) matches Fragment
+  queryIds <- getIds lang (queryTokens, queryText) matches Query
   semanticSimilarity (semanticPreprocess queryIds) (semanticPreprocess fragIds)
+
+data QueryOrFragment = Query | Fragment
+                     deriving (Eq)
+
+-- | A helper function, that builds a list of the words of all identifiers in
+-- the given alignment matches, depending on wether we are dealing with query or
+-- fragment data.
+getIds :: (MonadLogger m, MonadThrow m) =>
+          Language t l
+       -> (TokenVector t l, LanguageText l)
+       -> [AlignmentMatch t l]
+       -> QueryOrFragment
+       -> m [Text]
+getIds lang (tokens, text) matches queryOrFragment = do
+      v <- forM matches $ \match -> do
+        let range = tokenRange match
+        case vectorInRange range tokens of
+          Just vector -> return vector
+          Nothing     -> do
+            $(logError) $ (Text.pack $ buildErrorMsg match)
+            throwM $ (SemanticException $ buildErrorMsg match)
+      return $ identifiers lang text (V.concat v)
   where
-    queryIds :: [Text]
-    queryIds = identifiers lang queryText $ V.concat $ do
-      AlignmentMatch{..} <- ms
-      let queryTokenRange = convertRange resultQueryRange
-      case vectorInRange queryTokenRange queryTokens of
-        Just vector -> return vector
-        Nothing     -> error $ "Failure: slice (queryTokenRange) " ++ (show queryTokenRange) ++ " -- " ++ (show $ V.length queryTokens)
-    fragIds :: [Text]
-    fragIds = identifiers lang fragText $ V.concat $ do
-      AlignmentMatch{..} <- ms
-      let fragmentTokenRange = convertRange resultFragmentRange
-      case vectorInRange fragmentTokenRange fragTokens of
-        Just vector -> return vector
-        Nothing     -> error $ "Failure: slice (fragmentTokenRange)"  ++ (show fragmentTokenRange) ++ " -- " ++ (show $ V.length fragTokens)
-      
+    tokenRange match = convertRange $ 
+      if queryOrFragment == Fragment
+      then resultFragmentRange match
+      else resultQueryRange match
+    buildErrorMsg match  =
+      if queryOrFragment == Fragment
+      then "Failure: slice (fragmentTokenRange)"  ++ (show $ tokenRange match) ++
+           " -- " ++ (show $ V.length tokens)
+      else "Failure: slice (queryTokenRange)"  ++ (show $ tokenRange match) ++
+           " -- " ++ (show $ V.length tokens)
 
 -- | Get the words in all identifiers that underly identifier tokens as split by
 -- 'splitIdText'

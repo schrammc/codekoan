@@ -63,6 +63,8 @@ library
                      , Thesis.Search.Settings
                      , Thesis.Search.Trie
 
+                     , Thesis.SearchException
+
                      , Thesis.Util.ConduitUtils
 
   build-depends:       aeson >= 0.11
