@@ -13,12 +13,15 @@ import Data.Aeson
 import qualified Data.Map.Strict as M
 import Data.Monoid ((<>))
 import Data.Text
+import Data.Text.Encoding (decodeUtf8)
+import Data.ByteString.Lazy (toStrict)
 
 import Foundation
 import Network.AMQP hiding (Message)
 import Settings
 import Thesis.Messaging.ResultSet
 import Thesis.Messaging.Message
+import Thesis.Messaging.Query
 import Yesod.Core
 
 main :: IO ()
@@ -55,9 +58,12 @@ pollMessages app@App{..} = do
         Just (msg, envelope) -> do
           case decode (msgBody msg) of
             Nothing -> case decode (msgBody msg) of
-              Nothing -> $(logError) "Failed to decode message from rabbitmq"
-              Just (queryId, str) -> do
+              Nothing ->
+                $(logError) $ "Failed to decode message from rabbitmq: " <>
+                              (decodeUtf8 $ toStrict $ msgBody msg)
+              Just (Message{..} :: Message (QueryId, String)) -> do
                 mp <- liftIO $ takeMVar appReplyCache
+                let (queryId, str) = messageContent
                 liftIO $ putMVar appReplyCache (M.insert queryId (Left str) mp)
             Just (Message{..} :: Message ResultSetMsg) -> do
               let res@ResultSetMsg{..} = messageContent

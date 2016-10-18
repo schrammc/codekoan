@@ -17,7 +17,7 @@ import           Control.Monad.Logger
 import           Control.Monad.Trans.Class
 
 import           Data.Aeson
-import           Data.Maybe (fromJust)
+import           Data.Maybe (fromJust, fromMaybe)
 import           Data.Text (pack)
 
 import qualified Network.AMQP as AMQP
@@ -83,35 +83,35 @@ appLoop foundation@(Application{..}) channel = do
 
       let langText = LanguageText queryText
 
-      handle (\(SemanticException m) ->
-               $(logError) "SemanticException during search!") $
-        (flip onException) (liftIO $ sendExceptionMsg queryId) $ do
-          searchResult <- performSearch appIndex
-                                        appLanguage
-                                        appDictionary
-                                        querySettings
-                                        langText
-                                        remoteAnalyzer
-        
-          case searchResult of
-            -- Log an error if we can't find a search result in the index for the
-            -- query
-            Nothing -> $(logError) $ pack $
-                         "Failed to produce a result for query" ++ show queryId
-            Just matches -> do
-              $(logInfo) $ pack $ "Sending reply to query " ++ show queryId ++
-                                  " back to rabbitmq..."
-        
-              let reply = resultSetToMsg (serviceClusterSize appSettings)
-                                         (languageName appLanguage)
-                                         (fromJust queryId)
-                                         matches
-        
-              -- Send the reply to the replies queue in rabbitmq
-              replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
-        
-              liftIO $ AMQP.publishMsg channel "replies" ""
-                AMQP.newMsg{AMQP.msgBody = encode replyMessage}
+      handle (\(SemanticException m) -> do
+               $(logError) "SemanticException during search!"
+               liftIO $ sendExceptionMsg queryId m) $ do
+        searchResult <- performSearch appIndex
+                                      appLanguage
+                                      appDictionary
+                                      querySettings
+                                      langText
+                                      remoteAnalyzer
+      
+        case searchResult of
+          -- Log an error if we can't find a search result in the index for the
+          -- query
+          Nothing -> $(logError) $ pack $
+                       "Failed to produce a result for query" ++ show queryId
+          Just matches -> do
+            $(logInfo) $ pack $ "Sending reply to query " ++ show queryId ++
+                                " back to rabbitmq..."
+      
+            let reply = resultSetToMsg (serviceClusterSize appSettings)
+                                       (languageName appLanguage)
+                                       (fromJust queryId)
+                                       matches
+      
+            -- Send the reply to the replies queue in rabbitmq
+            replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
+      
+            liftIO $ AMQP.publishMsg channel "replies" ""
+              AMQP.newMsg{AMQP.msgBody = encode replyMessage}
 
   $(logDebug) "Acknowledging message..."
   liftIO $ AMQP.ackEnv envelope
@@ -138,10 +138,12 @@ appLoop foundation@(Application{..}) channel = do
       resp <- httpJSON submitR
       return $ getResponseBody resp
 
-    sendExceptionMsg queryId = do
+    sendExceptionMsg :: Maybe QueryId -> String -> IO ()
+    sendExceptionMsg queryId message = do
+      let qId = fromMaybe (QueryId (-1)) queryId
       reply <- buildMessage "search service"
                             "reply"
-                            (queryId, "Exception" :: String)
+                            (qId, message)
       AMQP.publishMsg channel "replies" ""
             AMQP.newMsg{AMQP.msgBody = encode reply}
 

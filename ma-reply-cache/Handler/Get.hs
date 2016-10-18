@@ -33,4 +33,5 @@ getGetR qId = do
     Just (Right (v, msg)) ->
       return $ object ["result" .= v, "status" .= msg]
     Just (Left reason) ->
-      return $ object ["status" .= reason]
+      return $ object [ "status" .= ("exception" :: Text.Text)
+                      , "result" .= reason]

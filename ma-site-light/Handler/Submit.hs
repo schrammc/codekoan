@@ -26,6 +26,7 @@ import Thesis.Search.Settings
 import Thesis.Data.Range
 
 import Thesis.Data.Stackoverflow.Answer
+import Thesis.Data.Stackoverflow.Question
 
 import Thesis.Data.Stackoverflow.Dictionary as Dict
 
@@ -59,7 +60,7 @@ postSubmitR = do
                   then langText $ normalize java (LanguageText code)
                   else langText $ normalize python (LanguageText code)
 
-      resultW <- resultWidget code' searchReply
+      resultW <- resultWidget appDict code' searchReply
 
       return . Just $ resultW
     _ -> return . Just $ [whamlet| <div .alert .alert-danger>
@@ -101,7 +102,7 @@ submitQuery AppSettings{..} (code, language, settings) = do
 waitForReply :: (MonadIO m, MonadLogger m) =>
                 AppSettings
              -> QueryId
-             -> m ResultSetMsg
+             -> m (Either String ResultSetMsg)
 waitForReply settings@AppSettings{..} queryId@(QueryId qId) = do
   resp <- httpJSON req 
   
@@ -115,8 +116,9 @@ waitForReply settings@AppSettings{..} queryId@(QueryId qId) = do
       case resultMaybe of
         Just r -> do
           $(logInfo) $ "Received a complete result for query" <> (pack $ show qId)
-          return r
-        Nothing -> fail $ "Failed to read JSON response to queryId " <> show qId
+          return (Right r)
+        Nothing ->  fail $ "Failed to read JSON response to queryId " <> show qId
+                     | t == "exception" -> return (Left "Exception" )
                      | otherwise -> do
                        liftIO $ threadDelay $ 1 * 1000 * 1000
                        waitForReply settings queryId
@@ -124,8 +126,10 @@ waitForReply settings@AppSettings{..} queryId@(QueryId qId) = do
   where
     req = parseRequest_ (appReplyCacheURL ++ show qId)
 
-resultWidget :: Text -> ResultSetMsg -> Handler Widget
-resultWidget normalizedText ResultSetMsg{..} = do
+resultWidget :: DataDictionary IO -> Text -> Either String ResultSetMsg -> Handler Widget
+resultWidget dict normalizedText (Left reason) = do
+  return $ [whamlet| <h1> Exception: #{reason}|]
+resultWidget dict normalizedText (Right ResultSetMsg{..}) = do
   return $ do
     [whamlet|
 <h1> Search Results:
@@ -136,17 +140,38 @@ resultWidget normalizedText ResultSetMsg{..} = do
 ^{internalIdW} <br>
 
           |]
-
-    mapM_ (resultMsg normalizedText) (sortOn resultSource resultSetResultList)
+    resultsWithContext <- liftIO $ runMaybeT $
+                            mapM (withContext  dict) resultSetResultList
+    case resultsWithContext of
+      Just rs -> mapM_ (resultMsg normalizedText)
+                       (reverse $ sortOn (questionRating . snd) rs)
+      Nothing -> return ()
   where
     clusterSizeW = [whamlet|Backend cluster size: #{resultClusterSize}|]
     internalIdW  = [whamlet|Internal search id:   #{show $ resultSetQueryId}|]
     nFragments = length resultSetResultList
 
-resultMsg :: Text -> ResultMsg -> Widget
-resultMsg code ResultMsg{..} = do
+withContext :: DataDictionary IO -> ResultMsg -> MaybeT IO (ResultMsg, Question)
+withContext dict msg@ResultMsg{..} = do
+  parentId <- Dict.answerParent dict aId
+  parentQuestion <- Dict.getQuestion dict parentId
+  return (msg, parentQuestion)
+  where
+    (aIdTxt, rest) = Text.span isDigit resultSource
+    aIdInt = read $ Text.unpack aIdTxt
+    fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
+    aId = AnswerId aIdInt
+
+resultMsg :: Text -> (ResultMsg, Question) -> Widget
+resultMsg code (ResultMsg{..}, q) = do
   detailId <- newIdent
-  [whamlet|<h3><a href=#{link}> Answer #{show aIdInt}, Fragment #{show fragIdInt}</a></h3>
+
+  let parentText = questionTitle q
+  
+  [whamlet|
+<h3> Question: #{parentText}
+<a href=#{link}> Answer #{show aIdInt}, Fragment #{show fragIdInt}
+<br>
 
 <a .btn .btn-info data-toggle="collapse" data-target="##{detailId}">Details</button>
 
