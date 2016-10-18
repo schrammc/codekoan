@@ -17,15 +17,20 @@ getGetR qId = do
 
   cacheContent <- liftIO $ readMVar appReplyCache
 
-  let resultValue :: Maybe (ResultSetMsg, Text.Text)
+  let resultValue :: Maybe (Either Text.Text (ResultSetMsg, Text.Text))
       resultValue = do
         val <- M.lookup qId cacheContent
-        merged <- mergeResultSetMsgs val
-        if resultNumber merged  == resultClusterSize merged
-          then return (merged , "finished")
-          else return (merged, "pending")
+        case val of
+          Left reason -> return $ Left (Text.pack reason)
+          Right values -> do
+            merged <- mergeResultSetMsgs values
+            if resultNumber merged  == resultClusterSize merged
+              then return $ Right (merged , "finished")
+              else return $ Right (merged, "pending")
   case resultValue of
     Nothing -> return $ object [ "result" .= Null
                                , "status" .= ("nothing" :: Text.Text)]
-    Just (v, msg) ->
+    Just (Right (v, msg)) ->
       return $ object ["result" .= v, "status" .= msg]
+    Just (Left reason) ->
+      return $ object ["status" .= reason]

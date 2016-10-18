@@ -54,17 +54,24 @@ pollMessages app@App{..} = do
         Nothing -> return ()
         Just (msg, envelope) -> do
           case decode (msgBody msg) of
-            Nothing -> $(logError) "Failed to decode message from rabbitmq"
+            Nothing -> case decode (msgBody msg) of
+              Nothing -> $(logError) "Failed to decode message from rabbitmq"
+              Just (queryId, str) -> do
+                mp <- liftIO $ takeMVar appReplyCache
+                liftIO $ putMVar appReplyCache (M.insert queryId (Left str) mp)
             Just (Message{..} :: Message ResultSetMsg) -> do
               let res@ResultSetMsg{..} = messageContent
               $(logDebug) $ "Processing a reply to query " <>
                             (pack $ show resultSetQueryId)
               -- Insert the new result into the cache
               mp <- liftIO $ takeMVar appReplyCache
-              let mp' = M.insertWith (++) resultSetQueryId [res] mp
+              let mp' = M.insertWith merge resultSetQueryId (Right [res]) mp
               liftIO $ putMVar appReplyCache mp'
               
           $(logDebug) "Acknowledging rabbitmq message"
           liftIO $ ackEnv envelope
       liftIO $ threadDelay n
       go n chan
+    merge (Right xs) (Right ys) = Right $ xs ++ ys
+    merge (Left x) __ = Left x
+    merge _ (Left x) = Left x

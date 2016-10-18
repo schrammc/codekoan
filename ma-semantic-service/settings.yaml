@@ -1,4 +1,4 @@
-corpus-directory: /home/kryo/temp/javacorpus/elasticsearch
+corpus-directory: /home/kryo/temp/javacorpus
 
 corpus-language: java
 

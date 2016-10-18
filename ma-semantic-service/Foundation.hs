@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiWayIf#-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
@@ -23,9 +24,11 @@ data App = App { appSemanticAnalyzer :: SemanticAnalyzer Identity TermVector
 
 buildFoundation :: AppSettings -> IO App
 buildFoundation appSettings@AppSettings{..} = do
-  corpus <- if | appCorpusLanguage == "java" ->
+  corpus <- if | appCorpusLanguage == "java" -> do
+                 putStrLn $ "Building java corpus from directory" ++ appCorpusDir
                  chatterDirectoryCorpus java appCorpusDir
-               | appCorpusLanguage == "python" ->
+               | appCorpusLanguage == "python" -> do
+                 putStrLn $ "Building python corpus from directory" ++ appCorpusDir
                  chatterDirectoryCorpus python appCorpusDir
                | otherwise ->
                  error $ "Unrecognized language: " ++ appCorpusLanguage
