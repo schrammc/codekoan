@@ -20,6 +20,7 @@ runOutstreamLogging  = (`runLoggingT` writeOutput)
       let handle = getHandle level
       formatted <- formatStr location source level str
       BS.hPutStrLn handle (fromLogStr formatted)
+      hFlush handle
 
     getHandle LevelError = stderr
     getHandle LevelWarn  = stderr
