@@ -31,6 +31,8 @@ import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.SearchException
+import Debug.Trace
+
 
 findMatches :: (Ord t, Hashable t)
                => SearchIndex t l
@@ -46,7 +48,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
-  return $ buildResultSet searchResults
+  traceShow ("Fraction of relevant ngrams: " :: String, (fromIntegral $ length relevantNGramTails) / (fromIntegral $ length ngramsWithTails) :: Double)return $ buildResultSet searchResults
 
   where
     maybeTokens = processAndTokenize indexLanguage t
@@ -117,8 +119,10 @@ performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m) =>
               -> LanguageText l
               -> SemanticAnalyzer m a
               -> m (Maybe (ResultSet t l))
-performSearch index lang dict SearchSettings{..} txt analyzer = runMaybeT $ do
+performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $ do
   $(logDebug) "Running search pipeline..."
+  $(logDebug) $ "Ngram-size: " <> (Text.pack . show $ indexNGramSize index)
+  $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
   initialMatches <- MaybeT . return $ findMatches index
@@ -129,7 +133,10 @@ performSearch index lang dict SearchSettings{..} txt analyzer = runMaybeT $ do
   $(logDebug) $ "Initial fragments: " <> printNumberOfFrags initialMatches
 
   let minLengthMatches = fragmentsLongerThan minMatchLength initialMatches
-      coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
+
+  $(logDebug) $ "After length filtering: " <> printNumberOfFrags minLengthMatches
+
+  let coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
 
   $(logDebug) $ "After coverage / length: " <> printNumberOfFrags coverageAnalyzed
 
