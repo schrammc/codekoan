@@ -73,7 +73,7 @@ buildIndexForJava postSource ngramSize = do
                        mapM_ (liftIO . stToIO . BF.Mutable.insert mutableBF) $
                          (hash <$> ngrams ngramSize (V.toList str))
                        return $ mergeTries trie
-                                  (buildSuffixTrie (Just 7) str (S.singleton v))
+                                  (buildSuffixTrie (Just ngramSize) str (S.singleton v))
                    )
                    Trie.empty
          )
