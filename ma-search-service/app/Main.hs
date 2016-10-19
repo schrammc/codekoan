@@ -35,9 +35,10 @@ import           Thesis.SearchService.ApplicationType
 import           Thesis.SearchService.ServiceSettings
 import           Thesis.SearchException
 import           Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
+import           Thesis.Util.LoggingUtils
 
 main :: IO ()
-main = runStdoutLoggingT $ do
+main = runOutstreamLogging $ do
   $(logInfo) "Search service starting..."
 
   $(logInfo) "Reading settings..."
