@@ -81,7 +81,7 @@ buildFoundation settings@ServiceSettings{..} = do
   if | serviceLanguage == languageName java -> do
          $(logInfo) "Application language: java"
 
-         index <- buildIndexForJava filteredAnswerSource 7
+         index <- buildIndexForJava filteredAnswerSource 10
          return $ buildApp java index
 
      | serviceLanguage == languageName python -> do
