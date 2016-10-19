@@ -21,5 +21,6 @@ module Thesis.CodeAnalysis.Language.Java ( -- * Basic types
                                            -- * Index construction
                                          , buildIndexForJava) where
 
+import Thesis.CodeAnalysis.Semantic
 import Thesis.CodeAnalysis.Language.Java.Internal
 import Thesis.CodeAnalysis.Language.Java.Internal.Index

@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -160,7 +161,7 @@ lookupSuff :: (Ord a, Ord v)
            -> [([a], [(S.Set v, Int)] , Int)]
 lookupSuff acceptScore aut (CTrieLeaf v) st _ =
   maybe [] (\score -> [([],[(v, 0)],score)]) (acceptScore aut st)
-lookupSuff acceptScore aut nd@(CTrieNode mp _) st (d, minDepth) = cur ++ do
+lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) = cur ++ do
   (_,(xs, t)) <- M.toList mp
   case walkThrough acceptScore aut st xs of
     LevenDone st' ->
@@ -220,7 +221,7 @@ walkThrough acceptScore = walkThrough' 0
   where
     walkThrough' _ _   _  v | V.null v =
       error "Levenshtein.walkthrough: empty vector!"
-    walkThrough' i aut st v =
+    walkThrough' !i !aut !st v =
       if i == V.length v
       then LevenDone st
       else
@@ -230,35 +231,3 @@ walkThrough acceptScore = walkThrough' 0
           Nothing    -> case acceptScore aut st of
             Just x -> LevenPartial (i,x)
             Nothing -> error "Levenshtein.walkthrough: unexpected failure!"
-
-
-eliminateRedundantHits :: (Ord a, Ord v) =>
-                          [([a], S.Set v, Int)]
-                       -> [([a], S.Set v, Int)]
-eliminateRedundantHits xs =
-  concat $ processGroup <$> distGroups
-  where
-    sortHits = reverse . (sortOn (\(tks,_,_) -> tks))
-    -- Hits grouped by levensteinDistance
-    distGroups = sortHits <$> groupBy (\(_,_,d) -> \(_,_,d') -> d == d') xs
-
-    groupPrefixes [] = []
-    groupPrefixes xs@((tks, _, _):_) =
-       let (group, rest) = span (\(tks',_,_) -> isPrefixOf tks' tks) xs
-       in group : (groupPrefixes rest)
-
-
-    processGroup group = concat $ (processPGroup S.empty) <$> (groupPrefixes group)
-
-    -- This function operates on answers of the same score where every answer's
-    -- tokens are a prefix of it's succesor's tokens
-    --
-    -- The purpose is to let every single hit for an id only occur for the
-    -- longest substring and not for every prefix
-    processPGroup _      [] = []
-    processPGroup aIdSet ((tks, aIds, s):rest) =
-     let diffSet = aIds `S.difference` aIdSet
-         unionSet = aIds `S.union` aIdSet
-     in case diffSet of
-            x | S.null x  ->  processPGroup aIdSet rest
-              | otherwise ->  (tks, diffSet, s):(processPGroup unionSet rest)
