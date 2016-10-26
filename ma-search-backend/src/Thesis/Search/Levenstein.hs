@@ -1,3 +1,13 @@
+-- |
+-- Maintainer : Christof Schramm
+-- Description: An efficient implementation of Levenshtein automata
+-- Stability  : Experimental
+-- License    : All rights reserved
+--
+-- This module contains an implementation of levenshtein automata and an
+-- implementation of inexact, greedy search in suffix tries using levenshtein
+-- automata.
+--
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE MultiWayIf #-}
