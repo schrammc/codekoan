@@ -1,6 +1,6 @@
 -- |
--- Author: Christof Schramm
--- License: All rights reserved
+-- Maintainer: Christof Schramm
+-- License   : All rights reserved
 --
 --
 {-# LANGUAGE OverloadedStrings #-}
@@ -103,10 +103,11 @@ appLoop foundation@(Application{..}) channel = do
             $(logInfo) $ pack $ "Sending reply to query " ++ show queryId ++
                                 " back to rabbitmq..."
       
-            let reply = resultSetToMsg (serviceClusterSize appSettings)
-                                       (languageName appLanguage)
-                                       (fromJust queryId)
-                                       matches
+            reply <- resultSetToMsg (serviceClusterSize appSettings)
+                                    (languageName appLanguage)
+                                    (fromJust queryId)
+                                    matches
+                                    appDictionary
       
             -- Send the reply to the replies queue in rabbitmq
             replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
