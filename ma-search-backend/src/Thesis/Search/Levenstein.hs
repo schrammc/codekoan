@@ -14,8 +14,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Search.Levenstein where
 
-import Data.List
-
 import Thesis.Search.CompressedTrie
 
 import qualified Data.Map.Strict as M
@@ -212,15 +210,6 @@ data LevenResult = LevenDone !LevenState
                                             --   * The levenshtein score of the
                                             --      automaton
 
-trA = buildSuffixTrie Nothing (V.fromList "abcdef") (S.singleton 1)
-trB = buildSuffixTrie Nothing (V.fromList "qqqqqqabcdeyyyyyyyyf") (S.singleton 2)
-trC = buildSuffixTrie Nothing (V.fromList "abcdexxxf") (S.singleton 3)
-
-trie = mergeTriesWith (S.union) trC (mergeTries trA trB)
-
-v = V.fromList "cde"
-aut = LevensteinAutomaton (V.length v) 0 (V.unsafeIndex v)
-
 walkThrough :: (Eq a) =>
                (LevensteinAutomaton a -> LevenState -> Maybe Int)
             -> LevensteinAutomaton a
@@ -237,7 +226,7 @@ walkThrough acceptScore = walkThrough' 0
       else
         let st' = stepL aut st (V.unsafeIndex v i)
         in case acceptScore aut st' of
-          Just score -> walkThrough' (i+1) aut st' v
+          Just _ -> walkThrough' (i+1) aut st' v
           Nothing    -> case acceptScore aut st of
             Just x -> LevenPartial (i,x)
             Nothing -> error "Levenshtein.walkthrough: unexpected failure!"

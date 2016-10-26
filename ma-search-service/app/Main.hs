@@ -148,7 +148,6 @@ appLoop foundation@(Application{..}) channel = do
       AMQP.publishMsg channel "replies" ""
             AMQP.newMsg{AMQP.msgBody = encode reply}
 
-  
 -- | Get a value from a 'Maybe' or throw an 'error' with the given string.
 getOrFail :: (MonadLogger m) => String -> (Maybe a) -> m a
 getOrFail str Nothing  = do

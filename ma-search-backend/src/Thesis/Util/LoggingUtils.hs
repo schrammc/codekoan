@@ -10,10 +10,7 @@ import Data.Monoid ((<>))
 import Data.ByteString.Char8 as BS
 import System.Log.FastLogger (fromLogStr)
 
-import Data.List (isPrefixOf)
-import Data.Text (pack)
-import qualified Data.Text.IO as Text
-
+runOutstreamLogging :: LoggingT m a -> m a
 runOutstreamLogging  = (`runLoggingT` writeOutput)
   where
     writeOutput location source level str = do
@@ -26,7 +23,7 @@ runOutstreamLogging  = (`runLoggingT` writeOutput)
     getHandle LevelWarn  = stderr
     getHandle _ = stdout
 
-    formatStr location source level str = do
+    formatStr location _ level str = do
       time <- getCurrentTime
       return $ (toLogStr $ show time) <> " -- " <> formatLevel level
                <> " :: " <> str <> " <<Source: "
