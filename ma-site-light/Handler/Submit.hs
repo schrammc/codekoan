@@ -118,7 +118,12 @@ waitForReply settings@AppSettings{..} queryId@(QueryId qId) = do
           $(logInfo) $ "Received a complete result for query" <> (pack $ show qId)
           return (Right r)
         Nothing ->  fail $ "Failed to read JSON response to queryId " <> show qId
-                     | t == "exception" -> return (Left "Exception" )
+                     | t == "exception" -> do
+      let p = withObject "reply object" $ \o -> o .: "result"
+          resultMaybe  = parseMaybe p $ getResponseBody resp
+      case resultMaybe of
+        Just reason -> return (Left reason)
+        Nothing -> return (Left "Unknown exception")
                      | otherwise -> do
                        liftIO $ threadDelay $ 1 * 1000 * 1000
                        waitForReply settings queryId
@@ -127,8 +132,10 @@ waitForReply settings@AppSettings{..} queryId@(QueryId qId) = do
     req = parseRequest_ (appReplyCacheURL ++ show qId)
 
 resultWidget :: DataDictionary IO -> Text -> Either String ResultSetMsg -> Handler Widget
-resultWidget dict normalizedText (Left reason) = do
-  return $ [whamlet| <h1> Exception: #{reason}|]
+resultWidget dict normalizedText (Left reason) = return $
+  [whamlet| <div .alert .alert-danger>
+              <center> <b>
+                Exception during processing: #{reason}|]
 resultWidget dict normalizedText (Right ResultSetMsg{..}) = do
   return $ do
     [whamlet|
