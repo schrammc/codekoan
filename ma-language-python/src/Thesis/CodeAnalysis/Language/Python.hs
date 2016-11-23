@@ -17,17 +17,24 @@
 {-# LANGUAGE OverloadedStrings#-}
 module Thesis.CodeAnalysis.Language.Python ( python
                                            , Python
+                                           , buildIndexForPython
                                            ) where
 
 import           Control.Applicative
 import           Control.Monad
+import           Control.Monad.IO.Class
+import           Control.Monad.Logger
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
 
 import           Data.Attoparsec.Text as AP
 import           Data.Char
+import           Data.Conduit (Source)
 import           Data.Maybe (fromJust)
 import qualified Data.Text as Text
+
+import           Thesis.Search.Index
+import           Thesis.Data.Stackoverflow.Answer
 
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
@@ -47,6 +54,16 @@ python = Language{ languageFileExtension = ".py"
                  , removeComments = LanguageText
                  , languageGenBlockData = pythonBlockData
                  }
+
+buildIndexForPython :: ( MonadIO m
+                       , MonadLogger m) => 
+                    Source m Answer
+                    -- ^ A source of answers with python code. To get this use
+                    -- one of the Thesis.Data.Stackoverflow.Dump.* modules
+                    -> Int -- ^ NGram size
+                    -> m (SearchIndex PyToken Python)
+buildIndexForPython = buildIndex python
+
 
 -- | State that the will use internally.
 data ParserState = ParserState{ blockWidth :: Maybe Int
