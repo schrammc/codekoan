@@ -15,8 +15,6 @@
 * Message Query Injector Service: Haskel RestService for posting messages into RabbitMQ on damar Port 6368, this port should be accessible from MWN to PMS. (debugging purpose, can be closed at production stage)
 
 
-
-
 ## Overview
 
 This project is the complete implementation of my code pattern recognition
@@ -60,10 +58,33 @@ posts-dump into a PostgreSQL database
 This package provides a webservice that takes JSON queries and puts them into
 RabbitMQ.
 
-## ma-search-service
+## ma-search-service (Search Worker)
 
 This package contains an executable that takes data from RabbitMQ, performs
 searches and returns the results to RabbitMQ
+
+### RabbitMQ Configuration for every single Worker Instance
+<code>
+search-language: "java"
+search-exchange: "queries-java-3"
+search-question-tag: "java"
+search-answer-digits: [0,3,4,5]
+search-cluster-size: 4
+search-rabbitmq-settings:
+ rabbitmq-user: "kryo"
+ rabbitmq-pwd: "mnl07xs"
+ rabbitmq-host: "localhost"
+ rabbitmq-virtual-host: "/"
+search-postgres-database:
+ db-user: "kryo"
+ db-pwd: "mnl07xs"
+ db-name: "testdb"
+ db-port: 5432
+ db-host: "10.155.208.4"
+search-semantic-url: "http://localhost:3666/submit"
+</code>
+
+
 
 ## ma-site
 
