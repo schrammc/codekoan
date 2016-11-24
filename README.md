@@ -181,4 +181,13 @@ application-port: 6366
 * Config reply exchange for receiving response messages and bind it to a queue.
 
 ## Starting Work instance
+* copy the ma-project folder to all the workers
+* `cd ma-project`
+* `stack build` to build the binary for the worker on each worker node
+* `stack exec ma-search-service <path-to-yaml>`, <path-to-yaml> is the path to the worker yaml config file (after starting the work, the surfix tree index will be build automatically)
+
+## Starting Web Application
+* `stack exec ma-site-light`, pwd out is ma-project
+
+
 
