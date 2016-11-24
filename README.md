@@ -104,3 +104,81 @@ You will probably also have to adapt the config in
 available](https://archive.org/details/stackexchange) stackoverflow data-dump.
 
 [stack]: https://docs.haskellstack.org/en/stable/README/
+
+## Starting the system
+### Start RabbitMQ Injector Service
+Yaml config file
+<pre>
+# Settings pertaining to the RabbitMQ connection
+rabbitmq-settings:
+ rabbitmq-user: "kryo"
+ rabbitmq-pwd : "mnl07xs"
+ rabbitmq-host: "localhost"
+ rabbitmq-virtual-host: "/"
+
+# Settings pertaining to logging
+log-settings:
+ log-level: debug
+
+# The port that the application is run on
+application-port: 6368
+</pre>
+* starting with `stack exec ma-rmq-injector`
+
+### Start Reply Cache Service
+Yaml config file
+<pre>
+# Settings pertaining to the RabbitMQ connection
+rabbitmq-settings:
+ rabbitmq-user: "kryo"
+ rabbitmq-pwd : "mnl07xs"
+ rabbitmq-host: "localhost"
+ rabbitmq-virtual-host: "/"
+
+# The RabbitMQ queue that we observe for replies
+reply-queue: "replies-1"
+
+# Settings pertaining to logging
+log-settings:
+ log-level: debug
+
+# The port that the application is run on
+application-port: 6367
+</pre>
+* starting with `stack exec ma-reply-cache`
+
+# Start Semantic Service
+Yaml config file
+<pre>
+#Directory that is recursively searched for code files
+#(ending is hardcoded into language type) 
+corpus-directory: /home/analytics/temp/javacorpus/elasticsearch
+
+# The language to use (one of ["python", "java", "haskell"])
+corpus-language: java
+
+# Settings pertaining to logging
+log-settings:
+ log-level: debug
+
+# The port that the application is run on
+application-port: 6366
+</pre>
+* starting with `start exec ma-semantic-service`
+
+# Config RabbitMQ
+## prerequisition 
+* Confiq topic exchange named "queries"
+
+* Config 3 fanout exchanges for the 3 supported languages, 1 fanout for "java", 1 fanout for "python", 1 fanout for "haskell"
+
+* Config binding for routing with routing key (Key), fanout exchanges "queries-java" -> java, fanout exchanges "queries-python" -> python, fanout exchanges "queries-haskell" -> haskell
+
+* Using RabbitMQ Management Interface to create new queues for each worker, and bin the fontout exchange to each of this worker queue. (the messages passing though the fanout exchange will be redundantly copyed to each queue binded to the fanout exchange.)  
+
+* the search-exchange variable in the config Yaml file of each work, should be identical to the name of the queue binded to the approperate fanout exchange.
+
+* Config reply exchange for receiving response messages and bind it to a queue.
+
+## Starting Work instance
+
