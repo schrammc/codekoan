@@ -64,7 +64,7 @@ This package contains an executable that takes data from RabbitMQ, performs
 searches and returns the results to RabbitMQ
 
 ### RabbitMQ Configuration for every single Worker Instance
-<code>
+<pre>
 search-language: "java"
 search-exchange: "queries-java-3"
 search-question-tag: "java"
@@ -82,7 +82,7 @@ search-postgres-database:
  db-port: 5432
  db-host: "10.155.208.4"
 search-semantic-url: "http://localhost:3666/submit"
-</code>
+</pre>
 
 
 
