@@ -30,7 +30,8 @@ import           Thesis.Search.NGrams
 import           Thesis.Util.ConduitUtils
 
 data SearchIndex t l where
-  SearchIndex :: (Ord t, Eq t) => { indexLanguage :: !(Language t l)
+  SearchIndex :: (Ord t, Eq t) =>
+                 { indexLanguage :: !(Language t l)
                  , indexTrie :: !(CompressedTrie t (S.Set AnswerFragmentMetaData))
                  , indexBF :: !(BloomFilter [t])
                  , indexNGramSize :: !Int
