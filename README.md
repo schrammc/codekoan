@@ -2,9 +2,9 @@
 ## System Components Communication
 * StackOverflow Persistency: PostgreSQL DB on damar (PMS On-Premises) Port 5432, this port should be accessible from MWN to PMS DMZ
 
-* Message Queuing: RabbitMQ on damar Port 5672, this port should be accessible from MWN to PMS 
+* Message Queueing Service: RabbitMQ on damar Port 5672, this port should be accessible from MWN to PMS 
 
-* Message Monitor: RabbitMQ Web Monitor on damar Port 15672, this port should be accessible from MWN to PMS.
+* Message Monitor Service: RabbitMQ Web Monitor on damar Port 15672, this port should be accessible from MWN to PMS.
 
 * Semantic Service: Haskel RestService on damar Port 6366, this port should be accessible from MWN to PMS
 
@@ -64,24 +64,26 @@ This package contains an executable that takes data from RabbitMQ, performs
 searches and returns the results to RabbitMQ
 
 ### RabbitMQ Configuration for every single Worker Instance
+
+**The following Code are yaml syntax, the space indent are crucial.**
 <pre>
-search-language: "java"
-search-exchange: "queries-java-3"
-search-question-tag: "java"
-search-answer-digits: [0,3,4,5]
-search-cluster-size: 4
-search-rabbitmq-settings:
+search-language: "java" // one of the three language "java", "python". "haskell", input is checked in source codes
+search-exchange: "queries-java-3" // unique queue name in RabbitMQ, the current work polls its task message from this unique queue
+search-question-tag: "java" // filter tag from StackOverflow to prevent search through irrelevant stackoverflow answers.
+search-answer-digits: [0,3,4,5] // the answer id from StackOverflow are chunked into 10 portions with modulo, the nummer presented here are the chunked index. We assume the post topic are uniformly distributed amount the chunks with this seperation method, which can be systematically proved with in a future work. 
+search-cluster-size: 4 // work arround for failing configuration service. This number is crucial, which should be identical for all works for one language, so that the reply cache serivce know how many response are pending. This number reflex on the number of workers for a dedicated language. 
+search-rabbitmq-settings: // this section describes the credential for rabbitmq (aka: Message Queueing Service)
  rabbitmq-user: "kryo"
  rabbitmq-pwd: "mnl07xs"
  rabbitmq-host: "localhost"
  rabbitmq-virtual-host: "/"
-search-postgres-database:
+search-postgres-database: // this section describes the credential for PostgreSQL DB 
  db-user: "kryo"
  db-pwd: "mnl07xs"
  db-name: "testdb"
  db-port: 5432
  db-host: "10.155.208.4"
-search-semantic-url: "http://localhost:3666/submit"
+search-semantic-url: "http://localhost:3666/submit" // the end-point of semantic service for work to fetch identifier similarity scores
 </pre>
 
 
