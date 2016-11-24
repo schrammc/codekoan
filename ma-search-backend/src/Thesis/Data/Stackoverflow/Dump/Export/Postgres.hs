@@ -17,7 +17,9 @@ import Thesis.Data.Stackoverflow.Dump
 import Thesis.Util.ConduitUtils
 
 import Data.Conduit hiding (connect)
+import qualified Data.Conduit.List as CL
 import Control.Monad.Trans.Resource
+import Control.Monad.Trans.Class
 import Control.Monad.IO.Class (liftIO)
 
 import Database.PostgreSQL.Simple
@@ -36,6 +38,7 @@ dumpToPostgres dumpPath connInfo = do
     postSource dumpPath $$
       chunks chunkSize
       =$= everyN (25000 `div` chunkSize) (\k -> liftIO $ print $ chunkSize * k)
+      =$= CL.mapM (lift . writePosts connection)
       =$= awaitForever return
 
   return ()
