@@ -42,8 +42,8 @@ buildIndex :: ( Eq t, Ord t, Hashable t
               , MonadIO m, MonadLogger m) => 
               Language t l
            -> Source m Answer
-              -- ^ A source of answers with java code. To get this use
-              -- one of the Thesis.Data.Stackoverflow.Dump.* modules
+              -- ^ A source of answers with ode. To get this use one
+              -- of the Thesis.Data.Stackoverflow.Dump.* modules
            -> Int -- ^ NGram size
            -> m (SearchIndex t l)
 buildIndex lang postSource ngramSize = do
@@ -56,7 +56,7 @@ buildIndex lang postSource ngramSize = do
   
   tr <- postSource
       $$ everyN 25000 (\n ->
-                         $(logDebug) $ pack $ "Build index (java) processed " ++
+                         $(logDebug) $ pack $ "Build index processed " ++
                                               (show n) ++ "answers")
       =$= (CL.map $ \Answer{..} -> do
               (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]

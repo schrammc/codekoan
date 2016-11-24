@@ -3,7 +3,7 @@
 
 static-dir:     "_env:STATIC_DIR:static"
 host:           "_env:HOST:*4" # any IPv4 host
-port:           "_env:PORT:3999" # NB: The port `yesod devel` uses is distinct from this value. Set the `yesod devel` port from the command line.
+port:           "_env:PORT:3000" # NB: The port `yesod devel` uses is distinct from this value. Set the `yesod devel` port from the command line.
 ip-from-header: "_env:IP_FROM_HEADER:false"
 
 # Default behavior: determine the application root from the request headers.
@@ -27,7 +27,7 @@ postgres-connect-info:
   db-pwd: "mnl07xs"
   db-name: "testdb"
   db-port: 5432
-  db-host: "localhost"
+  db-host: "10.155.208.4"
 
-rmq-injector-url: "http://localhost:3000/submit"
+rmq-injector-url: "http://localhost:3333/submit"
 reply-cache-url: "http://localhost:3500/get/"

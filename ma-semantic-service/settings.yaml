@@ -1,5 +1,8 @@
-corpus-directory: /home/kryo/temp/javacorpus
+#Directory that is recursively searched for code files
+# (ending is hardcoded into language type)
+corpus-directory: /home/analytics/temp/javacorpus/elasticsearch
 
+# The language to use (one of ["python", "java", "haskell"])
 corpus-language: java
 
 # Settings pertaining to logging
@@ -7,4 +10,4 @@ log-settings:
   log-level: debug
 
 # The port that the application is run on
-application-port: 3666
+application-port: 6366

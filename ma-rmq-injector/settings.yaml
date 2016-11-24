@@ -1,7 +1,7 @@
 # Settings pertaining to the RabbitMQ connection
 rabbitmq-settings:
-  rabbitmq-user: "guest"
-  rabbitmq-pwd : "guest"
+  rabbitmq-user: "kryo"
+  rabbitmq-pwd : "mnl07xs"
   rabbitmq-host: "localhost"
   rabbitmq-virtual-host: "/"
 
@@ -10,4 +10,4 @@ log-settings:
   log-level: debug
 
 # The port that the application is run on
-application-port: 3000
+application-port: 6368
