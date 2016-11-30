@@ -23,11 +23,11 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 copyright: Christof Schramm 2016
 #analytics: UA-YOURCODE
 postgres-connect-info:
-  db-user: "kryo"
-  db-pwd: "mnl07xs"
-  db-name: "testdb"
+  db-user: "postgres"
+  db-pwd: "analytics-pgs"
+  db-name: "postgres"
   db-port: 5432
-  db-host: "10.155.208.4"
+  db-host: "damar.pms.ifi.lmu.de"
 
-rmq-injector-url: "http://localhost:3333/submit"
-reply-cache-url: "http://localhost:3500/get/"
+rmq-injector-url: "http://damar.pms.ifi.lmu.de:6368/submit"
+reply-cache-url: "http://damar.pms.ifi.lmu.de:6367/get/"
