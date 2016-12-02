@@ -27,7 +27,7 @@ postgres-connect-info:
   db-pwd: "analytics-pgs"
   db-name: "postgres"
   db-port: 5432
-  db-host: "localhost"
+  db-host: "damar.pms.ifi.lmu.de"
 
-rmq-injector-url: "http://localhost:6368/submit"
-reply-cache-url: "http://localhost:6367/get/"
+rmq-injector-url: "http://damar.pms.ifi.lmu.de:6368/submit"
+reply-cache-url: "http://damar.pms.ifi.lmu.de:6367/get/"
