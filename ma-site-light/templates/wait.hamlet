@@ -1,0 +1,14 @@
+<div class="container">
+  <div class="row">
+    <div class="col-lg-12">
+      <img id="headerimage" src="/static/img/codekoan_short_logo.svg" class="float img-responsive">
+    
+  <hr>
+  <div class="row">
+    <div class="col-md-4">
+    <div class="col-md-4">
+      <h2>
+        Preparing your result...
+      <br>
+      <br>
+      <span id="status">

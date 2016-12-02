@@ -1,0 +1,31 @@
+var done = false;
+var intervalId = null;
+var queryId = #{toJSON qInt};
+var displayURL = "/display/" + queryId;
+
+function getResultStatus(){
+    $.ajax({
+        url: '/get/' + queryId,
+        success: function (result) {
+	    if(result.status == 'finished'){
+		clearInterval(intervalId);
+		window.location.href = displayURL;
+		return null;
+	    }
+
+	    if(result.status == 'nothing'){
+		$('#status').html('Processing...');
+	    } else if(result.status == 'pending'){
+		$('#status').html('Partially done...');
+	    } else if(result.status == 'finished'){
+		$('#status').html('Redirecting you now!');
+	    } else if(result.status == 'exception'){
+		$('#status').html('Something went wrong: ' + result.result);
+	    }
+        },
+        async: false
+    });
+}
+
+getResultStatus();
+intervalId = window.setInterval(getResultStatus, 2000);

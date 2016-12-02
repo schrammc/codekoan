@@ -9,3 +9,5 @@
 /debug         SubmitR  GET POST
 /display/#Int  DisplayR GET
 /query         QueryR   POST
+/wait/#Int     WaitR    GET
+/get/#Int      GetForwardR GET

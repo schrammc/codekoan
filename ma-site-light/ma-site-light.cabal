@@ -26,6 +26,8 @@ library
                      Handler.Submit
                      Handler.Display
                      Handler.ForwardQuery
+                     Handler.Wait
+                     Handler.GetForward
                      Helper
 
     if flag(dev) || flag(library-only)

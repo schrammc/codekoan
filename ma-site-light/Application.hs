@@ -38,6 +38,8 @@ import Handler.Comment
 import Handler.Submit
 import Handler.Display
 import Handler.ForwardQuery
+import Handler.Wait
+import Handler.GetForward
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
