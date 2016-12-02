@@ -25,6 +25,7 @@ library
                      Handler.Comment
                      Handler.Submit
                      Handler.Display
+                     Handler.ForwardQuery
                      Helper
 
     if flag(dev) || flag(library-only)

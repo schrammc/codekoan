@@ -3,8 +3,9 @@
 /favicon.ico   FaviconR GET
 /robots.txt    RobotsR  GET
 
-/              HomeR    GET POST
+/              HomeR    GET
 
 /comments      CommentR POST
 /debug         SubmitR  GET POST
 /display/#Int  DisplayR GET
+/query         QueryR   POST

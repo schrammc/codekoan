@@ -1,3 +1,67 @@
+function getSearchType(){
+    return($('#searchsim').html());
+}
+
+function searchType(t){
+    $('#searchsim').html(t);
+}
+
+function submitSearch(){
+    var query = generateQuery();
+    $.ajax({
+	url: '/query',
+	type: 'POST',
+	contentType: 'application/json',
+	data: JSON.stringify(query),
+	success: function(data){
+	    window.location.href = "/display/" + data.queryId;
+	},
+	error: function(data){
+	    console.log("Error on submit: " + data);
+	}
+    })
+}
+
+function generateQuery(){
+    var settings = genSearchSettings();
+    var text = $('#proginput').val();
+    return({ queryText: text
+	   , queryLanguage: 'java'
+	   , queryId: null
+	   , querySettings: settings
+	   })
+}
+
+// Generate standard search settings based on the input from the selector
+function genSearchSettings(){
+    var searchType = getSearchType();
+    switch(searchType){
+    case "High Similarity:":
+	return({ minMatchLength: 30
+	       , levenshteinDistance: 0
+	       , coveragePercentage: 0.75
+	       , blockFiltering: true
+	       , semanticThreshold: 0.80
+	       });
+    case "Medium Similarity":
+	return({ minMatchLength: 30
+	       , levenshteinDistance: 1
+	       , coveragePercentage: 0.75
+	       , blockFiltering: true
+	       , semanticThreshold: 0.20
+	       });
+    case "Low Similarity":
+	return({ minMatchLength: 20
+	       , levenshteinDistance: 0
+	       , coveragePercentage: 0.30
+	       , blockFiltering: true
+	       , semanticThreshold: null
+	       });
+    default: alert("Unrecognized search settings!");
+    }
+}
+
+
 /*document.getElementById(#{toJSON aDomId}).innerHTML = "This text was added by the Javascript part of the homepage widget.";
 
 $(function() {

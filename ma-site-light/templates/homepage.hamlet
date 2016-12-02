@@ -24,15 +24,19 @@
       <img id="headerimage" src="static/img/codekoan_short_logo.svg" class="float img-responsive">
   <div class="row">
     <div class="col-lg-8 col-lg-offset-2">
-      <textarea style="position:relative;width:100%;height:20em;"></textarea>
+      <textarea id="proginput" style="position:relative;width:100%;height:20em;">
   <div class="row">
     <div class="col-md-4 col-md-offset-4">
       <center>
-        <div id="searchbuttons" class="btn-group">
-          <button type="button" class="btn btn-info">Search</button>
-          <div class="btn-group">
-            <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown">
-              Medium Similarity<span class="caret"></span>
-            <ul class="dropdown-menu" role="menu">
-              <li><a href="#">High Similarity
-              <li><a href="#">Low Similarity
+        <button type="button" class="btn btn-info" onclick="submitSearch()" style="height:2.5em">
+          <span class="glyphicon">
+          Search
+        <div class="btn-group" style="height:2.5em">
+          <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown">
+            <span class="glyphicon glyphicon-cog">
+            <span id="searchsim">Medium Similarity
+            <span class="caret">
+          <ul class="dropdown-menu" role="menu">
+            <li><a onclick="searchType('High Similarity')">High Similarity
+            <li><a onclick="searchType('Medium Similarity')">MediumSimilarity
+            <li><a onclick="searchType('Low Similarity')">Low Similarity
