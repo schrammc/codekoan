@@ -47,14 +47,14 @@ function genSearchSettings(){
 	       });
     case "Medium Similarity":
 	return({ minMatchLength: 30
-	       , levenshteinDistance: 1
+	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.75
 	       , blockFiltering: true
 	       , semanticThreshold: 0.20
 	       });
     case "Low Similarity":
 	return({ minMatchLength: 20
-	       , levenshteinDistance: 0
+	       , levenshteinDistance: 1
 	       , coveragePercentage: 0.30
 	       , blockFiltering: true
 	       , semanticThreshold: null

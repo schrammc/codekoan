@@ -24,7 +24,7 @@
       <img id="headerimage" src="static/img/codekoan_short_logo.svg" class="float img-responsive">
   <div class="row">
     <div class="col-lg-8 col-lg-offset-2">
-      <textarea id="proginput" style="position:relative;width:100%;height:20em;">
+      <textarea id="proginput" style="font-family:Monaco, 'Ubuntu Mono', monospace; position:relative;width:100%;height:20em;">
   <div class="row">
     <div class="col-md-4 col-md-offset-4">
       <center>
