@@ -38,5 +38,5 @@
             <span class="caret">
           <ul class="dropdown-menu" role="menu">
             <li><a onclick="searchType('High Similarity')">High Similarity
-            <li><a onclick="searchType('Medium Similarity')">MediumSimilarity
+            <li><a onclick="searchType('Medium Similarity')">Medium Similarity
             <li><a onclick="searchType('Low Similarity')">Low Similarity

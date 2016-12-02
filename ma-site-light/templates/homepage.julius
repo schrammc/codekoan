@@ -8,18 +8,20 @@ function searchType(t){
 
 function submitSearch(){
     var query = generateQuery();
-    $.ajax({
-	url: '/query',
-	type: 'POST',
-	contentType: 'application/json',
-	data: JSON.stringify(query),
-	success: function(data){
-	    window.location.href = "/display/" + data.queryId;
-	},
-	error: function(data){
-	    console.log("Error on submit: " + data);
-	}
-    })
+    if(query != null){
+	$.ajax({
+	    url: '/query',
+	    type: 'POST',
+	    contentType: 'application/json',
+	    data: JSON.stringify(query),
+	    success: function(data){
+		window.location.href = "/display/" + data.queryId;
+	    },
+	    error: function(data){
+		console.log("Error on submit: " + data);
+	    }
+	});
+    }
 }
 
 function generateQuery(){
@@ -36,7 +38,7 @@ function generateQuery(){
 function genSearchSettings(){
     var searchType = getSearchType();
     switch(searchType){
-    case "High Similarity:":
+    case "High Similarity":
 	return({ minMatchLength: 30
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.75
@@ -57,7 +59,9 @@ function genSearchSettings(){
 	       , blockFiltering: true
 	       , semanticThreshold: null
 	       });
-    default: alert("Unrecognized search settings!");
+    default:
+	alert("Unrecognized search settings: " + searchType);
+	return null;
     }
 }
 
