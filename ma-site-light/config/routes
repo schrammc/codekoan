@@ -6,4 +6,5 @@
 /              HomeR    GET POST
 
 /comments      CommentR POST
-/submit        SubmitR  GET POST
+/debug         SubmitR  GET POST
+/display/#Int  DisplayR GET

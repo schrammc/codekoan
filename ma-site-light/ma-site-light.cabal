@@ -24,6 +24,8 @@ library
                      Handler.Home
                      Handler.Comment
                      Handler.Submit
+                     Handler.Display
+                     Helper
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT

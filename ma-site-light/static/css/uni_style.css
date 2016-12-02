@@ -1,0 +1,83 @@
+#headerimage{
+    margin-left:auto;
+    margin-right:auto;
+
+    width:300px;
+    max-width:50%;
+    min-width:20%;
+    margin-top:5%;
+    margin-bottom:5%;
+}
+
+#searchbuttons {
+    text-align:center;
+    display: inline-block;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+#footer-low{
+  /* background-color: rgb(0,148,64); */
+  background-color: #216c48;
+  padding-bottom:2em;
+  color: rgb(230,230,230);
+}
+
+#footer-low p{
+  line-height:18px;
+  font-size:14px;
+}
+
+#footer-high{
+  background-color: #d8d1c9;
+  /* background-color: rgb(143,188,143); */
+  padding: 10px 20px 60px 30px;
+
+}
+#lmu-logo{
+  padding:1em;
+}
+.row {padding-bottom:1em;}
+
+a.nonHighlightLink {
+  color: rgb(255,255,255);
+  text-decoration: none;
+}
+
+body {
+  line-height: 1;
+  font-family: 'Open Sans', sans-serif;
+  background: #f6f2ec;
+  color:#262261;
+  padding-top:70px;
+}
+
+h2{
+  /*font-size:22px;*/
+  font-size:24px;
+  /*margin:20px 0 20px 0;*/
+  font-weight: bold;
+
+}
+
+h4{
+  font-weight: bold;
+}
+
+p{
+  margin-bottom:10px;
+  /*font-size:14px;*/
+  font-size:16px;
+  /*line-height:17px;*/
+  line-height:22px;
+}
+
+.copyright{
+  text-align:left;
+  font-size:8px;
+}
+
+hr {
+    background-color: #A9A9A9 !important;
+    height:1px;
+}

@@ -15,13 +15,14 @@ $newline never
     <meta name="viewport" content="width=device-width,initial-scale=1">
 
     ^{pageHead pc}
-
+     
     \<!--[if lt IE 9]>
     \<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     \<![endif]-->
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.js">
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.0.3/js.cookie.min.js">
-    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="/static/js/bootstrap3.3.7.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/static/css/uni_style.css">
 
     <script>
       /* The `defaultCsrfMiddleware` Middleware added in Foundation.hs adds a CSRF token the request cookies. */
@@ -48,11 +49,11 @@ $newline never
       <header>
       <div id="main" role="main">
         ^{pageBody pc}
-      <footer .well .well-sm>
-        <br>
-        <center>
-          #{appCopyright $ appSettings master}
-        <br>
+$#      <footer .well .well-sm>
+$#        <br>
+$#        <center>
+$#          #{appCopyright $ appSettings master}
+$#        <br>
 
     $maybe analytics <- appAnalytics $ appSettings master
       <script>

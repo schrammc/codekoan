@@ -6,36 +6,27 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Handler.Submit where
 
-import Import
-
-import Data.Aeson
-import Data.Aeson.Types (parseMaybe)
-import Network.HTTP.Simple
-
-import Control.Monad.Trans.Maybe
-
-import Text.Printf
+import           Control.Monad.Trans.Maybe
+import           Data.Aeson
+import           Data.Aeson.Types (parseMaybe)
+import           Data.Char (isDigit)
 import qualified Data.Text as Text
-
-import Thesis.CodeAnalysis.Language
-import Thesis.CodeAnalysis.Language.Java
-import Thesis.CodeAnalysis.Language.Python
-
-import Thesis.Search.Settings
-
-import Thesis.Data.Range
-
-import Thesis.Data.Stackoverflow.Answer
-import Thesis.Data.Stackoverflow.Question
-
-import Thesis.Data.Stackoverflow.Dictionary as Dict
-
-import Thesis.Messaging.Message
-import Thesis.Messaging.Query
-import Thesis.Messaging.ResultSet
-
-import Prelude (read)
-import Data.Char (isDigit)
+import           Helper
+import           Import
+import           Network.HTTP.Simple
+import           Prelude (read)
+import           Text.Printf
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language.Java
+import           Thesis.CodeAnalysis.Language.Python
+import           Thesis.Data.Range
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Dictionary as Dict
+import           Thesis.Data.Stackoverflow.Question
+import           Thesis.Messaging.Message
+import           Thesis.Messaging.Query
+import           Thesis.Messaging.ResultSet
+import           Thesis.Search.Settings
 
 getSubmitR :: Handler Html
 getSubmitR = do
@@ -98,38 +89,6 @@ submitQuery AppSettings{..} (code, language, settings) = do
   
   return qId
 
--- | Wait until there is a reply for the given query id in the reply-cache
-waitForReply :: (MonadIO m, MonadLogger m) =>
-                AppSettings
-             -> QueryId
-             -> m (Either String ResultSetMsg)
-waitForReply settings@AppSettings{..} queryId@(QueryId qId) = do
-  resp <- httpJSON req 
-  
-  let statusParser = withObject "reply object" $ \o -> o .: "status"
-      statusMaybe = parseMaybe statusParser $ getResponseBody resp
-      resultParser = withObject "reply object" $ \o -> o .: "result"
-      resultMaybe :: forall a . FromJSON a => Maybe a
-      resultMaybe = parseMaybe resultParser $ getResponseBody resp
-  case statusMaybe of
-    Nothing -> fail "Invalid JSON (waitForReply)"
-    Just (t :: Text)
-      | t == "finished" ->
-        case resultMaybe of
-          Just r -> do
-            $(logInfo) $ "Received a complete result for query" <> (pack $ show qId)
-            return (Right r)
-          Nothing ->  fail $ "Failed to read JSON response to queryId " <> show qId
-      | t == "exception" ->
-        case resultMaybe of
-          Just reason -> return (Left reason)
-          Nothing -> return (Left "Unknown exception")
-      | otherwise -> do
-          liftIO $ threadDelay $ 1 * 1000 * 1000
-          waitForReply settings queryId
-    
-  where
-    req = parseRequest_ (appReplyCacheURL ++ show qId)
 
 resultWidget :: DataDictionary IO -> Text -> Either String ResultSetMsg -> Handler Widget
 resultWidget dict normalizedText (Left reason) = return $
@@ -194,19 +153,26 @@ resultMsg code (ResultMsg{..}, q) = do
     
     genDetails ident = do
       [whamlet|<h4> Alignment matches:|]
-      mapM_ (alignmentMatchW code) resultAlignmentMatches
+      mapM_ (alignmentMatchW code resultFragmentText) resultAlignmentMatches
 
-alignmentMatchW :: Text -> AlignmentMatchMsg -> Widget
-alignmentMatchW code AlignmentMatchMsg{..} =
+alignmentMatchW :: Text -> Text -> AlignmentMatchMsg -> Widget
+alignmentMatchW code fragText AlignmentMatchMsg{..} =
   [whamlet|<h5> Alignment match:
 
 Levenshtein distance: #{show alignmentMatchLevenScore} <br>
 
 Code in query document that was covered:
-<div .well>
-  <pre>
-    <code>
-      #{textInRange alignmentMatchResultTextRange code}
+<div .row>
+  <div .col-md-6>
+    <div .well>
+      <pre>
+        <code>
+          #{textInRange alignmentMatchResultTextRange code}
+  <div .col-md-6>
+    <div .well>
+      <pre>
+        <code>
+          #{fragText}
 |]
 
 submitCodeForm :: Html
