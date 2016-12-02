@@ -28,6 +28,7 @@ data ResultSetMsg =
                , resultSetResultList :: [ResultMsg]
                , resultClusterSize :: !Int
                , resultNumber :: !Int
+               , resultQueryText :: !Text
                }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
@@ -61,11 +62,13 @@ resultSetToMsg :: forall t l m . (Monad m) => Int
                -> ResultSet t l
                -- ^ The result set that we're persisting
                -> DataDictionary m
+               -> Text
+               -- ^ The query text
                -> m ResultSetMsg
-resultSetToMsg clusterSize lang replyTo ResultSet{..} dict = do
+resultSetToMsg clusterSize lang replyTo ResultSet{..} dict queryText = do
   fragMap <- fragmentTexts
   let list = getMessageList fragMap
-  return $ ResultSetMsg lang replyTo list clusterSize 1
+  return $ ResultSetMsg lang replyTo list clusterSize 1 queryText
   where
     fragmentTexts :: (Monad m ) => m (M.Map (AnswerId, Int) Text)
     fragmentTexts =  M.fromList . Prelude.concat . catMaybes <$> (

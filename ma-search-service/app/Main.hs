@@ -108,6 +108,7 @@ appLoop foundation@(Application{..}) channel = do
                                     (fromJust queryId)
                                     matches
                                     appDictionary
+                                    queryText
       
             -- Send the reply to the replies queue in rabbitmq
             replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
