@@ -15,7 +15,7 @@ function submitSearch(){
 	    contentType: 'application/json',
 	    data: JSON.stringify(query),
 	    success: function(data){
-		window.location.href = "/display/" + data.queryId;
+		window.location.href = "/wait/" + data.queryId;
 	    },
 	    error: function(data){
 		console.log("Error on submit: " + data);
@@ -39,21 +39,21 @@ function genSearchSettings(){
     var searchType = getSearchType();
     switch(searchType){
     case "High Similarity":
-	return({ minMatchLength: 30
+	return({ minMatchLength: 40
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.75
 	       , blockFiltering: true
-	       , semanticThreshold: 0.80
+	       , semanticThreshold: 0.6
 	       });
     case "Medium Similarity":
 	return({ minMatchLength: 30
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.75
 	       , blockFiltering: true
-	       , semanticThreshold: 0.20
+	       , semanticThreshold: 0.25
 	       });
     case "Low Similarity":
-	return({ minMatchLength: 20
+	return({ minMatchLength: 25
 	       , levenshteinDistance: 1
 	       , coveragePercentage: 0.30
 	       , blockFiltering: true

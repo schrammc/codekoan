@@ -150,6 +150,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                                                  lang
                                                  (token <$> queryTokens)
                                                  coverageAnalyzed
+                     $(logDebug) "Repeat coverage filter on individual results..."
                      return $ answersWithCoverage coveragePercentage r
                    else do
                      $(logDebug) "Skipping block analysis."

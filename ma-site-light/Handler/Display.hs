@@ -21,9 +21,11 @@ getDisplayR qInt = do
 resultsW :: ResultSetMsg -> Widget
 resultsW resultSet@ResultSetMsg{..} = do
   if null resultSetResultList
-    then [whamlet|<h1>Your Search Yielded no Results|]
+    then [whamlet|<h1>Your Search Yielded no Results
+                 <br style="margin-bottom:10em">
+                 |]
     else do
-      [whamlet|<h1>Reuse of  #{length resultSetResultList} code patterns: |]
+      [whamlet|<h1>I found #{length resultSetResultList} reuses of code patterns: |]
       forM_ resultSetResultList $ \result ->
         [whamlet|
                 <div .row>
@@ -34,13 +36,38 @@ resultsW resultSet@ResultSetMsg{..} = do
 singleResultW :: ResultSetMsg -> ResultMsg -> Widget
 singleResultW ResultSetMsg{..} ResultMsg{..} =
   [whamlet|
-          <a href=#{link}>#{resultSource}
-          <div .well>
-            <pre>
-              #{resultFragmentText}
+          <div .row>
+            <div .col-lg-12>
+              <div .row>
+                <div .col-lg-12>
+                  <a href=#{link}>#{resultSource}
+              <div .row>
+                <div .col-lg-6>
+                  The matched #{pieces} from your query document:
+                  <br>
+                  <br>
+                  ^{queryPieces}
+                <div .col-lg-6>
+                  The matched code fragment:
+                  <br>
+                  <br>
+                  <div .well>
+                    <pre>
+                      #{resultFragmentText}
           <hr>
           |]
   where
     link = "http://stackoverflow.com/a/" <> (Text.takeWhile isDigit resultSource)
-    --queryCode = textInRange alignmentMatchResultTextRange resultFragmentText
+    queryPieces = forM_ resultAlignmentMatches $ \AlignmentMatchMsg{..} -> do
+      let qt = textInRange alignmentMatchResultTextRange resultQueryText
+      [whamlet|
+              <div .well>
+                <pre>
+                  #{qt}
+              |]
+    pieces :: Text
+    pieces = if length resultAlignmentMatches > 1
+             then "pieces"
+             else "piece"
 
+    --queryCode = textInRange alignmentMatchResultTextRange resultFragmentText

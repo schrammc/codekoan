@@ -1,11 +1,10 @@
 <div class="container">
   <div class="row">
     <div class="col-lg-12">
-      <img id="headerimage" src="/static/img/codekoan_short_logo.svg" class="float img-responsive">
+      <a href="/"><img id="headerimage" src="/static/img/codekoan_short_logo.svg" class="float img-responsive">
     
   <hr>
   <div class="row">
     <div .col-md-1>
-    <div .col-md-10>
+    <div .col-lg-12>
       ^{resultsW resultSet}
-

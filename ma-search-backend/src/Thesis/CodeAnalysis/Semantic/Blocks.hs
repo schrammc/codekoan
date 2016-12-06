@@ -129,9 +129,8 @@ blockAnalysis blockData results = cliques accordanceGraph
         then [(k, n)]
         else []
 
--- | Build a result set from a result set, that contains results, where each
--- result only contains maximal groups of alignment matches that are in
--- accordace.
+-- | Build a result set where each result only contains maximal groups
+-- of alignment matches that are in accordace.
 resultSetBlockAnalysis :: (Monad m) =>
                           DataDictionary m
                           -- ^ Access to source code of fragments
@@ -143,8 +142,12 @@ resultSetBlockAnalysis :: (Monad m) =>
                        -- ^ The result set that is to be analyzed
                        -> MaybeT m (ResultSet t l)
 resultSetBlockAnalysis dict lang queryTokens ResultSet{..} = do
+  -- Loop over all stackoverflow answers in the map
   updatedLst <- forM (M.toList resultSetMap) $ \(aId, fragMap) -> do
+    -- Each answer can have multiple code fragments, loop over these
     fragMap' <- forM (M.toList fragMap) $ \(fragId, groups) -> do
+      -- Get the full tokens of the answer fragment and use them to do
+      -- block analysis on each group of answer fragments.
       (fragTks,_)  <- answerFragmentTokens dict lang (AnswerFragmentId aId fragId)
       let fragTokens = token <$> fragTks
           blockData = mkBlockData queryTokens fragTokens

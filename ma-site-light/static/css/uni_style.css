@@ -16,14 +16,14 @@
     margin-right:auto;
 }
 
-#footer-low{
+.footer-low{
   /* background-color: rgb(0,148,64); */
   background-color: #216c48;
   padding-bottom:2em;
   color: rgb(230,230,230);
 }
 
-#footer-low p{
+.footer-low p{
   line-height:18px;
   font-size:14px;
 }

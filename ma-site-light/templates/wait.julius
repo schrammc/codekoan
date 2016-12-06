@@ -16,7 +16,8 @@ function getResultStatus(){
 	    if(result.status == 'nothing'){
 		$('#status').html('Processing...');
 	    } else if(result.status == 'pending'){
-		$('#status').html('Partially done...');
+		var progress = result.result.resultNumber + '/' + result.result.resultClusterSize
+		$('#status').html('Partially done ('+progress+')...');
 	    } else if(result.status == 'finished'){
 		$('#status').html('Redirecting you now!');
 	    } else if(result.status == 'exception'){
@@ -28,4 +29,4 @@ function getResultStatus(){
 }
 
 getResultStatus();
-intervalId = window.setInterval(getResultStatus, 2000);
+intervalId = window.setInterval(getResultStatus, 1000);

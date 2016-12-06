@@ -80,6 +80,9 @@ instance Yesod App where
         pc <- widgetToPageContent $ do
             addStylesheet $ StaticR css_bootstrap_css
             $(widgetFile "default-layout")
+
+        footerWidget <- widgetToPageContent $ $(widgetFile "footer")
+
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
     -- Routes not requiring authenitcation.

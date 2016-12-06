@@ -1,23 +1,3 @@
-<!-- The navigation bar. Collapses on small screens-->
-<nav class="navbar navbar-default navbar-fixed-top">
-  <div class="container-fluid">
-
-  <!-- The icon on the right if the navbar is collapsed -->
-  <div class="navbar-header">
-    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
-      <span class="icon-bar"></span>
-      <span class="icon-bar"></span>
-      <span class="icon-bar"></span>
-
-    <a class="navbar-brand" href="#" >
-      <img class="d-inline-block align-top" src="static/img/codekoan_short_logo.svg" style="max-height:100%">
-
-  <div class="collapse navbar-collapse" id="myNavbar">
-    <ul class="nav navbar-nav">
-      <li><a href="#">Home</a></li>
-      <li class="active"><a href="webapp.html">Search Engine</a></li>
-      <li><a href="impressum.html">Legal Disclaimer</a></li>
-
 <div class="container">
   <div class="row">
     <div class="col-lg-12">
@@ -37,6 +17,8 @@
             <span id="searchsim">Medium Similarity
             <span class="caret">
           <ul class="dropdown-menu" role="menu">
-            <li><a onclick="searchType('High Similarity')">High Similarity
-            <li><a onclick="searchType('Medium Similarity')">Medium Similarity
-            <li><a onclick="searchType('Low Similarity')">Low Similarity
+            <li><a onclick="searchType('High Similarity')">High Similarity</a>
+            <li><a onclick="searchType('Medium Similarity')">Medium Similarity</a>
+            <li><a onclick="searchType('Low Similarity')">Low Similarity</a>
+
+<br style="margin-top:5em">
