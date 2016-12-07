@@ -39,7 +39,7 @@ function genSearchSettings(){
     var searchType = getSearchType();
     switch(searchType){
     case "High Similarity":
-	return({ minMatchLength: 40
+	return({ minMatchLength: 50
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.75
 	       , blockFiltering: true

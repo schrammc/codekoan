@@ -1,3 +1,17 @@
+var lang = '#{rawJS $ resultSetLanguage resultSet }';
+
+//Enable tooltips
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+//$(document).ready(function() {
+//    $('pre code').each(function(i, block) {
+//	$(this).addClass(lang);
+//	hljs.highlightBlock(block);
+//    });
+//});
+
 function showDialog(source){
     $('#comment').val('');
 
@@ -23,7 +37,7 @@ function showDialog(source){
 		    similar: similar,
 		    reuse  : reuse,
 		    comment: comments,
-		    language: '#{rawJS $ resultSetLanguage resultSet }'
+		    language: lang
 		}),
 		error: function(data){
 		    console.log("Error on submit: " + data);

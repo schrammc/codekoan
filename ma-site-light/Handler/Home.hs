@@ -20,6 +20,7 @@ getHomeR = do
     App{..} <- getYesod
     let submission = Nothing :: Maybe (FileInfo, Text)
         handlerName = "getHomeR" :: Text
+        helpSearch = "<h1>Foo bar</h1>" :: Text
     defaultLayout $ do
         let (commentFormId, commentTextareaId, commentListId) = commentIds
         aDomId <- newIdent

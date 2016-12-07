@@ -11,7 +11,7 @@
         <button type="button" class="btn btn-info" onclick="submitSearch()" style="height:2.5em">
           <span class="glyphicon">
           Search
-        <div class="btn-group" style="height:2.5em">
+        <div class="btn-group">
           <button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown">
             <span class="glyphicon glyphicon-cog">
             <span id="searchsim">Medium Similarity

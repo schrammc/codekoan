@@ -33,7 +33,7 @@ resultsW resultSet@ResultSetMsg{..} = do
     else do
       [whamlet|<h1 style="text-align:center">Found #{length resultSetResultList} code pattern #{reuses}:
               |]
-      forM_ resultSetResultList $ \result ->
+      forM_ (sortedResults resultSet) $ \result ->
         [whamlet|
                 <div .row>
                   <div .col-lg-12>
@@ -45,24 +45,39 @@ resultsW resultSet@ResultSetMsg{..} = do
              then "reuses"
              else "reuse"
 
+sortedResults :: ResultSetMsg -> [ResultMsg]
+sortedResults ResultSetMsg{..} =
+  reverse $ sortOn (resultCoverage resultQueryText) resultSetResultList
+
+resultCoverage :: Text -> ResultMsg -> Double
+resultCoverage t ResultMsg{..} = coveragePercentage (Text.length t) ranges
+  where
+    ranges = alignmentMatchResultTextRange <$>resultAlignmentMatches
+
 singleResultW :: ResultSetMsg -> ResultMsg -> Widget
 singleResultW ResultSetMsg{..} ResultMsg{..} = do
   App{..} <- getYesod
-  Just parentQuestion <- liftIO $ runMaybeT $ do
+  Just (parentQuestion, answer) <- liftIO $ runMaybeT $ do
     parentId <- Dict.answerParent appDict aId
-    Dict.getQuestion appDict parentId
+    q <- Dict.getQuestion appDict parentId
+    a <- Dict.getAnswer appDict aId
+    return (q,a)
+
   [whamlet|
           <div .row>
             <div .col-lg-12>
               <div .row>
                 <div .col-lg-12>
-                  <h3><a href=#{link}>#{questionTitle parentQuestion}</a>
+                  <h3><a href=#{link}>#{questionTitle parentQuestion}</a><br>
+                  <p>
+                    The source answer is rated rating: #{answerRating answer}<br>
+                    The answer parent's rating: #{questionRating parentQuestion}
                   <button type="button" class="btn btn-default" onclick="showDialog('#{resultSource}')">
                     <span class="glyphicon glyphicon-thumbs-up"></span>
                     Give Feedback!
               <div .row>
                 <div .col-lg-12>
-                  <h4 style="text-align:center">Side-by-side comparison
+
               <div .row>
                 <div .col-lg-6>
                   The matched #{pieces} from your query document:
@@ -73,9 +88,10 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
                   The matched code fragment:
                   <br>
                   <br>
-                  <div .well>
+                  <div .well style="overflow:scroll">
                     <pre>
-                      #{resultFragmentText}
+                      
+                        #{resultFragmentText}
           <hr>
           |]
   where
@@ -85,7 +101,8 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
       [whamlet|
               <div .well>
                 <pre>
-                  #{qt}
+
+                    #{qt}
               |]
     pieces :: Text
     pieces = if length resultAlignmentMatches > 1
@@ -96,5 +113,3 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
     aIdInt = read $ Text.unpack aIdTxt
     fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
     aId = AnswerId aIdInt
-
-    --queryCode = textInRange alignmentMatchResultTextRange resultFragmentText

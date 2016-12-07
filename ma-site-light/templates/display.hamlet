@@ -9,7 +9,7 @@
     <div .col-lg-12>
       ^{resultsW resultSet}
 
-<div id="dialog-confirm" title="Rate this search result">
+<div id="dialog-confirm" title="Rate this search result" style="display:none">
   <div>
     <p>
       <b>Is the code similar (in your opinion)?

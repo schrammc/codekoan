@@ -23,9 +23,16 @@
     <script src="/static/js/bootstrap3.3.7.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/uni_style.css">
 
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="/resources/demos/style.css">
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+
+$#    <script type="text/javascript" src="/static/js/highlight.pack.js">
+$#    <link rel="stylesheet" href="/static/css/highlight.js/default.css">
+
     <script>
       /* The `defaultCsrfMiddleware` Middleware added in Foundation.hs adds a CSRF token the request cookies. */
       /* AJAX requests should add that token to a header to be validated by the server. */
