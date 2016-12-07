@@ -1,4 +1,6 @@
 function showDialog(source){
+    $('#comment').val('');
+
     $( "#dialog-confirm" ).dialog({
         resizable: false,
         height: "auto",
