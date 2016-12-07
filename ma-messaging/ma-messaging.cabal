@@ -15,7 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Thesis.Messaging.Message
+  exposed-modules:     Thesis.Messaging.Feedback
+                     , Thesis.Messaging.Message
                      , Thesis.Messaging.Query
                      , Thesis.Messaging.ResultSet
                      , Thesis.Messaging.SemanticQuery

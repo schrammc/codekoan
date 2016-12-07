@@ -1,0 +1,37 @@
+function showDialog(source){
+    $( "#dialog-confirm" ).dialog({
+        resizable: false,
+        height: "auto",
+        width: 400,
+        modal: true,
+        //autoOpen: false,
+        buttons: {
+    	"Submit my feedback!": function() {
+	    var similar = $('input[name=sim_r]:checked').attr('val');
+	    var reuse   = $('input[name=re_r]:checked' ).attr('val');
+	    var comments = $('#comment').val();
+
+	    $.ajax({
+		url: '/feedback',
+		type: 'POST',
+		contentType: 'application/json',
+		data: JSON.stringify({
+		    queryId: parseInt('#{rawJS $ show qInt}'),
+		    source : source,
+		    similar: similar,
+		    reuse  : reuse,
+		    comment: comments,
+		    language: '#{rawJS $ resultSetLanguage resultSet }'
+		}),
+		error: function(data){
+		    console.log("Error on submit: " + data);
+		}
+	    });
+    	    $( this ).dialog( "close" );
+    	},
+    	Cancel: function() {
+    	    $( this ).dialog( "close" );
+    	}
+        }
+    });
+}

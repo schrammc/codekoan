@@ -10,4 +10,5 @@
 /display/#Int  DisplayR GET
 /query         QueryR   POST
 /wait/#Int     WaitR    GET
+/feedback      FeedbackR POST
 /get/#Int      GetForwardR GET

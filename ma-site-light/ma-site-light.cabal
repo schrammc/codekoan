@@ -28,6 +28,7 @@ library
                      Handler.ForwardQuery
                      Handler.Wait
                      Handler.GetForward
+                     Handler.Feedback
                      Helper
 
     if flag(dev) || flag(library-only)

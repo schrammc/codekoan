@@ -8,3 +8,25 @@
     <div .col-md-1>
     <div .col-lg-12>
       ^{resultsW resultSet}
+
+<div id="dialog-confirm" title="Rate this search result">
+  <div>
+    <p>
+      <b>Is the code similar (in your opinion)?
+    <div>
+      <label class="radio-inline"><input type="radio" name="sim_r" val='yes'>Yes</label>
+      <label class="radio-inline active"><input type="radio" name="sim_r" val='neutral' checked="">Neutral</label>
+      <label class="radio-inline"><input type="radio" name="sim_r" val='no'>No</label>
+  <br>
+    <p>
+      <b>Is this actual reuse (in your opinion)?
+    <div>
+      <label class="radio-inline"><input type="radio" name="re_r" val='yes'>Yes</label>
+      <label class="radio-inline active"><input type="radio" name="re_r" val='neutral' checked="">Neutral</label>
+      <label class="radio-inline"><input type="radio" name="re_r" val='no'>No</label>
+  <br>
+  <div>
+    <p>
+      <b>Additional Comments:
+    <div>
+      <textarea class="form-control" rows="5" id="comment"></textarea>
