@@ -48,8 +48,6 @@ python :: Language PyToken Python
 python = Language{ languageFileExtension = ".py"
                  , languageName = "python"
                  , tokenize = tokenizePy
-                 , normalize = \LanguageText{..} ->
-                     LanguageText $ Text.replace "\t" "    " langText
                  , isTokenIdentifier = (== PyTokenIdentifier)
                  , removeComments = LanguageText
                  , languageGenBlockData = pythonBlockData
@@ -126,7 +124,8 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
     -- lines. It generates the 0-width indentatoin tokens.
     getSpaces:: StateT ParserState Parser [(Int, Maybe PyToken)]
     getSpaces = do
-      spaces <- lift $ AP.takeWhile isHorizontalSpace
+      spacesWithTabs <- lift $ AP.takeWhile isHorizontalSpace
+      let spaces = Text.replace "\t" "    " spacesWithTabs
 
       st@ParserState{..} <- get
       let n = Text.length spaces

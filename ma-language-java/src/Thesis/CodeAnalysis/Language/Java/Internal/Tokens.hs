@@ -40,6 +40,7 @@ data Token = TokenLT
            | TokenColon
            | TokenQuestion
            | TokenSemicolon
+           | TokenImport
            | TokenKeyword
            | TokenBreak
            | TokenLoopWord

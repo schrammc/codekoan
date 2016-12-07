@@ -32,18 +32,9 @@ import           Thesis.CodeAnalysis.Language.Java.Internal.BlockAnalysis
 
 java :: Language Token Java 
 java = Language { removeComments = LanguageText
-                , normalize = removeImportLines
                 , tokenize = tokenizeJ
                 , isTokenIdentifier = (== TokenIdentifier)
                 , languageFileExtension = ".java"
                 , languageName = "java"
                 , languageGenBlockData = javaBlockData
                 }
-
--- | Remove all lines starting with import 
-removeImportLines :: LanguageText Java -> LanguageText Java
-removeImportLines LanguageText{..} =
-  LanguageText $ Text.unlines $ filter isImport ls
-  where
-    isImport = not . (Text.isPrefixOf "import")
-    ls = Text.lines langText

@@ -73,7 +73,7 @@ answerFragments DataDictionary{..} lang@Language{..} aId = do
   where
     process txt =  MaybeT . return $ do
       tokenV <- processAndTokenize lang txt
-      return (tokenV, normalize txt)
+      return (tokenV, txt)
 
 -- | Get the token vector of one specific answer code fragment from the
 -- dictionary. This will return 'Nothing' if the answer code fragment couldn't

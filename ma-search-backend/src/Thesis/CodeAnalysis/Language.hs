@@ -42,10 +42,6 @@ data Language t l where
                 -- ^ Lowercas name of the given language "java" for java,
                 -- "python" for python, "haskell" for haskell, etc.
               , removeComments :: Text -> LanguageText l
-              , normalize :: LanguageText l -> LanguageText l
-                -- ^ Normalize a piece of language text. This function should be
-                -- idempotent. I.e. it should hold that
-                -- @ normalize txt == normalize $ normalize txt @
               , tokenize :: LanguageText l -> Maybe (TokenVector t l)
               , isTokenIdentifier :: t -> Bool
                 -- ^ If the token is an identifier token, the underlying
@@ -59,7 +55,7 @@ data Language t l where
 processAndTokenize :: Language t l
                    -> LanguageText l
                    -> Maybe (TokenVector t l)
-processAndTokenize Language{..} = tokenize . normalize
+processAndTokenize Language{..} = tokenize
 
 -- | Get all identifiers from a code document
 identifiers :: Language t l -- ^ The underlying language implementation
@@ -72,7 +68,7 @@ identifiers Language{..} txt tks = do
     then return coveredText
     else []
   where
-    normalizedText = langText $ normalize txt
+    normalizedText = langText $ txt
     tokensAndCovered =
       zip tksList (textInRanges normalizedText
                                 ((convertRange . coveredRange) <$> tksList))

@@ -169,7 +169,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   where
     queryData = do
       qt <- getQueryTokens
-      return (qt, normalize lang txt)
+      return (qt, txt)
     getQueryTokens = processAndTokenize lang txt
     printNumberOfFrags = Text.pack . show . numberOfFragments
 

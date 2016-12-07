@@ -25,13 +25,16 @@ import           Data.Attoparsec.Text as AP
 
 import           Data.Char
 import qualified Data.Text as Text
+import qualified Data.Vector as V
 import Thesis.CodeAnalysis.Language.CommonTokenParsers
 import Thesis.CodeAnalysis.Language.Internal
 import Thesis.CodeAnalysis.Language.Java.Internal.Tokens
 import Thesis.CodeAnalysis.Language.Java.Internal.Type
 
+import Debug.Trace
+
 tokenizeJ :: LanguageText Java -> Maybe (TokenVector Token Java)
-tokenizeJ LanguageText{..} = buildTokenVector <$> parseResult
+tokenizeJ LanguageText{..} = removeImports . buildTokenVector <$> parseResult
   where
     parseResult :: Maybe [(Int, Maybe Token)]
     parseResult = case AP.parseOnly (many' lenParser) langText of
@@ -48,7 +51,19 @@ tokenizeJ LanguageText{..} = buildTokenVector <$> parseResult
     tokenOrComment = ((const Nothing) <$> skipP) <|> (Just <$> tokenP)
     skipP = many1 space *> pure () <|> javaStyleComment
 
-
+-- | Remove all imports from parsed java code
+removeImports :: TokenVector Token Java -> TokenVector Token Java
+removeImports v = id $! V.fromList (f lst)
+  where
+    lst = V.toList v
+    f [] = []
+    f (t:ts) | token t == TokenImport =
+               case dropWhile (\tok -> token tok /= TokenSemicolon) ts of
+                 [] -> []
+                 (_:rest) -> f rest
+             | otherwise =
+                 let (allowed, rest) = span (\x -> token x /= TokenImport) (t:ts)
+                 in allowed ++ (f rest)
 tokenP :: Parser Token
 tokenP = "<" *> pure TokenLT
          <|> ">" *> pure TokenGT
@@ -76,6 +91,7 @@ tokenP = "<" *> pure TokenLT
          <|> "?" *> pure TokenQuestion
          <|> ";" *> pure TokenSemicolon
          <|> "break" *> pure TokenBreak
+         <|> "import" *> pure TokenImport
          <|> modifier
          <|> loopWord
          <|> keyword
@@ -90,7 +106,6 @@ tokenP = "<" *> pure TokenLT
 keyword :: Parser Token
 keyword = ("if"
            <|> "else"
-           <|> "import"
            <|> "switch"
            <|> "case"
            <|> "class"
