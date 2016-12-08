@@ -5,7 +5,7 @@
 -- This module provides an implementation of the 'Langauge' datatype for the
 -- python language. This implementation includes a type 'Python', which is a
 -- type without content to be used as a phantom type, a python tokenizer, and
--- other things necessary to analyzer java code.
+-- other things necessary to analyze pythoncode.
 --
 -- This is designed to work with both python 2 and python 3. If a case should
 -- arise where a result is either incorrect for python 2 or python 3, always
