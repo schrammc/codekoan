@@ -12,6 +12,9 @@
 -- accepts a limited set of benign syntax extensions. The tokenizer
 -- will generally consume most code files, however obscure language
 -- extensions may lead to incorrect results.
+
+{-# LANGUAGE OverloadedStrings #-}
+
 module Thesis.CodeAnalysis.Language.Haskell where
 
 import Thesis.CodeAnalysis.Language
@@ -20,4 +23,10 @@ import Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken
 data Haskell
 
 haskell :: Language HsToken Haskell
-haskell = undefined
+haskell = Language { languageFileExtension = ".hs"
+                   , languageName = "haskell"
+                   , tokenize = undefined
+                   , isTokenIdentifier = (== HsIdentifier)
+                   , removeComments = LanguageText
+                   , languageGenBlockData = undefined
+                   }

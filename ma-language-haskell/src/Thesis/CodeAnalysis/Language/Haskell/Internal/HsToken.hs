@@ -1,4 +1,9 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken where
+
+import Data.Hashable (Hashable)
+import GHC.Generics (Generic)
 
 data HsToken = HsIdentifier
              | HsNumber
@@ -12,3 +17,4 @@ data HsToken = HsIdentifier
              | HsRBrace
              | HsLBrack
              | HsRBrack
+             deriving (Eq, Ord, Show, Generic, Hashable)
