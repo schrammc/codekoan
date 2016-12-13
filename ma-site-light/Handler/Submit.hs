@@ -47,11 +47,7 @@ postSubmitR = do
       qId <- submitQuery appSettings (code, language, settings)
       searchReply <- waitForReply appSettings qId
 
-      let code' = if language == "java"
-                  then langText $ normalize java (LanguageText code)
-                  else langText $ normalize python (LanguageText code)
-
-      resultW <- resultWidget appDict code' searchReply
+      resultW <- resultWidget appDict code searchReply
 
       return . Just $ resultW
     _ -> return . Just $ [whamlet| <div .alert .alert-danger>

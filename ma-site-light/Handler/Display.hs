@@ -68,7 +68,7 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
             <div .col-lg-12>
               <div .row>
                 <div .col-lg-12>
-                  <h3><a href=#{link}>#{questionTitle parentQuestion}</a><br>
+                  <h3><a target="_blank" href=#{link}>#{questionTitle parentQuestion}</a><br>
                   <p>
                     The source answer is rated rating: #{answerRating answer}<br>
                     The answer parent's rating: #{questionRating parentQuestion}

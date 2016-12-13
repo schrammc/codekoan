@@ -21,4 +21,7 @@
             <li><a onclick="searchType('Medium Similarity')">Medium Similarity</a>
             <li><a onclick="searchType('Low Similarity')">Low Similarity</a>
 
+$# This is really not awesome... (needed for language detection)
+<div id="blind" style="display:none">
+
 <br style="margin-top:5em">

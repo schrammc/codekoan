@@ -1,21 +1,77 @@
+var searchsim = null;
+//Enable tooltips
+
+
+var mycode = "fac n :: Int -> Int "
+
+$(document).ready(function(){
+    $.getScript("/static/js/highlight.pack.js");
+    
+    hljs.initHighlightingOnLoad();
+
+    console.log(guessLanguage(mycode));
+    
+    searchsim = localStorage.getItem('searchsim');
+
+    if(searchsim == null){
+	searchsim = "Medium Similarity";
+	localStorage.setItem('searchsim', searchsim.toString());
+    } else {
+	$('#searchsim').html(searchsim);
+    }
+    localStorage.setItem('a','b');
+});
+
+// This guesses the language of a piece of code using
+// highlight.js. Really this is a sh***y solution because the function
+// blockLanguage that we would actually like to use is minified
+// away. Therefore this creates a code block with the code in question
+// as content, calls highlightBlock, parses the blocks classes and
+// wipes it after.
+function guessLanguage(code){
+    var lang = 'unknown';
+
+    if(code.length > 30){
+    
+        $('#blind').text(code);
+        $('#blind').each(function(i,block){
+        	hljs.highlightBlock(block);
+        	lang = block.className.replace("hljs ","");
+        });
+        $('#blind').text("");
+    }
+
+    return lang;
+
+}
+
 function getSearchType(){
-    return($('#searchsim').html());
+    searchsim = ($('#searchsim').text());
+    localStorage.setItem('searchsim', searchsim);
+    return searchsim;
 }
 
 function searchType(t){
     $('#searchsim').html(t);
+    searchsim = t;
+    localStorage.setItem('searchsim', t);
 }
 
 function submitSearch(){
     var query = generateQuery();
     if(query != null){
+
+	if(query.queryLanguage == 'python'){
+	    alert("Your python code may still be processed with some errors.\n\nI'm already working on it...");
+	}
+	
 	$.ajax({
 	    url: '/query',
 	    type: 'POST',
 	    contentType: 'application/json',
 	    data: JSON.stringify(query),
 	    success: function(data){
-		window.location.href = "/wait/" + data.queryId;
+		location.href = "/wait/" + data.queryId;
 	    },
 	    error: function(data){
 		console.log("Error on submit: " + data);
@@ -27,8 +83,14 @@ function submitSearch(){
 function generateQuery(){
     var settings = genSearchSettings();
     var text = $('#proginput').val();
+    var language = guessLanguage(text);
+
+    if(language == 'python'){
+	settings.blockFiltering=false;
+    }
+   
     return({ queryText: text
-	   , queryLanguage: 'java'
+           , queryLanguage: language
 	   , queryId: null
 	   , querySettings: settings
 	   })
@@ -64,39 +126,3 @@ function genSearchSettings(){
 	return null;
     }
 }
-
-
-/*document.getElementById(#{toJSON aDomId}).innerHTML = "This text was added by the Javascript part of the homepage widget.";
-
-$(function() {
-  $("##{rawJS commentFormId}").submit(function(event) {
-    event.preventDefault();
-
-    var message = $("##{rawJS commentTextareaId}").val();
-    // (Browsers that enforce the "required" attribute on the textarea won't see this alert)
-    if (!message) {
-      alert("Please fill out the comment form first.");
-      return;
-    }
-
-    // Make an AJAX request to the server to create a new comment
-    $.ajax({
-      url: '@{CommentR}',
-      type: 'POST',
-      contentType: "application/json",
-      data: JSON.stringify({
-        message: message,
-      }),
-      success: function (data) {
-        var newNode = $("<li></li>");
-        newNode.text(data.message);
-        $("##{rawJS commentListId}").append(newNode);
-      },
-      error: function (data) {
-        console.log("Error creating comment: " + data);
-      },
-    });
-
-  });
-});
-*/

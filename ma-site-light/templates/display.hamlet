@@ -9,24 +9,54 @@
     <div .col-lg-12>
       ^{resultsW resultSet}
 
-<div id="dialog-confirm" title="Rate this search result" style="display:none">
-  <div>
-    <p>
-      <b>Is the code similar (in your opinion)?
-    <div>
-      <label class="radio-inline"><input type="radio" name="sim_r" val='yes'>Yes</label>
-      <label class="radio-inline active"><input type="radio" name="sim_r" val='neutral' checked="">Neutral</label>
-      <label class="radio-inline"><input type="radio" name="sim_r" val='no'>No</label>
-  <br>
-    <p>
-      <b>Is this actual reuse (in your opinion)?
-    <div>
-      <label class="radio-inline"><input type="radio" name="re_r" val='yes'>Yes</label>
-      <label class="radio-inline active"><input type="radio" name="re_r" val='neutral' checked="">Neutral</label>
-      <label class="radio-inline"><input type="radio" name="re_r" val='no'>No</label>
-  <br>
-  <div>
-    <p>
-      <b>Additional Comments:
-    <div>
-      <textarea class="form-control" rows="5" id="comment" placeholder="Opinions, comments, etc."></textarea>
+<div id="dialog-confirm" title="Rate this search result" style="display:none; width:500px;">
+  <div .row>
+    <div .col-md-6>
+      <div>
+        <p>
+          <b>Is the code intuitively similar to you?
+        <div>
+          <label class="radio-inline"><input type="radio" name="sim_r" val='yes'>Yes</label>
+          <label class="radio-inline active"><input type="radio" name="sim_r" val='neutral' checked="">Neutral</label>
+          <label class="radio-inline"><input type="radio" name="sim_r" val='no'>No</label>
+      <br>
+        <p>
+          <b>Is your code on the left side<br> a reuse of the code on the right?
+        <div>
+          <label class="radio-inline"><input type="radio" name="re_r" val='yes'>Yes</label>
+          <label class="radio-inline active"><input type="radio" name="re_r" val='neutral' checked="">Neutral</label>
+          <label class="radio-inline"><input type="radio" name="re_r" val='no'>No</label>
+      <br>
+        <p>
+          <b>Do the two sides fulfill the same function?
+        <div>
+          <label class="radio-inline"><input type="radio" name="sem_r" val='yes'>Yes</label>
+          <label class="radio-inline active"><input type="radio" name="sem_r" val='neutral' checked="">Neutral</label>
+          <label class="radio-inline"><input type="radio" name="sem_r" val='no'>No</label>
+    <div .col-md-6>
+      <br>
+        <p>
+          <b>Do the two sides look similar?
+        <div>
+          <label class="radio-inline"><input type="radio" name="syn_r" val='yes'>Yes</label>
+          <label class="radio-inline active"><input type="radio" name="syn_r" val='neutral' checked="">Neutral</label>
+          <label class="radio-inline"><input type="radio" name="syn_r" val='no'>No</label>
+      <br>
+        <p>
+          <b>What's your background?
+        <div>
+          <label class="radio-inline"><input type="radio" name="bg_r" val='academic'>Academic</label>
+          <br>
+          <label class="radio-inline active"><input type="radio" name="bg_r" val='professional'>Professional Coder</label>
+          <br>
+          <label class="radio-inline"><input type="radio" name="bg_r" val='hobbyist'>Hobbyist</label>
+          <br>
+          <label class="radio-inline"><input type="radio" name="bg_r" val='unspecified' checked="">Unspecified</label>
+      <br>
+  <div .row>
+    <div .col-md-12>
+      <div>
+        <p>
+          <b>Additional Comments:
+        <div>
+          <textarea class="form-control" rows="5" id="comment" placeholder="Opinions, comments, etc."></textarea>
