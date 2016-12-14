@@ -22,6 +22,7 @@ import qualified Data.BloomFilter.Hash as BF.Hash
 import qualified Data.BloomFilter.Mutable as BF.Mutable
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
+import           Data.Foldable (toList)
 import           Data.Hashable (Hashable, hash)
 import           Data.Monoid ((<>))
 import qualified Data.Set as S
@@ -32,6 +33,7 @@ import           Thesis.CodeAnalysis.StackoverflowBodyParser
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Search.BloomFilter
 import           Thesis.Search.CompressedTrie as Trie
+import           Thesis.Search.FragmentData
 import           Thesis.Search.NGrams
 import           Thesis.Util.ConduitUtils
 
@@ -43,15 +45,50 @@ data SearchIndex t l ann where
                  , indexNGramSize :: !Int
                  } -> SearchIndex t l ann
 
+buildIndexFromAnswers ::( Eq t, Ord t, Hashable t
+                        , MonadIO m, MonadLogger m) =>
+                        Language t l
+                      -> Source m (Answer)
+                      -- ^ A source of answers with code. To get this use one of
+                      -- the Thesis.Data.Stackoverflow.Dump.* modules
+                      -> Int -- ^ NGram size
+                      -> m (SearchIndex t l AnswerFragmentMetaData)
+buildIndexFromAnswers lang src ngramSize =
+  buildIndex lang fragSource ngramSize
+  where
+    buildFragMeta = AnswerFragmentMetaData
+    fragSource = src
+                   =$= (CL.map $ \Answer{..} -> do
+                           (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]
+                           return $ ( buildFragMeta $ AnswerFragmentId answerId n
+                                    , LanguageText code))
+                   =$= CL.concat
+
+buildTestIndex :: ( Eq t, Ord t, Hashable t
+                  , MonadIO m, MonadLogger m, Foldable f) =>
+                  Language t l
+               -> f (LanguageText l)
+               -- ^ A source of answers with code. To get this use one of the
+               -- Thesis.Data.Stackoverflow.Dump.* modules
+               -> Int -- ^ NGram size
+               -> m (SearchIndex t l (Int,Int))
+buildTestIndex lang txts ngramSize =
+  buildIndex lang codeSource ngramSize
+  where
+    codeSource = CL.sourceList xs
+    xs = zip ((,) <$> [0..]) $ toList txts
+
 -- | Build an index for any given programming language implementation.
 buildIndex :: ( Eq t, Ord t, Hashable t
-              , MonadIO m, MonadLogger m) => 
+              , MonadIO m, MonadLogger m, FragmentData d) =>
               Language t l
-           -> Source m Answer
-              -- ^ A source of answers with ode. To get this use one
-              -- of the Thesis.Data.Stackoverflow.Dump.* modules
+           -> Source m (Int -> d, LanguageText l)
+              -- ^ A source of of pairs. These pairs contain:
+              --  * A function that generates an annotation from the length of a
+              --      token vector
+              --  * Some code in the given language
            -> Int -- ^ NGram size
-           -> m (SearchIndex t l AnswerFragmentMetaData)
+           -> m (SearchIndex t l d)
 buildIndex lang postSource ngramSize = do
   $(logInfo) $ "Building an index for " <> (languageName lang)
 
@@ -64,13 +101,9 @@ buildIndex lang postSource ngramSize = do
       $$ everyN 25000 (\n ->
                          $(logDebug) $ pack $ "Build index processed " ++
                                               (show n) ++ "answers")
-      =$= (CL.map $ \Answer{..} -> do
-              (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]
-              return $ (code, AnswerFragmentId answerId n))
-      =$= CL.concat
-      =$= (CL.map $ \(c, aId) -> do
-              tokenV <- processAndTokenize lang (LanguageText c)
-              Just $ (token <$> tokenV,AnswerFragmentMetaData aId (V.length tokenV))
+      =$= (CL.map $ \(buildAnn, langTxt) -> do
+              tokenV <- processAndTokenize lang langTxt
+              Just $ (token <$> tokenV, buildAnn (V.length tokenV))
           )
       =$= CL.catMaybes
       =$ (CL.foldM (\trie -> \(str, v) -> do
