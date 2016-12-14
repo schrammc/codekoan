@@ -22,8 +22,6 @@ module Thesis.CodeAnalysis.Language.Java.Internal ( Java
                                                   , javaBlockData
                                                   ) where
 
-import qualified Data.Text as Text
-
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.Java.Internal.Tokens
 import           Thesis.CodeAnalysis.Language.Java.Internal.Parser

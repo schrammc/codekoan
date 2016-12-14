@@ -20,9 +20,7 @@
 module Thesis.CodeAnalysis.Language.Java.Internal.Parser where
 
 import           Control.Applicative ((<|>))
-
 import           Data.Attoparsec.Text as AP
-
 import           Data.Char
 import qualified Data.Text as Text
 import qualified Data.Vector as V
@@ -31,7 +29,7 @@ import Thesis.CodeAnalysis.Language.Internal
 import Thesis.CodeAnalysis.Language.Java.Internal.Tokens
 import Thesis.CodeAnalysis.Language.Java.Internal.Type
 
-import Debug.Trace
+
 
 tokenizeJ :: LanguageText Java -> Maybe (TokenVector Token Java)
 tokenizeJ LanguageText{..} = removeImports . buildTokenVector <$> parseResult

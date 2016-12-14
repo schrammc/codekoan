@@ -29,4 +29,4 @@ buildIndexForJava :: ( MonadIO m
                      -- one of the Thesis.Data.Stackoverflow.Dump.* modules
                   -> Int -- ^ NGram size
                   -> m (SearchIndex Token Java AnswerFragmentMetaData)
-buildIndexForJava = buildIndex java
+buildIndexForJava = buildIndexFromAnswers java

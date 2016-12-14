@@ -36,6 +36,7 @@ import qualified Data.Text as Text
 import           Thesis.Search.Index
 import           Thesis.Data.Stackoverflow.Answer
 
+import           Thesis.Search
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 import           Thesis.CodeAnalysis.Language.Internal
@@ -60,7 +61,7 @@ buildIndexForPython :: ( MonadIO m
                     -- one of the Thesis.Data.Stackoverflow.Dump.* modules
                     -> Int -- ^ NGram size
                     -> m (SearchIndex PyToken Python AnswerFragmentMetaData)
-buildIndexForPython = buildIndex python
+buildIndexForPython = buildIndexFromAnswers python
 
 
 -- | State that the will use internally.
