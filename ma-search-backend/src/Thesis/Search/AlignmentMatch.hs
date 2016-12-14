@@ -4,14 +4,13 @@ import Data.List (isSubsequenceOf)
 
 import Thesis.CodeAnalysis.Language (LanguageText)
 import Thesis.Data.Range
-import Thesis.Data.Stackoverflow.Answer
 
-data AlignmentMatch t l =
+data AlignmentMatch t l ann =
   AlignmentMatch { resultTextRange :: !(Range (LanguageText l))
                    -- ^ The matched text range in the query document
                  , resultMatchedTokens :: [t]
                  , resultQueryRange :: !(Range t)
-                 , resultMetaData :: !AnswerFragmentMetaData
+                 , resultMetaData :: !ann
                    -- ^ Meta information about the matched answer fragment
                  , resultFragmentRange :: !(Range t)
                    -- ^ The range of matched tokens in the answer fragment
@@ -24,7 +23,7 @@ data AlignmentMatch t l =
 -- result and therefore makes the first search result redundant.
 --
 -- NOTE THAT THIS FUNCTION DOES NOT TAKE 'resultLevenScore' INTO CONSIDERATION.
-subsumedBy :: (Eq t) => AlignmentMatch t l -> AlignmentMatch t l -> Bool
+subsumedBy :: (Eq t) => AlignmentMatch t l ann -> AlignmentMatch t l ann -> Bool
 subsumedBy a b = fragmentSubsumption && textRangeSubsumption && tokenSubsumption
   where
     tokenSubsumption = isSubsequenceOf (resultMatchedTokens a)
@@ -34,6 +33,9 @@ subsumedBy a b = fragmentSubsumption && textRangeSubsumption && tokenSubsumption
     textRangeSubsumption = isSubRangeOf (resultTextRange a)
                                         (resultTextRange b)
 
-subsumedByProper :: (Eq t) => AlignmentMatch t l -> AlignmentMatch t l -> Bool
+subsumedByProper :: (Eq t) =>
+                    AlignmentMatch t l ann
+                 -> AlignmentMatch t l ann
+                 -> Bool
 subsumedByProper a b =
   resultLevenScore a >= resultLevenScore b && subsumedBy a b

@@ -75,6 +75,15 @@ answerFragments DataDictionary{..} lang@Language{..} aId = do
       tokenV <- processAndTokenize lang txt
       return (tokenV, txt)
 
+getAnswerFragment :: (Monad m) =>
+                     DataDictionary m
+                  -> Language t l
+                  -> AnswerFragmentMetaData
+                  -> MaybeT m (TokenVector t l, LanguageText l)
+getAnswerFragment dict lang (AnswerFragmentMetaData AnswerFragmentId{..} _) = do
+  v <- answerFragments dict lang fragmentAnswerId
+  MaybeT . return $ v !? fragmentId
+
 -- | Get the token vector of one specific answer code fragment from the
 -- dictionary. This will return 'Nothing' if the answer code fragment couldn't
 -- be found.

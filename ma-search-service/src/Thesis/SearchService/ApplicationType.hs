@@ -36,6 +36,8 @@ import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Data.Stackoverflow.Dictionary.Postgres
 
 import           Thesis.Search.Index
+import           Thesis.Search.FragmentData
+
 import Data.Hashable (Hashable)
 data Application m where
   Application :: (MonadThrow m, MonadIO m, Hashable t, Ord t) =>
@@ -44,7 +46,7 @@ data Application m where
                  , appQueue            :: !Text.Text
                  , appDictionary       :: DataDictionary m
                  , appLanguage         :: Language t l
-                 , appIndex            :: SearchIndex t l
+                 , appIndex            :: SearchIndex t l AnswerFragmentMetaData
                  }  -> Application m
 
 buildFoundation :: forall m . (MonadThrow m, MonadIO m, MonadLogger m)
@@ -66,7 +68,7 @@ buildFoundation settings@ServiceSettings{..} = do
 
   let buildApp :: forall t l . (Ord t, Hashable t) =>
                   Language t l
-               -> SearchIndex t l
+               -> SearchIndex t l AnswerFragmentMetaData
                -> Application m
       buildApp = Application conn settings serviceExchange appDictionary
 

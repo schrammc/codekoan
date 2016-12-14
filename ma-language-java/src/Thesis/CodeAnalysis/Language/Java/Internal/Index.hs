@@ -28,5 +28,5 @@ buildIndexForJava :: ( MonadIO m
                      -- ^ A source of answers with java code. To get this use
                      -- one of the Thesis.Data.Stackoverflow.Dump.* modules
                   -> Int -- ^ NGram size
-                  -> m (SearchIndex Token Java)
+                  -> m (SearchIndex Token Java AnswerFragmentMetaData)
 buildIndexForJava = buildIndex java

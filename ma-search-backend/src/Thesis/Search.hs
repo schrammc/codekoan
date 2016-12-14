@@ -20,26 +20,24 @@ import qualified Data.Text as Text
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.Data.Range hiding (coveragePercentage)
-import           Thesis.Data.Stackoverflow.Answer
-import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.BloomFilter
+import           Thesis.Search.FragmentData
 import           Thesis.Search.Index
 import           Thesis.Search.Levenstein
 import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.CodeAnalysis.Semantic.Blocks
-import           Thesis.SearchException
 import Debug.Trace
 
 
-findMatches :: (Ord t, Hashable t)
-               => SearchIndex t l
+findMatches :: (Ord t, Hashable t, FragmentData ann)
+               => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
                -> Int            -- ^ The minimal match length
-               -> Maybe (ResultSet t l)
+               -> Maybe (ResultSet t l ann)
 findMatches index@(SearchIndex{..}) n t minMatchLength = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
@@ -85,11 +83,12 @@ ngramWithRange [] = Nothing
 ngramWithRange xs = let (rs, ts) = unzip $ (\(TokenWithRange r t) -> (r,t)) <$> xs
                     in Just (foldl1 mergePositionRanges rs, ts)
 
-search :: (Ord t) => SearchIndex t l
+search :: (Ord t, FragmentData ann) =>
+          SearchIndex t l ann
        -> Int  -- ^ Levenshtein distance
        -> V.Vector t
        -> Int -- ^ Minimal length of an alignment match
-       -> [([t], AnswerFragmentMetaData, Range t , Int)]
+       -> [([t], ann, Range t , Int)]
 search SearchIndex{..} n xs minMatchLength = do
   (tks, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
   (mds, dist) <- results
@@ -101,9 +100,9 @@ search SearchIndex{..} n xs minMatchLength = do
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
-buildRange :: AnswerFragmentMetaData -> [t] -> Int -> Range a
-buildRange AnswerFragmentMetaData{..} tks d =
-  Range (fragmentMetaSize - (n + d)) (fragmentMetaSize - d)
+buildRange :: FragmentData d => d -> [t] -> Int -> Range a
+buildRange dat tks d =
+  Range (fragDataTokenLength dat - (n + d)) (fragDataTokenLength dat - d)
   where
     n = length tks
     
@@ -111,14 +110,15 @@ buildRange AnswerFragmentMetaData{..} tks d =
 -- | Perform a search based on a set of search settings.
 --
 -- Can throw a 'SemanticException' if something goes wrong in semantic processing.
-performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m) =>
-                 SearchIndex t l
+performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
+                 SearchIndex t l ann
               -> Language t l
-              -> DataDictionary m
+--              -> DataDictionary m
+              -> (ann -> MaybeT m (TokenVector t l, LanguageText l))
               -> SearchSettings
               -> LanguageText l
               -> SemanticAnalyzer m a
-              -> m (Maybe (ResultSet t l))
+              -> m (Maybe (ResultSet t l ann))
 performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $ do
   $(logDebug) "Running search pipeline..."
   $(logDebug) $ "Ngram-size: " <> (Text.pack . show $ indexNGramSize index)

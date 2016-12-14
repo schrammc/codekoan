@@ -1,9 +1,15 @@
+-- |
+-- Description: Search indices for arbitrary languages
+-- Maintainer: Christof Schramm
+--
+--This module contains code for search indices over arbitrary languages
+
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
--- | This module contains code for search indices over arbitrary languages
+
 
 module Thesis.Search.Index where
 
@@ -29,13 +35,13 @@ import           Thesis.Search.CompressedTrie as Trie
 import           Thesis.Search.NGrams
 import           Thesis.Util.ConduitUtils
 
-data SearchIndex t l where
-  SearchIndex :: (Ord t, Eq t) =>
+data SearchIndex t l ann where
+  SearchIndex :: (Ord t, Eq t, Ord ann) =>
                  { indexLanguage :: !(Language t l)
-                 , indexTrie :: !(CompressedTrie t (S.Set AnswerFragmentMetaData))
+                 , indexTrie :: !(CompressedTrie t (S.Set ann))
                  , indexBF :: !(BloomFilter [t])
                  , indexNGramSize :: !Int
-                 } -> SearchIndex t l
+                 } -> SearchIndex t l ann
 
 -- | Build an index for any given programming language implementation.
 buildIndex :: ( Eq t, Ord t, Hashable t
@@ -45,7 +51,7 @@ buildIndex :: ( Eq t, Ord t, Hashable t
               -- ^ A source of answers with ode. To get this use one
               -- of the Thesis.Data.Stackoverflow.Dump.* modules
            -> Int -- ^ NGram size
-           -> m (SearchIndex t l)
+           -> m (SearchIndex t l AnswerFragmentMetaData)
 buildIndex lang postSource ngramSize = do
   $(logInfo) $ "Building an index for " <> (languageName lang)
 

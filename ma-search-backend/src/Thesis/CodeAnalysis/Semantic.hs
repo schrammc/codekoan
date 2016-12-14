@@ -20,10 +20,10 @@ module Thesis.CodeAnalysis.Semantic
 
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.List as List
+
 
 import Control.Monad.Logger
-import Thesis.Data.Stackoverflow.Dictionary
+
 import Thesis.Data.Range
 import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Semantic.IdentifierSplitter
@@ -40,7 +40,7 @@ import qualified Data.Map as M
 
 import Control.Monad
 
-import Data.Vector ((!?))
+
 import qualified Data.Vector as V
 
 -- | An interface to a semantic analysis method
@@ -57,57 +57,40 @@ data SemanticAnalyzer m a =
 -- value.
 --
 -- This will return 'Nothing' if a fragment can't be found in the dictionary
-resultsWithSimilarity :: (MonadLogger m, MonadThrow m) =>
+resultsWithSimilarity :: (MonadLogger m, MonadThrow m, Ord ann) =>
                          Language t l
                          -- ^ We always work in relation to a given language
                          -- with fixed tokens
-                      -> DataDictionary m
+                      -> (ann -> MaybeT m (TokenVector t l, LanguageText l))
                       -- ^ An accessor for code pattern data
                       -> SemanticAnalyzer m a
                       -> (TokenVector t l, LanguageText l)
                       -- ^ query document
-                      -> ResultSet t l
+                      -> ResultSet t l ann
                       -- ^ The result set to be analyzed
                       -> Double
                       -- ^ Threshold value between 0 and 1
-                      -> MaybeT m (ResultSet t l)
+                      -> MaybeT m (ResultSet t l ann)
 resultsWithSimilarity lang
-                      dict
+                      getTokenV
                       analyzer@SemanticAnalyzer{..}
                       queryDoc
                       set
                       thresh = do
-  patternMap <- relevantPatterns
-  let flattenedSet = flattenSet set
-  flattened' <- do
-    catMaybeTs $ (flip fmap) flattenedSet $ \(aId, fragId, matches) -> do
-      fragMap <- MaybeT $ return (M.lookup aId patternMap)
-      fragData <- MaybeT $ return (M.lookup fragId fragMap)
-      sim <- lift $ searchResultSimilarity lang
-                                           analyzer
-                                           queryDoc
-                                           fragData
-                                           matches
-      if sim >= thresh
-        then MaybeT . return $ Just (aId, fragId, matches)
-        else MaybeT $ return Nothing
-  return $ buildSet flattened'
-  where
-    -- | Builds up a map with data on all fragments in the result set.
-    relevantPatterns = fmap M.fromList $ forM fragmentMap $ \(aId, frags) -> do
-      fragments <- answerFragments dict lang aId
-      fragVectors <- sequence $ do
-        fragId <- frags
-        return $ MaybeT $ return $ (fragId,) <$> fragments !? fragId
-      return $ (aId, M.fromList $ fragVectors)
-      where
-        relevantFragments = List.nub $ do
-          (aId, fragId, _) <- flattenSet set
-          return $ (aId, fragId)
-        fragmentMap = do
-          group <- List.groupBy (\a -> \b -> fst a == fst b) relevantFragments
-          let (aId, _) = head group
-          return (aId, snd <$> group)
+  let resultSetList  = M.toList $ resultSetMap set
+  lst <- catMaybeTs $ (flip fmap) resultSetList $ \(ann, groups) -> do
+    tv <- getTokenV ann
+    let groupResults = (flip fmap) groups $ \group -> do
+          sim <- lift $ searchResultSimilarity lang analyzer queryDoc tv group
+          if sim >= thresh
+            then return group
+            else MaybeT $ return Nothing
+    filteredGroups <- catMaybeTs groupResults
+    if null filteredGroups
+      then MaybeT $ return Nothing
+      else return (ann, filteredGroups)
+
+  return $ ResultSet (M.fromList lst)
 
 catMaybeTs :: (Functor f, Monad f) => [MaybeT f a] -> MaybeT f [a]
 catMaybeTs xs = MaybeT $ Just <$> maybeList
@@ -122,7 +105,7 @@ searchResultSimilarity :: (MonadLogger m, MonadThrow m) => Language t l
                        -- ^ query document
                        -> (TokenVector t l, LanguageText l)
                        -- ^ answer fragment
-                       -> [AlignmentMatch t l]
+                       -> [AlignmentMatch t l ann]
                        -> m Double
 searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) matches = do
   fragIds <- getIds lang (fragTokens, fragText) matches Fragment
@@ -138,7 +121,7 @@ data QueryOrFragment = Query | Fragment
 getIds :: (MonadLogger m, MonadThrow m) =>
           Language t l
        -> (TokenVector t l, LanguageText l)
-       -> [AlignmentMatch t l]
+       -> [AlignmentMatch t l ann]
        -> QueryOrFragment
        -> m [Text]
 getIds lang (tokens, text) matches queryOrFragment = do

@@ -59,7 +59,7 @@ buildIndexForPython :: ( MonadIO m
                     -- ^ A source of answers with python code. To get this use
                     -- one of the Thesis.Data.Stackoverflow.Dump.* modules
                     -> Int -- ^ NGram size
-                    -> m (SearchIndex PyToken Python)
+                    -> m (SearchIndex PyToken Python AnswerFragmentMetaData)
 buildIndexForPython = buildIndex python
 
 

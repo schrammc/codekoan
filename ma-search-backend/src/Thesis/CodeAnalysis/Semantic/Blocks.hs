@@ -78,8 +78,6 @@ import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Language
 import           Thesis.Data.Graph
 import           Thesis.Data.Range
-import           Thesis.Data.Stackoverflow.Answer
-import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Search.ResultSet
 import           Thesis.Search.AlignmentMatch
 import           Thesis.CodeAnalysis.Semantic.BlockData
@@ -88,7 +86,10 @@ normalizeV :: V.Vector a -> Int -> Int
 normalizeV vector k = max 0 $ min k (V.length vector - 1)
 
 -- | Analyze the block accordance of two alignment matches
-blockAccordance :: BlockData t -> AlignmentMatch t l -> AlignmentMatch t l -> Bool
+blockAccordance :: BlockData t
+                -> AlignmentMatch t l ann
+                -> AlignmentMatch t l ann
+                -> Bool
 blockAccordance BlockData{..} resA resB =
   queryDist == fragmentDist
 --  && blockStringEquality
@@ -114,8 +115,8 @@ blockAccordance BlockData{..} resA resB =
 --
 -- This function then yields all maximal cliques of that graph.
 blockAnalysis :: BlockData t
-              -> [AlignmentMatch t l] -- ^ result matches
-              -> [[AlignmentMatch t l]]
+              -> [AlignmentMatch t l ann] -- ^ result matches
+              -> [[AlignmentMatch t l ann]]
 blockAnalysis blockData results = cliques accordanceGraph
   where
     resultV   = V.fromList results
@@ -131,29 +132,26 @@ blockAnalysis blockData results = cliques accordanceGraph
 
 -- | Build a result set where each result only contains maximal groups
 -- of alignment matches that are in accordace.
-resultSetBlockAnalysis :: (Monad m) =>
-                          DataDictionary m
+resultSetBlockAnalysis :: (Monad m, Ord ann) =>
+                          (ann -> MaybeT m (TokenVector t l, LanguageText l))
                           -- ^ Access to source code of fragments
                        -> Language t l
                        -- ^ The language that we work with
                        -> V.Vector t
                        -- ^ The token vector of the query document
-                       -> ResultSet t l
+                       -> ResultSet t l ann
                        -- ^ The result set that is to be analyzed
-                       -> MaybeT m (ResultSet t l)
-resultSetBlockAnalysis dict lang queryTokens ResultSet{..} = do
+                       -> MaybeT m (ResultSet t l ann)
+resultSetBlockAnalysis getTokenV lang queryTokens ResultSet{..} = do
   -- Loop over all stackoverflow answers in the map
-  updatedLst <- forM (M.toList resultSetMap) $ \(aId, fragMap) -> do
-    -- Each answer can have multiple code fragments, loop over these
-    fragMap' <- forM (M.toList fragMap) $ \(fragId, groups) -> do
-      -- Get the full tokens of the answer fragment and use them to do
-      -- block analysis on each group of answer fragments.
-      (fragTks,_)  <- answerFragmentTokens dict lang (AnswerFragmentId aId fragId)
-      let fragTokens = token <$> fragTks
-          blockData = mkBlockData queryTokens fragTokens
-          analyzedGroups = concat $ blockAnalysis blockData <$> groups
-      return (fragId, analyzedGroups)
-    return (aId, M.fromList fragMap')
+  updatedLst <- forM (M.toList resultSetMap) $ \(ann, groups) -> do
+    -- Get the full tokens of the answer fragment and use them to do
+    -- block analysis on each group of answer fragments.
+    (fragTks,_)  <- getTokenV ann
+    let fragTokens = token <$> fragTks
+        blockData = mkBlockData queryTokens fragTokens
+        analyzedGroups = concat $ blockAnalysis blockData <$> groups
+    return (ann, analyzedGroups)
   return $ ResultSet (M.fromList updatedLst)
   where
     mkBlockData = languageGenBlockData lang

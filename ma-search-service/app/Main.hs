@@ -15,6 +15,7 @@ import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Maybe
 
 import           Data.Aeson
 import           Data.Maybe (fromJust, fromMaybe)
@@ -29,7 +30,8 @@ import           Thesis.Messaging.Message
 import           Thesis.Messaging.Query
 import           Thesis.Messaging.ResultSet
 import           Thesis.Messaging.SemanticQuery
-
+import           Thesis.Data.Stackoverflow.Dictionary
+import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Search
 import           Thesis.SearchService.ApplicationType
 import           Thesis.SearchService.ServiceSettings
@@ -72,6 +74,8 @@ appLoop foundation@(Application{..}) channel = do
 
   (amqpMessage, envelope) <- getMessage 0
 
+  let getTokenV = getAnswerFragment appDictionary appLanguage
+
   case decode $ AMQP.msgBody amqpMessage of
     -- Just log an error if we can't decode the amqp-message
     Nothing -> do
@@ -89,7 +93,7 @@ appLoop foundation@(Application{..}) channel = do
                liftIO $ sendExceptionMsg queryId m) $ do
         searchResult <- performSearch appIndex
                                       appLanguage
-                                      appDictionary
+                                      getTokenV
                                       querySettings
                                       langText
                                       remoteAnalyzer
@@ -107,7 +111,7 @@ appLoop foundation@(Application{..}) channel = do
                                     (languageName appLanguage)
                                     (fromJust queryId)
                                     matches
-                                    appDictionary
+                                    getTokenV
                                     queryText
       
             -- Send the reply to the replies queue in rabbitmq
