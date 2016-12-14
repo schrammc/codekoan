@@ -29,6 +29,7 @@ import           Thesis.Search.FragmentData
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l ann =
   ResultSet {resultSetMap :: M.Map ann [[AlignmentMatch t l ann]]}
+  deriving Show
 
 -- | This function makes sure, that for each answer there is at least one
 -- fragment, that contains at least one search results.
