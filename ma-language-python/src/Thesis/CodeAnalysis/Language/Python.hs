@@ -173,6 +173,8 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> ")"  *> pure PyTokenRParen
          <|> "["  *> pure PyTokenLBrack
          <|> "]"  *> pure PyTokenRBrack
+         <|> "{"  *> pure PyTokenLBrace
+         <|> "}"  *> pure PyTokenRBrace
          <|> "not" *> pure PyTokenNot
          <|> "and" *> pure PyTokenAnd
          <|> "in"  *> pure PyTokenIn
