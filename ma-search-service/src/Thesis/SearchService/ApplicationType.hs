@@ -88,7 +88,7 @@ buildFoundation settings@ServiceSettings{..} = do
 
      | serviceLanguage == languageName python -> do
          $(logInfo) "Application language: python"
-         index <- buildIndex python filteredAnswerSource 10
+         index <- buildIndexForPython filteredAnswerSource 10
          return $ buildApp python index
      | otherwise -> do
          $(logError) $ "Unrecognized language: " <> serviceLanguage
