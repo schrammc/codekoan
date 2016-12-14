@@ -41,7 +41,7 @@ findMatches :: (Ord t, Hashable t, FragmentData ann)
 findMatches index@(SearchIndex{..}) n t minMatchLength = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
-      relevantNGramTails = filter (\(ngr, _, _) -> ngramRelevant ngr)
+      relevantNGramTails = filter (\(ngr, _, _) -> True ) --ngramRelevant ngr)
                                   ngramsWithTails
       relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
