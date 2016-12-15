@@ -25,3 +25,14 @@ $# This is really not awesome... (needed for language detection)
 <div id="blind" style="display:none">
 
 <br style="margin-top:5em">
+
+<div id="dialog-confirm" title="Please specify a language." style="display:none">
+  <div .row>
+    <div .col-md-12>
+      <div>
+        <p>
+          <b>Guessing a language failed, pleas pick one:
+        <div>
+          <label class="radio-inline"><input type="radio" name="lang" val='python'>Python</label>
+          <label class="radio-inline active"><input type="radio" name="lang" val='java' checked="">Java</label>
+$#          <label class="radio-inline"><input type="radio" name="lang" val='no'>No</label>

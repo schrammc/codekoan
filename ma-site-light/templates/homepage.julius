@@ -1,7 +1,6 @@
 var searchsim = null;
 //Enable tooltips
 
-
 var mycode = "fac n :: Int -> Int "
 
 $(document).ready(function(){
@@ -59,12 +58,8 @@ function searchType(t){
 
 function submitSearch(){
     var query = generateQuery();
-    if(query != null){
 
-	if(query.queryLanguage == 'python'){
-	    alert("Your python code may still be processed with some errors.\n\nI'm already working on it...");
-	}
-	
+    var submit = function(){
 	$.ajax({
 	    url: '/query',
 	    type: 'POST',
@@ -77,6 +72,36 @@ function submitSearch(){
 		console.log("Error on submit: " + data);
 	    }
 	});
+    };
+    
+    if(query != null){
+
+	if(query.queryLanguage == 'unknown'){
+	    $( "#dialog-confirm" ).dialog({
+		resizable: false,
+		height: "auto",
+		width: 400,
+		modal: true,
+		//autoOpen: false,
+		buttons: {
+    		    "Use this language!": function() {
+			var lang = $('input[name=lang]:checked').attr('val');
+			query.queryLanguage=lang;
+
+			submit();
+    			$( this ).dialog( "close" );
+    		    }
+		}
+	    });
+	} else {
+	    submit();
+	}
+
+//	if(query.queryLanguage == 'python'){
+//	    alert("Your python code may still be processed with some errors.\n\nI'm already working on it...");
+//	}
+	
+	
     }
 }
 
@@ -85,9 +110,10 @@ function generateQuery(){
     var text = $('#proginput').val();
     var language = guessLanguage(text);
 
-    if(language == 'python'){
-	settings.blockFiltering=false;
-    }
+    //if(language == 'python'){
+    //	alert('Might wanna re-enable this before the demo...');
+    //	//settings.blockFiltering=false;
+    //}
    
     return({ queryText: text
            , queryLanguage: language
