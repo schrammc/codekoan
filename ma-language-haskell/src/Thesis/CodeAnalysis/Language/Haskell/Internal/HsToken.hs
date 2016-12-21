@@ -5,9 +5,17 @@ module Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken where
 import Data.Hashable (Hashable)
 import GHC.Generics (Generic)
 
-data HsToken = HsIdentifier
+data IdentifierType = TypeOrConstructor
+                    | TypeVariableOrId
+                      deriving (Eq, Ord, Show, Generic, Hashable)
+                               
+data HsToken = HsIdentifier IdentifierType
              | HsNumber
+             | HsBackslash
+             | HsContextArrow
              | HsAssign
+             | HsEq
+             | HsNotEq
              | HsLeftarrow
              | HsRightarrow
              | HsDoubleColon
@@ -17,4 +25,41 @@ data HsToken = HsIdentifier
              | HsRBrace
              | HsLBrack
              | HsRBrack
+             | HsPipe
+             | HsTimes
+             | HsDiv
+             | HsAdd
+             | HsMinus
+             | HsAt
+             | HsLet
+             | HsWhere
+             | HsIn
+             | HsPragma
+             | HsIf
+             | HsThen
+             | HsElse
+             | HsOperator
+             | HsClass
+             | HsData
+             | HsModule
+             | HsImport
+             | HsInfix
+             | HsInfixL
+             | HsInfixR
+             | HsType
+             | HsNewtype
+             | HsInstance
+             | HsCase
+             | HsOf
+             | HsDot
+             | HsOpFmap
+             | HsOpAp
+             | HsOpBind
+             | HsOpThen
+             | HsOpCons
+             | HsOpInfixConstructor
+             | HsUnderscore
              deriving (Eq, Ord, Show, Generic, Hashable)
+
+isHsIdentifier (HsIdentifier _) = True
+isHsIdentifier _ = False
