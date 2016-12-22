@@ -41,6 +41,7 @@ data HsToken = HsIdentifier IdentifierType
              | HsOperator
              | HsClass
              | HsData
+             | HsDefault
              | HsModule
              | HsImport
              | HsInfix
@@ -51,7 +52,7 @@ data HsToken = HsIdentifier IdentifierType
              | HsInstance
              | HsCase
              | HsOf
-             | HsDot
+             | HsOpCompose
              | HsOpFmap
              | HsOpAp
              | HsOpBind

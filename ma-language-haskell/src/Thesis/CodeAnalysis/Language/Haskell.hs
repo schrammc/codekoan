@@ -46,7 +46,7 @@ tokenizeHs LanguageText{..} = buildTokenVector <$> parseResult
     parseResult = case AP.parseOnly parseHs langText of
       Right x -> Just x
       Left _  -> Nothing
-    parseHs = undefined
+    parseHs = many1 partParser
 
 partParser :: Parser (Int, Maybe HsToken)
 partParser = do
@@ -87,6 +87,7 @@ hsSafeIdentifierP = do
         "where"    -> return HsWhere
         "class"    -> return HsClass
         "data"     -> return HsData
+        "default"  -> return HsDefault
         "module"   -> return HsModule
         "import"   -> return HsImport
         "infix"    -> return HsInfix
@@ -119,7 +120,7 @@ hsOperatorP = do
     "\\" -> return HsBackslash
     "="  -> return HsAssign
     "/=" -> return HsNotEq
-    "."  -> return HsDot
+    "."  -> return HsOpCompose
     "<$>" -> return HsOpFmap
     "<*>" -> return HsOpAp
     ">>=" -> return HsOpBind
@@ -135,7 +136,8 @@ hsOperatorTextP = do
   takeWhile1 allowed
   where
     allowed :: Char -> Bool
-    allowed c = c `elem` (":!#$%&*+./<=>?@\\^|-~ " :: String)
+    allowed c = c `elem` [ ':', '!', '#', '$', '%', '&', '*', '+', '.', '/', '<'
+                         , '=', '>', '?', '@', '\\', '^', '|', '-', '~']
 
 -- | An identifier consists of a letter followed by zero or more letters,
 -- digits, underscores, and single quotes.
