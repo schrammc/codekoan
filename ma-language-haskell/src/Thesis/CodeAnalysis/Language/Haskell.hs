@@ -24,11 +24,14 @@ import Thesis.CodeAnalysis.Language
 import Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken
 import Thesis.CodeAnalysis.Language.CommonTokenParsers
 import Thesis.CodeAnalysis.Language.Internal
+import Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
 
 import Data.Attoparsec.Text as AP
 import qualified Data.Text as Text
 import Data.Text (Text)
 import Data.Monoid ((<>))
+
+-- | A value-less type to tag haskell-stuff at the type-level
 data Haskell
 
 haskell :: Language HsToken Haskell
@@ -37,7 +40,7 @@ haskell = Language { languageFileExtension = ".hs"
                    , tokenize = tokenizeHs
                    , isTokenIdentifier = (isHsIdentifier)
                    , removeComments = LanguageText
-                   , languageGenBlockData = undefined
+                   , languageGenBlockData = \_ _ -> flatBlockData
                    }
 
 tokenizeHs :: LanguageText Haskell -> Maybe (TokenVector HsToken Haskell)
