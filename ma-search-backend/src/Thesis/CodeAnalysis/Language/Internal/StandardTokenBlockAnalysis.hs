@@ -13,6 +13,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
        ( standardBlockData
+       , flatBlockData
        ) where
 
 import           Data.Foldable (foldl')
@@ -20,6 +21,15 @@ import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Semantic.BlockData
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Range
+
+-- | A 'BlockData' value, that judges everything to be in the same block
+--
+flatBlockData :: BlockData t
+flatBlockData = BlockData { queryRelation       = (\_ _ -> inSameBlock)
+                          , fragmentRelation    = (\_ _ -> inSameBlock)
+                          , queryBlockString    = const []
+                          , fragmentBlockString = const []
+                          }
 
 -- | Build a block data object for the tokens of one query document and one
 -- answer code pattern.
