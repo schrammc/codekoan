@@ -1,24 +1,35 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search.LevensteinSpec where
-
-import Test.Hspec
-import Test.Hspec.QuickCheck
-import Test.QuickCheck
 
 import qualified Data.Set as S
 import qualified Data.Vector as V
+import           Test.Hspec
+import           Test.QuickCheck
+import           Thesis.Search.CompressedTrie
+import           Thesis.Search.Levenstein
 
-import Thesis.Search.Levenstein
-import Thesis.Search.CompressedTrie
-import Debug.Trace
+spec :: SpecWith ()
 spec = do
   describe "Thesis.Search.LevensteinSpec" $ do
-    lookupSimple
+    alwaysFindSuff
 
-lookupSimple = it "example 1" $ lookupAllSuff aut tr `shouldBe` [("abcdef",[(S.singleton 1, 0)],0)]
-  where
-    tr = foldl mergeTries empty $ do
-      (w, v) <- ws
-      [buildSuffixTrie Nothing w v]
-    ws = zip (V.fromList <$> ["abcdef", "abc", "abcdxxy"]) (S.singleton <$> [1..])
-    wordV = V.fromList "abcd"
-    aut = LevensteinAutomaton (V.length wordV) 0 (V.unsafeIndex wordV)
+-- | Given a suffix tree is constructed for a set of nonempty strings. Then each
+-- of these individual strings should be retrievable from the suffix tree by the
+-- lookup function.
+alwaysFindSuff :: Spec
+alwaysFindSuff = do
+  it "Suffixtree lookup should always find each entry" $
+    property $ \(strs :: [String]) ->
+      let vectors = V.fromList <$> (filter (\s -> length s > 1) strs)
+          indexedVectors = zip vectors (S.singleton <$> ([0..] :: [Int]))
+          tries = (\(tr,s) -> buildSuffixTrie Nothing tr s) <$> indexedVectors
+          mergedTrie = foldl1 mergeTries tries
+      in and $ do
+        (v, i :: S.Set Int) <- indexedVectors
+        let results = lookupAllSuff (vectorToLevensteinAutomaton 0 v) mergedTrie 0
+            resultSets = do
+              (_, setsAndPoss, _) <- results
+              (set, _) <- setsAndPoss
+              return set
+        return $ i `elem` resultSets
+
