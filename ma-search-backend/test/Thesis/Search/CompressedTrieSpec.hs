@@ -7,11 +7,7 @@ import Data.Maybe (fromMaybe)
 import Test.Hspec
 
 import Thesis.Search.CompressedTrie
-
-import Test.Hspec.QuickCheck
 import Test.QuickCheck
-
-import Debug.Trace
 
 import qualified Data.Vector as V
 
@@ -53,6 +49,7 @@ allMinlengthSuffixesPresent =
 
 -- | Property that ensures, that the words in a suffix trie are equal to
 -- suffixes of 'w' that are of length at least 'n'
+suffixesProperty :: Maybe Int -> Property
 suffixesProperty n = property $ \(w :: String) ->
   if null w
   then True
