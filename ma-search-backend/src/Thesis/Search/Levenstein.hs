@@ -36,6 +36,13 @@ data LevensteinAutomaton a =
                                                -- given string
                       }
 
+vectorToLevensteinAutomaton :: Int -> V.Vector a -> LevensteinAutomaton a
+vectorToLevensteinAutomaton n v =
+  LevensteinAutomaton { levenSize = V.length v
+                      , levenN = n
+                      , levenIndex = V.unsafeIndex v
+                      }
+
 -- | A map from indices to values
 newtype LevenState = LevenState {stateList :: [(Int,Int)]}
                    deriving (Show,Eq)
@@ -188,8 +195,6 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) = cur ++ do
             | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                    "a negative amount of characters!"
   where
-   f st c | canAcceptL aut st = Just $! stepL aut st c
-          | otherwise = Nothing
    -- Performance improvement possibility: replace cs <> cs' with cs : cs' and
    -- concatenate just once
    extend cs (cs', v', s) = (cs <> cs', v', s)
