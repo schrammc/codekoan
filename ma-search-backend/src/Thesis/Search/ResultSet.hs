@@ -72,7 +72,7 @@ fragmentsLongerThan n resultSet =
   mapFragmentResults resultSet $ \_ -> \results -> 
     case filter (\r -> length (resultMatchedTokens r) >= n) results of
       [] -> Nothing
-      rs -> Just rs
+      rs -> length rs `seq` Just rs
 
 -- | Map a function over all fragment result groups in a result set. If the
 -- given function returns 'Nothing' then the fragment is removed from the result
@@ -88,7 +88,7 @@ mapFragmentResults ResultSet{..} f = ResultSet $
   (flip M.mapMaybeWithKey) resultSetMap $ \ann -> \results ->
     case catMaybes $ f ann <$> results  of
       [] -> Nothing
-      rs  -> Just rs
+      rs  -> length rs `seq` Just rs
 
 
 -- | Map a function over all fragment result groups in a result set. If the
