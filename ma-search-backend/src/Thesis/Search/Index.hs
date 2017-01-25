@@ -100,7 +100,7 @@ buildIndex lang postSource ngramSize = do
   tr <- postSource
       $$ everyN 25000 (\n ->
                          $(logDebug) $ pack $ "Build index processed " ++
-                                              (show n) ++ "answers")
+                                              (show n) ++ " answers")
       =$= (CL.map $ \(buildAnn, langTxt) -> do
               tokenV <- processAndTokenize lang langTxt
               Just $ (token <$> tokenV, buildAnn (V.length tokenV))
