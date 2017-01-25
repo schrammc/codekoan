@@ -130,15 +130,18 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                                                   txt
                                                   minMatchLength
 
-  $(logDebug) $ "Initial fragments: " <> printNumberOfFrags initialMatches
+  $(logDebug) $ "Initial alignment matches: "
+                  <> printNumberOfAlignmentMatches initialMatches
+                  <> " in " <> printNumberOfGroups initialMatches
+                  <> " groups"
 
   let minLengthMatches = fragmentsLongerThan minMatchLength initialMatches
 
-  $(logDebug) $ "After length filtering: " <> printNumberOfFrags minLengthMatches
+  $(logDebug) $ "Groups after length filtering: " <> printNumberOfGroups minLengthMatches
 
   let coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
 
-  $(logDebug) $ "After coverage / length: " <> printNumberOfFrags coverageAnalyzed
+  $(logDebug) $ "Groups after coverage / length: " <> printNumberOfGroups coverageAnalyzed
 
   queryTokens <- MaybeT . return $ getQueryTokens
 
@@ -155,6 +158,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                    else do
                      $(logDebug) "Skipping block analysis."
                      MaybeT . return . Just $  coverageAnalyzed
+
   semanticFiltered <- case semanticThreshold of
     Nothing -> do
       $(logDebug) "Skipping word similarity analysis."
@@ -171,5 +175,6 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
       qt <- getQueryTokens
       return (qt, txt)
     getQueryTokens = processAndTokenize lang txt
-    printNumberOfFrags = Text.pack . show . numberOfFragments
+    printNumberOfAlignmentMatches = Text.pack . show . numberOfAlignmentMatches
+    printNumberOfGroups = Text.pack . show . numberOfFragments
 

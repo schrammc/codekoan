@@ -10,7 +10,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                -- * SummaryInformation
                                , numberOfAnswers
                                , numberOfFragments
-                               , numberOfGroups
+                               , numberOfAlignmentMatches
 
                                , filterEmptyResults
                                  -- * Helper functions
@@ -150,10 +150,11 @@ numberOfFragments ResultSet{..} = sum $ do
   (_, frags) <- M.toList resultSetMap
   return $ length frags
 
-numberOfGroups :: ResultSet t l ann -> Int
-numberOfGroups ResultSet{..} = sum $ do
+numberOfAlignmentMatches :: ResultSet t l ann -> Int
+numberOfAlignmentMatches ResultSet{..} = sum $ do
   (_, groupList) <- M.toList resultSetMap
-  return $ length groupList
+  group <- groupList
+  return $ length group
 
 -- | A helper function to flatten a result set into a list
 flattenSet :: ResultSet t l ann -> [(ann, [AlignmentMatch t l ann])]
