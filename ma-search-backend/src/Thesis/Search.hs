@@ -94,7 +94,7 @@ search SearchIndex{..} n xs minMatchLength = do
   (mds, dist) <- results
   md <- S.toList mds
   let rg = buildRange md tks dist
-  return (tks, md, rg, levenD)
+  return $ length tks `seq` (tks, md, rg, levenD)
   where
     aut = LevensteinAutomaton (V.length xs) n (xs V.!)
 
