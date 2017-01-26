@@ -47,9 +47,11 @@ executable           ma-search-service
                    , exceptions >= 0.8.3
                    , hashable >= 1.2
                    , http-conduit >= 2.1.11
+                   , lifted-async >= 0.9
                    , ma-messaging >= 0.1.0.0
                    , ma-search-backend >= 0.6.0
                    , ma-search-service
+                   , monad-control >= 1.0
                    , monad-logger >= 0.3.19
                    , postgresql-simple >= 0.5.2
                    , text >= 1.2.2

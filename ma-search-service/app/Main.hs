@@ -8,36 +8,48 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables#-}
+{-# LANGUAGE FlexibleContexts #-}
 module Main where
 
 import           Control.Concurrent
+import           Control.Concurrent.Async.Lifted
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Maybe
-
+import           Control.Monad.Trans.Control
 import           Data.Aeson
 import           Data.Maybe (fromJust, fromMaybe)
+import           Data.Monoid ((<>))
 import           Data.Text (pack)
-
 import qualified Network.AMQP as AMQP
 import           Network.HTTP.Simple
-
 import           Thesis.CodeAnalysis.Language
-
+import           Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
+import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Messaging.Message
 import           Thesis.Messaging.Query
 import           Thesis.Messaging.ResultSet
 import           Thesis.Messaging.SemanticQuery
-import           Thesis.Data.Stackoverflow.Dictionary
-import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Search
+import           Thesis.SearchException
 import           Thesis.SearchService.ApplicationType
 import           Thesis.SearchService.ServiceSettings
-import           Thesis.SearchException
-import           Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
 import           Thesis.Util.LoggingUtils
+
+data Timeout = Timeout
+
+-- | Helper function that always returns a 'Timeout' value.
+-- It does so after waiting n minutes.
+waitAndTimeout :: (MonadIO m) => Int -> m Timeout
+waitAndTimeout minutes = do
+  liftIO . threadDelay $ minutes' * 60 * 1000 * 1000
+  return Timeout
+  where
+    minutes' = max 0 minutes
+
+timeoutMinutes :: Int
+timeoutMinutes = 5
 
 main :: IO ()
 main = runOutstreamLogging $ do
@@ -66,7 +78,7 @@ openChannel connection = do
 
 
 -- | The application's main loop, that never terminates
-appLoop :: (MonadCatch m, MonadIO m, MonadLogger m) =>
+appLoop :: (MonadBaseControl IO m, MonadCatch m, MonadIO m, MonadLogger m) =>
            Application m
         -> AMQP.Channel -> m ()
 appLoop foundation@(Application{..}) channel = do
@@ -91,19 +103,25 @@ appLoop foundation@(Application{..}) channel = do
       handle (\(SemanticException m) -> do
                $(logError) "SemanticException during search!"
                liftIO $ sendExceptionMsg queryId m) $ do
-        searchResult <- performSearch appIndex
-                                      appLanguage
-                                      getTokenV
-                                      querySettings
-                                      langText
-                                      remoteAnalyzer
+        searchResult <- race (waitAndTimeout timeoutMinutes) 
+                             (performSearch appIndex
+                                            appLanguage
+                                            getTokenV
+                                            querySettings
+                                            langText
+                                            remoteAnalyzer)
       
         case searchResult of
           -- Log an error if we can't find a search result in the index for the
           -- query
-          Nothing -> $(logError) $ pack $
+          Left Timeout -> do
+            let msg = "Search timeout after " <>
+                      (show timeoutMinutes) <> " minutes"
+            $(logError) $ pack msg
+            liftIO $ sendExceptionMsg queryId msg
+          Right Nothing -> $(logError) $ pack $
                        "Failed to produce a result for query" ++ show queryId
-          Just matches -> do
+          Right (Just matches) -> do
             $(logInfo) $ pack $ "Sending reply to query " ++ show queryId ++
                                 " back to rabbitmq..."
       
