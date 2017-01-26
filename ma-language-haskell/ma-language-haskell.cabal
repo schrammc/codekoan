@@ -15,7 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
+  exposed-modules:     Thesis.CodeAnalysis.Language.Haskell
+                     , Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken
   build-depends:       base >= 4.7 && < 5
                      , ma-search-backend >= 0.6.0.0
                      , attoparsec >= 0.13
