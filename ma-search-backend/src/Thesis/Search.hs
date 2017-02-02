@@ -46,7 +46,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
-  traceShow ("Fraction of relevant ngrams: " :: String, (fromIntegral $ length relevantNGramTails) / (fromIntegral $ length ngramsWithTails) :: Double)return $ buildResultSet searchResults
+  traceShow ("Fraction of relevant ngrams: " :: String, (fromIntegral $ length relevantNGramTails) / (fromIntegral $ length ngramsWithTails), length relevantTails, length relevantNGramTails)return $ buildResultSet searchResults
 
   where
     maybeTokens = processAndTokenize indexLanguage t
@@ -137,11 +137,14 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
 
   let minLengthMatches = fragmentsLongerThan minMatchLength initialMatches
 
-  $(logDebug) $ "Groups after length filtering: " <> printNumberOfGroups minLengthMatches
+  
+  $(logDebug) $ "Groups after length filtering: "
+                <> printNumberOfGroups minLengthMatches
 
   let coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
 
-  $(logDebug) $ "Groups after coverage / length: " <> printNumberOfGroups coverageAnalyzed
+  $(logDebug) $ "Groups after coverage / length: "
+                <> printNumberOfGroups coverageAnalyzed
 
   queryTokens <- MaybeT . return $ getQueryTokens
 
