@@ -167,7 +167,8 @@ hsIdentifierP = do
 hsCommentOrSpace :: Parser ()
 hsCommentOrSpace = haskellLineComment <|>
                    haskellBlockComment <|>
-                   (AP.takeWhile1 isHorizontalSpace *> pure ())
+                   (AP.takeWhile1 isHorizontalSpace *> pure ()) <|>
+                   (AP.string "\n" *> pure ())
 
 -- | A haskell line comment
 haskellLineComment :: Parser ()

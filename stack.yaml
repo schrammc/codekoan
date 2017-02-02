@@ -40,6 +40,7 @@ packages:
 - ./ma-messaging
 #- ./ma-site
 - ./ma-postgres-indexer
+- ./ma-language-haskell
 - ./ma-language-java
 - ./ma-language-python
 - ./ma-search-service
