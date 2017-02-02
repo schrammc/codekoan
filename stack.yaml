@@ -15,8 +15,8 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-6.10
-
+resolver: nightly-2017-02-02
+#system-ghc: true
 # User packages to be built.
 # Various formats can be used as shown in the example below.
 # 
@@ -48,7 +48,7 @@ packages:
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
-extra-deps: [chatter-0.9.0.0, cereal-text-0.1.0.2, fullstop-0.1.4, tokenize-0.3.0]
+extra-deps: [chatter-0.9.0.0, cereal-0.5.2.0, fullstop-0.1.4, tokenize-0.3.0, regex-tdfa-text-1.0.0.3, bloomfilter-2.0.1.0]
 
 # Override default flag values for local packages and extra-deps
 flags: {}
