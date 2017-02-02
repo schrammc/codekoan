@@ -94,8 +94,8 @@ tokenP = "<" *> pure TokenLT
          <|> loopWord
          <|> keyword
          <|> primitive
-         <|> identifier
          <|> tokenNumber
+         <|> identifier
          <|> stringLiteral *> pure TokenStringLiteral
          <|> characterLiteral *> pure TokenCharacterLiteral
          <|> annotation
@@ -168,8 +168,15 @@ identifier = do
     nonDigit c = isAlpha c || c == '_' || c == '$'
 
 tokenNumber :: Parser Token
-tokenNumber = do
+tokenNumber = tokenStandardNumber <|> tokenHexadecimal
+
+tokenStandardNumber = do
   scientific
   char 'd' <|> char 'f' <|> pure undefined
   return TokenNumber
 
+tokenHexadecimal :: Parser Token
+tokenHexadecimal = do
+  "0x"
+  takeWhile1 (\c -> isDigit c || c `elem` ("abcdef" :: String))
+  return TokenNumber
