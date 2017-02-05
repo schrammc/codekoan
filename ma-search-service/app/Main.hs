@@ -137,6 +137,7 @@ appLoop foundation@(Application{..}) channel = do
       
             liftIO $ AMQP.publishMsg channel "replies" ""
               AMQP.newMsg{AMQP.msgBody = encode replyMessage}
+            return ()
 
   $(logDebug) "Acknowledging message..."
   liftIO $ AMQP.ackEnv envelope
@@ -171,6 +172,7 @@ appLoop foundation@(Application{..}) channel = do
                             (qId, message)
       AMQP.publishMsg channel "replies" ""
             AMQP.newMsg{AMQP.msgBody = encode reply}
+      return ()
 
 -- | Get a value from a 'Maybe' or throw an 'error' with the given string.
 getOrFail :: (MonadLogger m) => String -> (Maybe a) -> m a
