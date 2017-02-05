@@ -155,7 +155,8 @@ trieLeavesDist (CTrieNode mp v) = ((, 0) <$> toList v) ++ do
   (_,(xs, nd)) <- M.toList mp
   let n = length xs
   (val, k) <- trieLeavesDist nd
-  return (val, k+n)
+  let count = k + n
+  count `seq` return (val, count)
 
 -- | A helper function. Applies the given function to both values if both are
 -- defined. If only one of the values is defined, we return it. Nothing if no
