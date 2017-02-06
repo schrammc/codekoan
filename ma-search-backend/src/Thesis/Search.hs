@@ -46,7 +46,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
-  traceShow ("Fraction of relevant ngrams: " :: String, (fromIntegral $ length relevantNGramTails) / (fromIntegral $ length ngramsWithTails), length relevantTails, length relevantNGramTails)return $ buildResultSet searchResults
+  traceShow ("Fraction of relevant ngrams: " :: String, (fromIntegral $ length relevantNGramTails) / (fromIntegral $ length ngramsWithTails), length tokens, length relevantNGramTails, indexNGramSize) (return $ buildResultSet searchResults)
 
   where
     maybeTokens = processAndTokenize indexLanguage t
