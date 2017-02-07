@@ -50,22 +50,21 @@ import Debug.Trace
 -- This number can blow up and therefore this function caps the number of times
 -- that an identical n-gram is searched for.
 --
-reduceRepeats :: Eq t =>
-                 Int
-              -> [(Int, [TokenWithRange t l])]
-              -> [(Int, [TokenWithRange t l])]
-reduceRepeats n xs =
-  let xs' = filter (\(_, l) -> length l >= n) xs
-      groupedByTokens = List.groupBy tokenEq xs'
-  in do
+reduceRepeats :: (Show t, Ord t) =>
+                 [([TokenWithRange t l], Int, [TokenWithRange t l])]
+              -> [([TokenWithRange t l], Int, [TokenWithRange t l])]
+reduceRepeats xs =
+  let groupedByTokens = List.groupBy tokenEq (List.sortOn getTokens xs)
+  in traceShow ("GROUPS: ", length groupedByTokens) $ do
     group <- groupedByTokens
     if length group > 10
       then take 10 group
       else group
   where
-    tokenEq (_, tsA) (_, tsB) = (take n $ token <$> tsA) == (take n $ token <$> tsB)
+    tokenEq a b = getTokens a == getTokens b
+    getTokens (ts, _, _) = token <$> ts
 
-findMatches :: (Ord t, Hashable t, FragmentData ann)
+findMatches :: (Show t, Ord t, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
@@ -75,12 +74,11 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) --ngramRelevant ngr)
-                                  ngramsWithTails
-      relevantTails = reduceRepeats n $
-                      (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
+                                  (reduceRepeats ngramsWithTails)
+      relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
-      searchResults = concat $ parMap rpar searchFor relevantTails
-  traceShow ("SEARCH: " :: String, length relevantNGramTails, length relevantTails) (return $ buildResultSet searchResults)
+      searchResults = concat $ fmap searchFor relevantTails
+  traceShow ("SEARCH: " :: String, length ngramsWithTails, length relevantTails) (return $ buildResultSet searchResults)
 
   where
     maybeTokens = processAndTokenize indexLanguage t
@@ -96,13 +94,13 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
            let queryRange = Range start (start + length foundTokens)
            case ngramWithRange (take (length foundTokens) ts) of
              Nothing -> []
-             Just x -> return AlignmentMatch { resultTextRange = fst x
-                                             , resultMatchedTokens = foundTokens
-                                             , resultQueryRange = queryRange
-                                             , resultMetaData = metadata
-                                             , resultFragmentRange = range
-                                             , resultLevenScore = score
-                                             }
+             Just x -> return $! AlignmentMatch { resultTextRange = fst x
+                                                , resultMatchedTokens = foundTokens
+                                                , resultQueryRange = queryRange
+                                                , resultMetaData = metadata
+                                                , resultFragmentRange = range
+                                                , resultLevenScore = score
+                                                }
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
@@ -144,7 +142,7 @@ buildRange dat tks d =
 -- | Perform a search based on a set of search settings.
 --
 -- Can throw a 'SemanticException' if something goes wrong in semantic processing.
-performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
+performSearch :: (Show t, Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
                  SearchIndex t l ann
               -> Language t l
 --              -> DataDictionary m

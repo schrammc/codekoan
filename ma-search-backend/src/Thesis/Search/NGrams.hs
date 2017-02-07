@@ -23,10 +23,13 @@ allNgramTails n dat | n <= 0 = []
   let result = concat $ do
         x <- [0..n-1]
         let dat' = drop x (toList dat)
-        [ngrs dat']
+        [shift x $ ngrs dat']
   in length result `seq` result
   where
     ngrs xs = ngramTails n xs
+    shift k xs = do
+      (a,b,c) <- xs
+      return (a, b+k, c)
 
 -- | A list of n long nonoverlapping, contiguous subsequences of the given
 -- sequence, paired with the remainder of the sequence starting with the
