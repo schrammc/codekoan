@@ -32,7 +32,6 @@ import           Thesis.Search.Settings
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import Debug.Trace
 
-
 -- | This function serves to solve a possible case of combinatorial explosion in
 -- search. The problem is the following:
 --
@@ -81,7 +80,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
                       (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
-  traceShow ("Fraction of relevant ngrams: " :: String, (fromIntegral $ length relevantNGramTails) / (fromIntegral $ length ngramsWithTails), length tokens, length relevantNGramTails, indexNGramSize) (return $ buildResultSet searchResults)
+  traceShow ("SEARCH: " :: String, length relevantNGramTails, length relevantTails) (return $ buildResultSet searchResults)
 
   where
     maybeTokens = processAndTokenize indexLanguage t
