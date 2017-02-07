@@ -142,7 +142,7 @@ resultMsg code (ResultMsg{..}, q) = do
 <br>|]
   where
     (aIdTxt, rest) = Text.span isDigit resultSource
-    aIdInt = read $ Text.unpack aIdTxt
+    aIdInt = read $ Text.unpack aIdTxt :: Int
     fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
     aId = AnswerId aIdInt
     link = "http://stackoverflow.com/a/" ++ show aIdInt
