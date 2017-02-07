@@ -50,7 +50,7 @@ import Debug.Trace
 -- This number can blow up and therefore this function caps the number of times
 -- that an identical n-gram is searched for.
 --
-reduceRepeats :: (Show t, Ord t) =>
+reduceRepeats :: (Ord t) =>
                  [([TokenWithRange t l], Int, [TokenWithRange t l])]
               -> [([TokenWithRange t l], Int, [TokenWithRange t l])]
 reduceRepeats xs =
@@ -64,7 +64,7 @@ reduceRepeats xs =
     tokenEq a b = getTokens a == getTokens b
     getTokens (ts, _, _) = token <$> ts
 
-findMatches :: (Show t, Ord t, Hashable t, FragmentData ann)
+findMatches :: (Ord t, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
@@ -142,7 +142,7 @@ buildRange dat tks d =
 -- | Perform a search based on a set of search settings.
 --
 -- Can throw a 'SemanticException' if something goes wrong in semantic processing.
-performSearch :: (Show t, Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
+performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
                  SearchIndex t l ann
               -> Language t l
 --              -> DataDictionary m
