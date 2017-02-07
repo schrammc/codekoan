@@ -17,6 +17,7 @@ import           Data.Monoid ((<>))
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import qualified Data.Text as Text
+import qualified Data.List as List
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.Data.Range hiding (coveragePercentage)
@@ -32,6 +33,39 @@ import           Thesis.CodeAnalysis.Semantic.Blocks
 import Debug.Trace
 
 
+-- | This function serves to solve a possible case of combinatorial explosion in
+-- search. The problem is the following:
+--
+-- Assuming there is a repeat in the query document like:
+--
+-- @
+-- 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, ...
+-- @
+--
+-- and there is a pattern that contains a similar repeat.
+--
+-- Search will then find all occurrences of the first part of the query-repeat
+-- in the pattern - repeat. And all the identical parts of the tail of the query
+-- repeat and the tail of that etc.
+--
+-- This number can blow up and therefore this function caps the number of times
+-- that an identical n-gram is searched for.
+--
+reduceRepeats :: Eq t =>
+                 Int
+              -> [(Int, [TokenWithRange t l])]
+              -> [(Int, [TokenWithRange t l])]
+reduceRepeats n xs =
+  let xs' = filter (\(_, l) -> length l >= n) xs
+      groupedByTokens = List.groupBy tokenEq xs'
+  in do
+    group <- groupedByTokens
+    if length group > 10
+      then take 10 group
+      else group
+  where
+    tokenEq (_, tsA) (_, tsB) = (take n $ token <$> tsA) == (take n $ token <$> tsB)
+
 findMatches :: (Ord t, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
@@ -43,7 +77,8 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) --ngramRelevant ngr)
                                   ngramsWithTails
-      relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
+      relevantTails = reduceRepeats n $
+                      (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ parMap rpar searchFor relevantTails
   traceShow ("Fraction of relevant ngrams: " :: String, (fromIntegral $ length relevantNGramTails) / (fromIntegral $ length ngramsWithTails), length tokens, length relevantNGramTails, indexNGramSize) (return $ buildResultSet searchResults)
