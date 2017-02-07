@@ -47,13 +47,14 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 
 import qualified Data.Vector as V
+import Control.DeepSeq
 
 -- | An integer range with a phantom type @a@, that allows us to specify, /what/
 -- the range pertains to. So e.g. a range in a @[a]@ would be a @'Range' a@.
 data Range a = Range { rangeStart :: !Int
                      , rangeEnd :: !Int
                      }
-           deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON)
+           deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON, NFData)
 
 
 -- | The number of characters in a range

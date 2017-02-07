@@ -3,8 +3,12 @@
 -- License: All rights reserved
 --
 -- This module provides internal helper functions for language processing
+
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Thesis.CodeAnalysis.Language.Internal where
 
+import           Control.DeepSeq
 import           Data.List
 import           Data.Maybe (mapMaybe)
 import           Data.Text (Text)
@@ -36,3 +40,4 @@ data TokenWithRange t l = TokenWithRange { coveredRange :: Range (LanguageText l
 -- language. Doing this prevents us from inadvertently mixing up e.g. bash and
 -- java code at any point in the program.
 newtype LanguageText l = LanguageText {langText :: Text}
+                       deriving (NFData)

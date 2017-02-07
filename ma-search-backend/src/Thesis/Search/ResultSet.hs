@@ -1,5 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Thesis.Search.ResultSet ( ResultSet(..)
                                , listOfResults
                                , buildResultSet
@@ -25,11 +26,14 @@ import qualified Data.Map.Strict as M
 import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
+import           Control.DeepSeq
+
+import           Debug.Trace
 
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l ann =
   ResultSet {resultSetMap :: M.Map ann [[AlignmentMatch t l ann]]}
-  deriving Show
+  deriving (Show, NFData)
 
 -- | This function makes sure, that for each answer there is at least one
 -- fragment, that contains at least one search results.

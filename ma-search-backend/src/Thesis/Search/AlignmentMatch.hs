@@ -4,6 +4,7 @@ import Data.List (isSubsequenceOf)
 
 import Thesis.CodeAnalysis.Language (LanguageText)
 import Thesis.Data.Range
+import Control.DeepSeq
 
 data AlignmentMatch t l ann =
   AlignmentMatch { resultTextRange :: !(Range (LanguageText l))
@@ -18,6 +19,14 @@ data AlignmentMatch t l ann =
                    -- ^ Levenshtein distance of the search match
                  }
   deriving (Eq, Show)
+
+instance (NFData t, NFData ann) => NFData (AlignmentMatch t l ann) where
+  rnf am = resultTextRange am `deepseq`
+           resultMatchedTokens am `deepseq`
+           resultQueryRange am `deepseq`
+           resultMetaData am `deepseq`
+           resultFragmentRange am `deepseq`
+           resultLevenScore am `deepseq` ()
 
 -- | Returns true if the second search result covers more than the first search
 -- result and therefore makes the first search result redundant.
