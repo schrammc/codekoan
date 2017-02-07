@@ -39,6 +39,7 @@ packages:
 - ./ma-search-backend
 - ./ma-messaging
 #- ./ma-site
+- ./ma-site-light
 - ./ma-postgres-indexer
 - ./ma-language-haskell
 - ./ma-language-java
