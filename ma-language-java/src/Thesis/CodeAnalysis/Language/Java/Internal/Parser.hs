@@ -168,7 +168,7 @@ identifier = do
     nonDigit c = isAlpha c || c == '_' || c == '$'
 
 tokenNumber :: Parser Token
-tokenNumber = tokenStandardNumber <|> tokenHexadecimal
+tokenNumber = tokenHexadecimal <|> tokenStandardNumber
 
 tokenStandardNumber = do
   scientific
