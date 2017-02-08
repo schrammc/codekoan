@@ -32,6 +32,42 @@ import           Thesis.Search.Settings
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import Debug.Trace
 
+removeRepeats :: (Eq t) =>
+                 Int
+              -> [([TokenWithRange t l], Int,b)]
+              -> [([TokenWithRange t l], Int,b)]
+removeRepeats n lst' = removeRepeats' S.empty n (zip lst (tail $ List.tails lst))
+  where
+    snd3 (_,x,_) = x
+    lst = List.sortOn snd3 lst'
+
+removeRepeats' :: (Eq t) =>
+                  S.Set Int
+               -> Int
+               -> [(([TokenWithRange t l], Int, b)
+                   , [([TokenWithRange t l], Int, b)])]
+               -> [([TokenWithRange t l], Int, b)]
+removeRepeats' _ _ [] = []
+removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
+  | S.member start recognized = removeRepeats' recognized ngramSize xs
+  | otherwise =
+    let repeats = takeRepeats start rest
+    in if length repeats > 1
+       then let (ngr, start', tl') = head $ reverse repeats
+                recognized' = foldl (flip S.insert) recognized (snd3 <$> repeats)
+            in [(ngr, start', tl'), (ngram, start, tl)] ++
+               (removeRepeats' recognized' ngramSize xs)
+       else (ngram, start, tl):(removeRepeats' recognized ngramSize xs)
+  where
+    snd3 (_,x,_) = x
+    takeRepeats _ [] = []
+    takeRepeats lastRec ((ngram', start', x):rst)
+     | start' > (ngramSize + lastRec) = []
+     | (token <$> ngram) == (token <$> ngram') =
+         (ngram',start', x):(takeRepeats start' rst)
+     | otherwise = takeRepeats lastRec rst
+
+
 -- | This function serves to solve a possible case of combinatorial explosion in
 -- search. The problem is the following:
 --
@@ -74,7 +110,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   tokens <- maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) --ngramRelevant ngr)
-                                  (reduceRepeats ngramsWithTails)
+                                  (removeRepeats indexNGramSize ngramsWithTails)
       relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ fmap searchFor relevantTails
