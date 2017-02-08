@@ -55,7 +55,7 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
     in if length repeats > 1
        then let (ngr, start', tl') = head $ reverse repeats
                 recognized' = foldl (flip S.insert) recognized (snd3 <$> repeats)
-            in [(ngr, start', tl'), (ngram, start, tl)] ++
+            in [(ngr, start', tl'){-, (ngram, start, tl)-}] ++
                (removeRepeats' recognized' ngramSize xs)
        else (ngram, start, tl):(removeRepeats' recognized ngramSize xs)
   where
