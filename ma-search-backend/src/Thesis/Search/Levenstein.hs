@@ -168,8 +168,7 @@ lookupAllSuff aut trie minMatchLength | trie == empty = []
                                     trie
                                     (startL aut)
                                     (0, minMatchLength)
-  let tokenList = concat tks
-  return $ length tokenList `seq` (tokenList, values, score)
+  return $ length tks `seq` (tks, values, score)
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
@@ -179,7 +178,7 @@ lookupSuff :: (Ord a, Ord v)
            -> CompressedTrie a (S.Set v)
            -> LevenState
            -> (Int, Int) -- ^ (Depth, Minimal result depth)
-           -> [([[a]], [(S.Set v, Int)] , Int)]
+           -> [([a], [(S.Set v, Int)] , Int)]
 lookupSuff acceptScore aut (CTrieLeaf v) st _ =
   maybe [] (\score -> [([],[(v, 0)],score)]) (acceptScore aut st)
 lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) = cur ++ do
@@ -197,11 +196,11 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) = cur ++ do
             | nMatched >  0 ->
               let valuesWithDepth = (\(s, d) -> (s, d + k)) <$> trieLeavesDist t
                   valuesFiltered = filter ((> minDepth) . snd) valuesWithDepth
-              in [( [V.toList $ V.take nMatched xs], valuesFiltered, levenDist)]
+              in [( V.toList $ V.take nMatched xs, valuesFiltered, levenDist)]
             | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                    "a negative amount of characters!"
   where
-    extend cs (cs', v', s) = (cs : cs', v', s)
+    extend cs (cs', v', s) = (cs ++ cs', v', s)
     cur = let score = toList $ acceptScore aut st
               hits = if d > minDepth
                      then do
@@ -210,7 +209,7 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) = cur ++ do
                      else []
           in case hits of
             [] -> []
-            hs@(_:_) -> length hs `seq` [([[]], hs ,)] <*> score
+            hs@(_:_) -> length hs `seq` [([], hs ,)] <*> score
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial !(Int, Int) -- The tuple contains:
