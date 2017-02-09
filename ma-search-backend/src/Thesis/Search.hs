@@ -10,6 +10,7 @@ module Thesis.Search where
 
 import           Control.Monad.Catch
 import           Control.Monad.Trans.Maybe
+import           Control.Monad.Trans.Class
 import           Control.Parallel.Strategies
 import           Control.Monad.Logger
 import           Data.Hashable (Hashable)
@@ -100,21 +101,28 @@ reduceRepeats xs =
     tokenEq a b = getTokens a == getTokens b
     getTokens (ts, _, _) = token <$> ts
 
-findMatches :: (Ord t, Hashable t, FragmentData ann)
+findMatches :: (MonadLogger m, Ord t, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
                -> Int            -- ^ The minimal match length
-               -> Maybe (ResultSet t l ann)
+               -> MaybeT m (ResultSet t l ann)
 findMatches index@(SearchIndex{..}) n t minMatchLength = do
-  tokens <- maybeTokens
+  tokens <- MaybeT $ return maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) --ngramRelevant ngr)
                                   (removeRepeats indexNGramSize ngramsWithTails)
       relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
       searchResults = concat $ fmap searchFor relevantTails
-  traceShow ("SEARCH: " :: String, length ngramsWithTails, length relevantTails) (return $ buildResultSet searchResults)
+
+  $(logDebug) $ "Number of search starting points " <>
+                (Text.pack . show $ length relevantNGramTails)
+  $(logDebug) $ "Number of search results: " <>
+                (Text.pack . show $ length searchResults) <>
+                ", building result set... "
+
+  return $ buildResultSet searchResults
 
   where
     maybeTokens = processAndTokenize indexLanguage t
@@ -193,10 +201,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  initialMatches <- MaybeT . return $ findMatches index
-                                                  levenshteinDistance
-                                                  txt
-                                                  minMatchLength
+  initialMatches <- findMatches index levenshteinDistance txt minMatchLength
 
   $(logDebug) $ "Initial alignment matches: "
                   <> printNumberOfAlignmentMatches initialMatches
