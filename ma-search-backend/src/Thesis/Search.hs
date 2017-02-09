@@ -110,11 +110,11 @@ findMatches :: (MonadLogger m, Ord t, Hashable t, FragmentData ann)
 findMatches index@(SearchIndex{..}) n t minMatchLength = do
   tokens <- MaybeT $ return maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
-      relevantNGramTails = filter (\(ngr, _, _) -> True ) --ngramRelevant ngr)
+      relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
+                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
                                   (removeRepeats indexNGramSize ngramsWithTails)
-      relevantTails = (\(_, start, rest) -> (start, rest)) <$> relevantNGramTails
       -- parMap use here is probably not yet optimal
-      searchResults = concat $ fmap searchFor relevantTails
+      searchResults = concat $ fmap searchFor relevantNGramTails
 
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
@@ -128,7 +128,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)
 
-    searchFor (start, ts)  = 
+    searchFor (ngram, start, ts) =
       let tokenVector = V.fromList $ token <$> ts
           result = search index n tokenVector minMatchLength
       in do
