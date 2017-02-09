@@ -94,7 +94,6 @@ mapFragmentResults ResultSet{..} f = ResultSet $
       [] -> Nothing
       rs  -> length rs `seq` Just rs
 
-
 -- | Map a function over all fragment result groups in a result set. If the
 -- given function returns an empty set of result groups then remove the result
 -- groups for that answer fragment from the result set entirely.
@@ -113,18 +112,15 @@ mapSplitFragmentResults ResultSet{..} f = ResultSet $
 -- | Build a result set from a list of alignment matches in which there is no
 -- alignment match for an answer is subsumed by another.
 buildResultSet :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
-buildResultSet  = removeSubsumptionInSet . buildResultSet'
+buildResultSet = removeSubsumptionInSet . buildResultSet'
 
 -- | Build a result set from a list of search results.
 buildResultSet' :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
 buildResultSet' [] = ResultSet M.empty
 buildResultSet' results =
-  let groupedByAnn = groupBy (\a b -> resultMetaData a == resultMetaData b) results
-  in ResultSet $ foldl1 (M.unionWith (++)) $ do
-    annGroup <- groupedByAnn
-    let ann = resultMetaData $ head annGroup
-    return $ M.singleton ann  [annGroup]
-
+  ResultSet $ M.map (\x -> [x]) $ foldl combine M.empty results
+  where
+    combine mp match = M.insertWith (++) (resultMetaData match) [match] mp
 
 removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
 removeSubsumptionInSet ResultSet{..}  =
