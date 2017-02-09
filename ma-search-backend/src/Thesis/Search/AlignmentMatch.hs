@@ -32,9 +32,13 @@ instance (NFData t, NFData ann) => NFData (AlignmentMatch t l ann) where
 -- result and therefore makes the first search result redundant.
 --
 -- NOTE THAT THIS FUNCTION DOES NOT TAKE 'resultLevenScore' INTO CONSIDERATION.
-subsumedBy :: (Eq t) => AlignmentMatch t l ann -> AlignmentMatch t l ann -> Bool
-subsumedBy a b = fragmentSubsumption && textRangeSubsumption && tokenSubsumption
+subsumedBy :: (Eq t, Eq ann) => AlignmentMatch t l ann -> AlignmentMatch t l ann -> Bool
+subsumedBy a b = sameFragment &&
+                 fragmentSubsumption &&
+                 textRangeSubsumption &&
+                 tokenSubsumption
   where
+    sameFragment = resultMetaData a == resultMetaData b
     tokenSubsumption = isSubsequenceOf (resultMatchedTokens a)
                                        (resultMatchedTokens b)
     fragmentSubsumption = isSubRangeOf (resultFragmentRange a)
@@ -42,7 +46,7 @@ subsumedBy a b = fragmentSubsumption && textRangeSubsumption && tokenSubsumption
     textRangeSubsumption = isSubRangeOf (resultTextRange a)
                                         (resultTextRange b)
 
-subsumedByProper :: (Eq t) =>
+subsumedByProper :: (Eq t, Eq ann) =>
                     AlignmentMatch t l ann
                  -> AlignmentMatch t l ann
                  -> Bool
