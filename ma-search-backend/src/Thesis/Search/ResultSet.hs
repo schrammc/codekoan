@@ -124,7 +124,7 @@ buildResultSet' results =
 
 removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
 removeSubsumptionInSet ResultSet{..}  =
-  ResultSet $  fmap (\rs -> [removeSubsumption $ concat rs]) resultSetMap
+  ResultSet $  fmap (\rs -> removeSubsumption' <$> rs) resultSetMap
 
 -- TODO: Update comment
 -- | For each fragment remove all search results, that are properly subsumed by
@@ -137,6 +137,22 @@ removeSubsumption results = do
       if null $ filter (/= r) $ filter (subsumedByProper r) results
         then [r]
         else []
+
+removeSubsumption' :: (Eq t, Eq ann) => [AlignmentMatch t l ann] -> [AlignmentMatch t l ann]
+removeSubsumption' results = go [] results
+  where
+    go xs []       = xs
+    go xs ys@(y:_) =
+                 let noX = null $ filter (\k -> k /= y && subsumedByProper y k) xs
+                     yLarger =
+                       case filter (\k -> k /= y && subsumedByProper y k) ys of
+                         [] -> Nothing
+                         e:_ -> Just e
+                 in if noX
+                    then case yLarger of
+                      Nothing -> go (y:xs) ys
+                      Just e  -> go (e:xs) ys
+                    else go xs ys
 
 
 -- | Get the number of answers for which this result set contains alignment
