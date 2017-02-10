@@ -4,8 +4,10 @@
 module Thesis.Search.FragmentData where
 
 import Thesis.Data.Stackoverflow.Answer
+import Control.DeepSeq
 
-class (Ord a) => FragmentData a where
+
+class (NFData a, Ord a) => FragmentData a where
   printFragData :: a -> String
   fragDataTokenLength :: a -> Int
 

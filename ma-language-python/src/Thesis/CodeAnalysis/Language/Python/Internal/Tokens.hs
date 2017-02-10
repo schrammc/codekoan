@@ -12,6 +12,7 @@ module Thesis.CodeAnalysis.Language.Python.Internal.Tokens where
 
 import Data.Hashable (Hashable)
 import GHC.Generics (Generic)
+import Control.DeepSeq (NFData)
 
 data PyToken = PyTokenIndent
              | PyTokenUnindent
@@ -64,4 +65,4 @@ data PyToken = PyTokenIndent
              | PyTokenStringLiteral
              | PyTokenCharacterLiteral
              | PyTokenModifier
-             deriving (Eq, Ord, Show, Generic, Hashable)
+             deriving (Eq, Ord, Show, Generic, Hashable, NFData)

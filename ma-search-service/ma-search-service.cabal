@@ -22,6 +22,7 @@ library
                    , amqp >= 0.13
                    , base >= 4.7 && < 5
                    , conduit >= 1.2.6
+                   , deepseq >= 1.4.1
                    , exceptions >= 0.8.3
                    , hashable >= 1.2
                    , http-conduit >= 2.1.11
