@@ -25,6 +25,7 @@ library
                    , exceptions >= 0.8.3
                    , hashable >= 1.2
                    , http-conduit >= 2.1.11
+                   , ma-language-haskell >= 0.1.0.0
                    , ma-language-java >= 0.1.0.0
                    , ma-language-python >= 0.1.0.0
                    , ma-messaging >= 0.1.0.0

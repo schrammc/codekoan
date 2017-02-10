@@ -29,6 +29,7 @@ import           Thesis.SearchService.InitializationException
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.Java
 import           Thesis.CodeAnalysis.Language.Python
+import           Thesis.CodeAnalysis.Language.Haskell
 
 import           Thesis.Data.Stackoverflow.Dump.Source.Postgres
 import           Thesis.Data.Stackoverflow.Answer
@@ -82,7 +83,6 @@ buildFoundation settings@ServiceSettings{..} = do
   -- Building language specifics
   if | serviceLanguage == languageName java -> do
          $(logInfo) "Application language: java"
-
          index <- buildIndexForJava filteredAnswerSource 10
          return $ buildApp java index
 
@@ -90,6 +90,10 @@ buildFoundation settings@ServiceSettings{..} = do
          $(logInfo) "Application language: python"
          index <- buildIndexForPython filteredAnswerSource 10
          return $ buildApp python index
+     | serviceLanguage == languageName haskell -> do
+         $(logInfo) "Application language: haskell"
+         index <- buildIndexFromAnswers haskell filteredAnswerSource 10
+         return $ buildApp haskell index
      | otherwise -> do
          $(logError) $ "Unrecognized language: " <> serviceLanguage
          throwM InitializationException
