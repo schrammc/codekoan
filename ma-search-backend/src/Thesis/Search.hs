@@ -31,7 +31,8 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.CodeAnalysis.Semantic.Blocks
-import Debug.Trace
+import           Control.DeepSeq
+import           Debug.Trace
 
 removeRepeats :: (Eq t) =>
                  Int
@@ -101,7 +102,7 @@ reduceRepeats xs =
     tokenEq a b = getTokens a == getTokens b
     getTokens (ts, _, _) = token <$> ts
 
-findMatches :: (MonadLogger m, Ord t, Hashable t, FragmentData ann)
+findMatches :: (NFData t, MonadLogger m, Ord t, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
@@ -111,7 +112,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   tokens <- MaybeT $ return maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
-                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
+--                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
                                   (removeRepeats indexNGramSize ngramsWithTails)
       -- parMap use here is probably not yet optimal
       searchResults = concat $ fmap searchFor relevantNGramTails
@@ -119,7 +120,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
   $(logDebug) $ "Number of search results: " <>
-                (Text.pack . show $ length searchResults) <>
+                (Text.pack . show $ length (force searchResults)) <>
                 ", building result set... "
 
   return $ buildResultSet searchResults
@@ -186,7 +187,7 @@ buildRange dat tks d =
 -- | Perform a search based on a set of search settings.
 --
 -- Can throw a 'SemanticException' if something goes wrong in semantic processing.
-performSearch :: (Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
+performSearch :: (NFData t, Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
                  SearchIndex t l ann
               -> Language t l
 --              -> DataDictionary m

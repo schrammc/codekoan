@@ -4,10 +4,11 @@ module Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken where
 
 import Data.Hashable (Hashable)
 import GHC.Generics (Generic)
+import Control.DeepSeq (NFData)
 
 data IdentifierType = TypeOrConstructor
                     | TypeVariableOrId
-                      deriving (Eq, Ord, Show, Generic, Hashable)
+                      deriving (Eq, Ord, Show, Generic, Hashable, NFData)
                                
 data HsToken = HsIdentifier IdentifierType
              | HsNumber
@@ -60,7 +61,7 @@ data HsToken = HsIdentifier IdentifierType
              | HsOpCons
              | HsOpInfixConstructor
              | HsUnderscore
-             deriving (Eq, Ord, Show, Generic, Hashable)
+             deriving (Eq, Ord, Show, Generic, Hashable, NFData)
 
 isHsIdentifier (HsIdentifier _) = True
 isHsIdentifier _ = False

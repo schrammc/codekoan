@@ -38,9 +38,11 @@ import           Thesis.Data.Stackoverflow.Dictionary.Postgres
 import           Thesis.Search.Index
 import           Thesis.Search.FragmentData
 
+import           Control.DeepSeq
+
 import Data.Hashable (Hashable)
 data Application m where
-  Application :: (MonadThrow m, MonadIO m, Hashable t, Ord t) =>
+  Application :: (MonadThrow m, MonadIO m, NFData t, Hashable t, Ord t) =>
                  { appRabbitConnection :: !Connection
                  , appSettings         :: !ServiceSettings
                  , appQueue            :: !Text.Text
@@ -66,7 +68,7 @@ buildFoundation settings@ServiceSettings{..} = do
   $(logInfo) "PostgreSQL connection established!"
   appDictionary <- postgresDictionary psqlConnection
 
-  let buildApp :: forall t l . (Ord t, Hashable t) =>
+  let buildApp :: forall t l . (Ord t, Hashable t, NFData t) =>
                   Language t l
                -> SearchIndex t l AnswerFragmentMetaData
                -> Application m
