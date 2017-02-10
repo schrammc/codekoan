@@ -35,8 +35,8 @@ instance (NFData t, NFData ann) => NFData (AlignmentMatch t l ann) where
 subsumedBy :: (Eq t, Eq ann) => AlignmentMatch t l ann -> AlignmentMatch t l ann -> Bool
 subsumedBy a b = sameFragment &&
                  fragmentSubsumption &&
-                 textRangeSubsumption &&
-                 tokenSubsumption
+                 textRangeSubsumption -- &&
+--                 tokenSubsumption
   where
     sameFragment = resultMetaData a == resultMetaData b
     tokenSubsumption = isSubsequenceOf (resultMatchedTokens a)
