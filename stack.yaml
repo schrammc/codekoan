@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: nightly-2017-02-02
+resolver: lts-8.0
 #system-ghc: true
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -39,7 +39,7 @@ packages:
 - ./ma-search-backend
 - ./ma-messaging
 #- ./ma-site
-- ./ma-site-light
+#- ./ma-site-light
 - ./ma-postgres-indexer
 - ./ma-language-haskell
 - ./ma-language-java
