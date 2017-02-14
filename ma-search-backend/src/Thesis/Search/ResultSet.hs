@@ -124,7 +124,7 @@ buildResultSet' results =
 
 removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
 removeSubsumptionInSet ResultSet{..}  = traceShow ("GROUP SIZES: ",  groupSizes) $
-  ResultSet $  fmap (\rs -> removeSubsumption' <$> rs) resultSetMap
+  ResultSet $  fmap (\rs -> removeSubsumption <$> rs) resultSetMap
   where
     groupSizes = take 500 $ reverse $ sort $ do
       (_, groups) <- M.toList resultSetMap
