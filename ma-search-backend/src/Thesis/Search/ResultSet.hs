@@ -19,7 +19,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , buildSet
                                )where
 
-import           Data.List (groupBy)
+import           Data.List (groupBy, sort)
 import           Data.Maybe (catMaybes)
 import qualified Data.Map.Strict as M
 
@@ -123,8 +123,12 @@ buildResultSet' results =
     combine mp match = M.insertWith (++) (resultMetaData match) [match] mp
 
 removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
-removeSubsumptionInSet ResultSet{..}  =
+removeSubsumptionInSet ResultSet{..}  = traceShow ("GROUP SIZES: ",  groupSizes) $
   ResultSet $  fmap (\rs -> removeSubsumption' <$> rs) resultSetMap
+  where
+    groupSizes = take 500 $ reverse $ sort $ do
+      (_, groups) <- M.toList resultSetMap
+      return . length . concat $ groups
 
 -- TODO: Update comment
 -- | For each fragment remove all search results, that are properly subsumed by
