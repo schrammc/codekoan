@@ -120,7 +120,7 @@ buildResultSet matches = ResultSet mp
     filteredGroups = filter (not . null) $ removeSubsumption'' <$> matchGroups
     mp = M.fromList $ do
       group <- filteredGroups
-      return (resultMetaData $ head group, [group])
+      return $ length group `seq` (resultMetaData $ head group, [group])
 
 -- | Build a result set from a list of search results.
 buildResultSet' :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
@@ -155,15 +155,15 @@ removeSubsumption'' :: (Eq t, Eq ann) =>
                     -> [AlignmentMatch t l ann]
 removeSubsumption'' results' = concat $ isIn <$> results
   where
-    results = sortOn (rangeEnd . resultQueryRange) results'
-    isIn r = let relevant = takeWhile
-                              (\r' -> (rangeStart . resultQueryRange $ r) <=
-                                      (rangeEnd . resultQueryRange $ r'))
+    results = sortOn (rangeEnd . resultTextRange) results'
+    isIn r = let relevant = dropWhile
+                              (\r' -> (rangeEnd . resultTextRange $ r) >
+                                      (rangeEnd . resultTextRange $ r'))
                               results
                  overlapping = filter
-                                 (\r' -> (rangeEnd . resultQueryRange $ r) >=
-                                         (rangeStart . resultQueryRange $ r'))
-                                 relevant
+                                (\r' -> (rangeStart . resultTextRange $ r) >
+                                        (rangeStart . resultTextRange $ r'))
+                                relevant
                  subsumedByNone = null $
                                   filter (/= r) $
                                   filter (subsumedByProper r) overlapping
