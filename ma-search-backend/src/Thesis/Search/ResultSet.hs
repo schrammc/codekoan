@@ -160,9 +160,13 @@ removeSubsumption'' results' = concat $ isIn <$> results
                               (\r' -> (rangeStart . resultQueryRange $ r) <=
                                       (rangeEnd . resultQueryRange $ r'))
                               results
+                 overlapping = filter
+                                 (\r' -> (rangeEnd . resultQueryRange $ r) >=
+                                         (rangeStart . resultQueryRange $ r'))
+                                 relevant
                  subsumedByNone = null $
                                   filter (/= r) $
-                                  filter (subsumedByProper r) relevant
+                                  filter (subsumedByProper r) overlapping
              in if subsumedByNone
                 then [r]
                 else []
