@@ -95,9 +95,14 @@ data ResultMsg =
 data AlignmentMatchMsg =
   AlignmentMatchMsg { alignmentMatchLevenScore :: !Int
                     , alignmentMatchResultTextRange :: (Range Text)
+                    , alignmentMatchPatternTokenRange :: (Range Int)
+                    , alignmentMatchQueryTokenRange :: (Range Int)
                     }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 alignmentMatchToMsg :: AlignmentMatch t l fd -> AlignmentMatchMsg
 alignmentMatchToMsg AlignmentMatch{..} =
-  AlignmentMatchMsg resultLevenScore (convertRange resultTextRange)
+  AlignmentMatchMsg resultLevenScore
+                    (convertRange resultTextRange)
+                    (convertRange resultFragmentRange)
+                    (convertRange resultQueryRange)
