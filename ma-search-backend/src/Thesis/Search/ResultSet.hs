@@ -117,7 +117,7 @@ buildResultSet matches = ResultSet mp
     matchGroups =  (groupBy $ \a b ->  resultMetaData a == resultMetaData b) $
                    (sortOn resultMetaData) $
                    matches
-    filteredGroups = filter (not . null) $ removeSubsumption <$> matchGroups
+    filteredGroups = filter (not . null) $ removeSubsumption'' <$> matchGroups
     mp = M.fromList $ do
       group <- filteredGroups
       return (resultMetaData $ head group, [group])
@@ -149,6 +149,23 @@ removeSubsumption results = traceShow (length results) $ do
       traceShow "." $ if null $ filter (/= r) $ filter (subsumedByProper r) results
         then [r]
         else []
+
+removeSubsumption'' :: (Eq t, Eq ann) =>
+                       [AlignmentMatch t l ann]
+                    -> [AlignmentMatch t l ann]
+removeSubsumption'' results' = concat $ isIn <$> results
+  where
+    results = sortOn (rangeEnd . resultQueryRange) results'
+    isIn r = let relevant = takeWhile
+                              (\r' -> (rangeStart . resultQueryRange $ r) <=
+                                      (rangeEnd . resultQueryRange $ r'))
+                              results
+                 subsumedByNone = null $
+                                  filter (/= r) $
+                                  filter (subsumedByProper r) relevant
+             in if subsumedByNone
+                then [r]
+                else []
 
 removeSubsumption' :: (Eq t, Eq ann) => [AlignmentMatch t l ann] -> [AlignmentMatch t l ann]
 removeSubsumption' results = go [] results
