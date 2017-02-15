@@ -19,7 +19,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , buildSet
                                )where
 
-import           Data.List (groupBy, sort)
+import           Data.List (groupBy, sort, sortOn)
 import           Data.Maybe (catMaybes)
 import qualified Data.Map.Strict as M
 
@@ -112,7 +112,15 @@ mapSplitFragmentResults ResultSet{..} f = ResultSet $
 -- | Build a result set from a list of alignment matches in which there is no
 -- alignment match for an answer is subsumed by another.
 buildResultSet :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
-buildResultSet = removeSubsumptionInSet . buildResultSet'
+buildResultSet matches = ResultSet mp
+  where
+    matchGroups =  (groupBy $ \a b ->  resultMetaData a == resultMetaData b) $
+                   (sortOn resultMetaData) $
+                   matches
+    filteredGroups = filter (not . null) $ removeSubsumption <$> matchGroups
+    mp = M.fromList $ do
+      group <- filteredGroups
+      return (resultMetaData $ head group, [group])
 
 -- | Build a result set from a list of search results.
 buildResultSet' :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
@@ -136,9 +144,9 @@ removeSubsumptionInSet ResultSet{..}  = traceShow ("GROUP SIZES: ",  groupSizes)
 -- from a search result set, as there is always at least one search result per
 -- answer fragment, that is not subsumed by another.
 removeSubsumption :: (Eq t, Eq ann) => [AlignmentMatch t l ann] -> [AlignmentMatch t l ann]
-removeSubsumption results = do
+removeSubsumption results = traceShow (length results) $ do
       r <- results
-      if null $ filter (/= r) $ filter (subsumedByProper r) results
+      traceShow "." $ if null $ filter (/= r) $ filter (subsumedByProper r) results
         then [r]
         else []
 
