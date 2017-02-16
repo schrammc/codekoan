@@ -117,7 +117,7 @@ buildResultSet matches = ResultSet mp
     matchGroups =  (groupBy $ \a b ->  resultMetaData a == resultMetaData b) $
                    (sortOn resultMetaData) $
                    matches
-    filteredGroups = filter (not . null) $ removeSubsumption'' <$> matchGroups
+    filteredGroups = filter (not . null) $ removeSubsumption <$> matchGroups
     mp = M.fromList $ do
       group <- filteredGroups
       return $ length group `seq` (resultMetaData $ head group, [group])
@@ -138,22 +138,14 @@ removeSubsumptionInSet ResultSet{..}  = traceShow ("GROUP SIZES: ",  groupSizes)
       (_, groups) <- M.toList resultSetMap
       return . length . concat $ groups
 
--- TODO: Update comment
 -- | For each fragment remove all search results, that are properly subsumed by
--- another search result. Note that this will not remove all answer fragments
+-- another search result. Note that this can't remove all answer fragments
 -- from a search result set, as there is always at least one search result per
 -- answer fragment, that is not subsumed by another.
-removeSubsumption :: (Eq t, Eq ann) => [AlignmentMatch t l ann] -> [AlignmentMatch t l ann]
-removeSubsumption results = traceShow (length results) $ do
-      r <- results
-      traceShow "." $ if null $ filter (/= r) $ filter (subsumedByProper r) results
-        then [r]
-        else []
-
-removeSubsumption'' :: (Eq t, Eq ann) =>
+removeSubsumption :: (Eq t, Eq ann) =>
                        [AlignmentMatch t l ann]
                     -> [AlignmentMatch t l ann]
-removeSubsumption'' results' = concat $ isIn <$> results
+removeSubsumption results' = concat $ isIn <$> results
   where
     results = nubSimple $ sortOn (rangeEnd . resultQueryRange) results'
     nubSimple [] = []
@@ -175,23 +167,6 @@ removeSubsumption'' results' = concat $ isIn <$> results
              in if subsumedByNone
                 then [r]
                 else []
-
-removeSubsumption' :: (Eq t, Eq ann) => [AlignmentMatch t l ann] -> [AlignmentMatch t l ann]
-removeSubsumption' results = go [] results
-  where
-    go xs []       = xs
-    go xs ys@(y:_) =
-                 let noX = null $ filter (\k -> k /= y && subsumedByProper y k) xs
-                     yLarger =
-                       case filter (\k -> k /= y && subsumedByProper y k) ys of
-                         [] -> Nothing
-                         e:_ -> Just e
-                 in if noX
-                    then case yLarger of
-                      Nothing -> go (y:xs) ys
-                      Just e  -> go (e:xs) ys
-                    else go xs ys
-
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.
