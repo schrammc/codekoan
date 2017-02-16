@@ -155,14 +155,19 @@ removeSubsumption'' :: (Eq t, Eq ann) =>
                     -> [AlignmentMatch t l ann]
 removeSubsumption'' results' = concat $ isIn <$> results
   where
-    results = sortOn (rangeEnd . resultQueryRange) results'
-    isIn r = let relevant = takeWhile
-                              (\r' -> (rangeStart . resultQueryRange $ r) <=
-                                      (rangeEnd . resultQueryRange $ r'))
+    results = nubSimple $ sortOn (rangeEnd . resultQueryRange) results'
+    nubSimple [] = []
+    nubSimple (x:[]) = [x]
+    nubSimple (x:y:ys) | x == y    = (nubSimple $ y:ys)
+                       | otherwise = x:(nubSimple $ y:ys)
+    isIn r = let relevant = dropWhile
+                              (\r' -> (rangeEnd . resultQueryRange $ r') <
+                                      (rangeEnd . resultQueryRange $ r))
                               results
                  overlapping = filter
-                                 (\r' -> (rangeEnd . resultQueryRange $ r) >=
-                                         (rangeStart . resultQueryRange $ r'))
+                                 (\r' -> (rangeStart . resultQueryRange $ r') <=
+                                         (rangeStart . resultQueryRange $ r)
+                                         )
                                  relevant
                  subsumedByNone = null $
                                   filter (/= r) $
