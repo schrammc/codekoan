@@ -9,6 +9,9 @@
 module Thesis.Data.Range
         ( -- * Ranges
           Range(..)
+
+        , rangeLength
+
           -- * Overlapping and sub-ranges
           -- ** Overlap detection
         , overlap
