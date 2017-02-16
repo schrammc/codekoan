@@ -27,7 +27,7 @@ import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
 import           Control.DeepSeq
-
+import           Thesis.Data.Range
 import           Debug.Trace
 
 -- | Search results organized into questions and fragments of these questions
@@ -117,7 +117,7 @@ buildResultSet matches = ResultSet mp
     matchGroups =  (groupBy $ \a b ->  resultMetaData a == resultMetaData b) $
                    (sortOn resultMetaData) $
                    matches
-    filteredGroups = filter (not . null) $ removeSubsumption <$> matchGroups
+    filteredGroups = filter (not . null) $ removeSubsumption' <$> matchGroups
     mp = M.fromList $ do
       group <- filteredGroups
       return $ length group `seq` (resultMetaData $ head group, [group])
@@ -148,10 +148,6 @@ removeSubsumption :: (Eq t, Eq ann) =>
 removeSubsumption results' = concat $ isIn <$> results
   where
     results = nubSimple $ sortOn (rangeEnd . resultQueryRange) results'
-    nubSimple [] = []
-    nubSimple (x:[]) = [x]
-    nubSimple (x:y:ys) | x == y    = (nubSimple $ y:ys)
-                       | otherwise = x:(nubSimple $ y:ys)
     isIn r = let relevant = dropWhile
                               (\r' -> (rangeEnd . resultQueryRange $ r') <
                                       (rangeEnd . resultQueryRange $ r))
@@ -167,6 +163,41 @@ removeSubsumption results' = concat $ isIn <$> results
              in if subsumedByNone
                 then [r]
                 else []
+
+removeSubsumption' :: (Eq t, Eq ann) =>
+                      [AlignmentMatch t l ann]
+                   -> [AlignmentMatch t l ann]
+removeSubsumption' [] = []
+removeSubsumption' results' = maxSet [] results
+  where
+    results = nubSimple $
+              sortOn (\r -> ( rangeStart $ resultQueryRange r
+                            , (-1) * (rangeLength $ resultQueryRange r)))
+                     results'
+    append x = (++ [x])
+    maxSet _      []        = []
+    maxSet active (next:xs) =
+      let (subsumedByNone, active') = adjustActive active next
+      in if subsumedByNone
+         then next:(maxSet active' xs)
+         else maxSet active' xs
+    adjustActive []     next = (True, [next])
+    adjustActive active next =
+      let active' = filter (\a -> (rangeEnd $ resultQueryRange a) >=
+                                  (rangeStart $ resultQueryRange next))
+                    active
+          subsumedByNone = null $
+                           filter (subsumedByProper next) active'
+      in if subsumedByNone
+         then (True, append next active')
+         else (False, active')
+
+
+nubSimple [] = []
+nubSimple (x:[]) = [x]
+nubSimple (x:y:ys) | x == y    = (nubSimple $ y:ys)
+                   | otherwise = x:(nubSimple $ y:ys)
+
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.
