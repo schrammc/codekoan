@@ -17,10 +17,19 @@ import Text.Julius (RawJS (..))
 getDisplayR :: Int -> Handler Html
 getDisplayR qInt = do
   App{..} <- getYesod
-  Right resultSet <- waitForReply appSettings queryId
-  defaultLayout $ do
-    setTitle "CodeK\333an"
-    $(widgetFile "display")
+  reply <- waitForReply appSettings queryId
+  case reply of
+    Right resultSet -> 
+      defaultLayout $ do
+        setTitle "CodeK\333an"
+        $(widgetFile "display")
+    Left errorMsg -> do
+      defaultLayout $ [whamlet|
+<h1>There was an error in the search backend!
+
+Details: #{errorMsg} <br>
+Query identifier: #{qInt}
+|]
   where
     queryId = QueryId qInt
 

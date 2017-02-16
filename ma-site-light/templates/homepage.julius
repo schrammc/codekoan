@@ -73,48 +73,16 @@ function submitSearch(){
 	    }
 	});
     };
-    
-    if(query != null){
-
-	if(query.queryLanguage == 'unknown'){
-	    $( "#dialog-confirm" ).dialog({
-		resizable: false,
-		height: "auto",
-		width: 400,
-		modal: true,
-		//autoOpen: false,
-		buttons: {
-    		    "Use this language!": function() {
-			var lang = $('input[name=lang]:checked').attr('val');
-			query.queryLanguage=lang;
-
-			submit();
-    			$( this ).dialog( "close" );
-    		    }
-		}
-	    });
-	} else {
-	    submit();
-	}
-
-//	if(query.queryLanguage == 'python'){
-//	    alert("Your python code may still be processed with some errors.\n\nI'm already working on it...");
-//	}
-	
-	
-    }
+    var lang = $('input[name=lang]:checked').attr('val').replace(/\'/g,'');
+    query.queryLanguage=lang;
+    submit();
 }
 
 function generateQuery(){
     var settings = genSearchSettings();
     var text = $('#proginput').val();
-    var language = guessLanguage(text);
+    var language = 'unknown';
 
-    //if(language == 'python'){
-    //	alert('Might wanna re-enable this before the demo...');
-    //	//settings.blockFiltering=false;
-    //}
-   
     return({ queryText: text
            , queryLanguage: language
 	   , queryId: null
@@ -127,23 +95,23 @@ function genSearchSettings(){
     var searchType = getSearchType();
     switch(searchType){
     case "High Similarity":
-	return({ minMatchLength: 50
-	       , levenshteinDistance: 0
-	       , coveragePercentage: 0.75
+	return({ minMatchLength: 55
+	       , levenshteinDistance: 2
+	       , coveragePercentage: 0.7
 	       , blockFiltering: true
 	       , semanticThreshold: 0.6
 	       });
     case "Medium Similarity":
-	return({ minMatchLength: 30
+	return({ minMatchLength: 20
 	       , levenshteinDistance: 0
-	       , coveragePercentage: 0.75
+	       , coveragePercentage: 0.7
 	       , blockFiltering: true
-	       , semanticThreshold: 0.25
+	       , semanticThreshold: 0.3
 	       });
     case "Low Similarity":
-	return({ minMatchLength: 25
-	       , levenshteinDistance: 1
-	       , coveragePercentage: 0.30
+	return({ minMatchLength: 15
+	       , levenshteinDistance: 0
+	       , coveragePercentage: 0.5
 	       , blockFiltering: true
 	       , semanticThreshold: null
 	       });

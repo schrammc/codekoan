@@ -18,7 +18,7 @@ function showDialog(source){
     $( "#dialog-confirm" ).dialog({
         resizable: false,
         height: "auto",
-        width: 800,
+        width: 400,
         modal: true,
         //autoOpen: false,
         buttons: {
