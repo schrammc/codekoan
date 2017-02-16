@@ -120,7 +120,7 @@ buildResultSet matches = ResultSet mp
     filteredGroups = filter (not . null) $ removeSubsumption'' <$> matchGroups
     mp = M.fromList $ do
       group <- filteredGroups
-      return (resultMetaData $ head group, [group])
+      return $ length group `seq` (resultMetaData $ head group, [group])
 
 -- | Build a result set from a list of search results.
 buildResultSet' :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
