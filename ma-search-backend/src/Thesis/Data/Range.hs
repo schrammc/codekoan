@@ -157,10 +157,16 @@ vectorInRange (Range a b) vec | b - a >= 0 && b <= V.length vec  =
                                 Just $ V.slice a (b-a) vec
                               | otherwise = Nothing
 
--- Helper function to get all ranges in a text in one pass because text has
--- /O(n)/ random access
+-- | Helper function to get all ranges in a text in one pass because text has
+-- /O(n)/ random access.
+--
+-- /TODO/: This is still wrong in cases where one range includes another like
+--
+-- @
+-- textInRanges (Text.pack "0123456789") [Range 2 4, Range 1 7]
+-- @
 textInRanges :: Text -> [Range Text] -> [Text]
-textInRanges t ranges = texts 0 t ranges
+textInRanges t ranges = texts 0 t (sort ranges)
   where
     texts _ _ [] = []
     texts pos t ((Range start stop):rs)  =
