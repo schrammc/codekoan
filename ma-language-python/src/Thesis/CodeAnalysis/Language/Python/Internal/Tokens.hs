@@ -65,4 +65,5 @@ data PyToken = PyTokenIndent
              | PyTokenStringLiteral
              | PyTokenCharacterLiteral
              | PyTokenModifier
+             | PyTokenDecorator
              deriving (Eq, Ord, Show, Generic, Hashable, NFData)
