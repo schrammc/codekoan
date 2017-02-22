@@ -164,10 +164,10 @@ lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
 lookupAllSuff aut trie minMatchLength | trie == empty = []
                                       | otherwise = do
   (tks, values, score) <- lookupSuff acceptAllScoreL
-                                    aut
-                                    trie
-                                    (startL aut)
-                                    (0, minMatchLength)
+                                     aut
+                                     trie
+                                     (startL aut)
+                                     (0, minMatchLength)
   return $ length tks `seq` (tks, values, score)
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH

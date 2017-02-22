@@ -100,8 +100,8 @@ blockAccordance BlockData{..} resA resB =
                               (rangeStart $ resultQueryRange resB)
     fragmentDist = fragmentRelation (rangeStart $ resultFragmentRange resA)
                                     (rangeStart $ resultFragmentRange resB)
-    blockStringEquality = (queryBlockString $ resultQueryRange resA) ==
-                          (queryBlockString $ resultQueryRange resB)
+--    blockStringEquality = (queryBlockString $ resultQueryRange resA) ==
+--                          (queryBlockString $ resultQueryRange resB)
     noQueryOverlap = not $ overlap (resultQueryRange resA)
                                    (resultQueryRange resB)
     noFragOverlap  = not $ overlap (resultFragmentRange resA)
