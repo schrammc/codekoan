@@ -18,6 +18,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Control
+import           Control.Monad.Trans.Maybe
 import           Data.Aeson
 import           Data.Maybe (fromJust, fromMaybe)
 import           Data.Monoid ((<>))
@@ -26,6 +27,7 @@ import qualified Network.AMQP as AMQP
 import           Network.HTTP.Simple
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
+import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Messaging.Message
 import           Thesis.Messaging.Query
@@ -86,7 +88,16 @@ appLoop foundation@(Application{..}) channel = do
 
   (amqpMessage, envelope) <- getMessage 0
 
-  let getTokenV = getAnswerFragment appDictionary appLanguage
+  let getTokenV = \fragData@AnswerFragmentMetaData{..} -> MaybeT $ do
+        fragMaybe <- runMaybeT $ getAnswerFragment appDictionary
+                                                   appLanguage
+                                                   fragData
+        case fragMaybe of
+          Nothing -> do
+            $(logError) $ "Failed to get answer fragment " <>
+                          (pack $ show fragmentMetaId)
+            return Nothing
+          Just frag -> return $ Just frag
 
   case decode $ AMQP.msgBody amqpMessage of
     -- Just log an error if we can't decode the amqp-message
