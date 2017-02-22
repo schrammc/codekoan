@@ -107,7 +107,11 @@ searchResultSimilarity :: (MonadLogger m, MonadThrow m) => Language t l
                        -- ^ answer fragment
                        -> [AlignmentMatch t l ann]
                        -> m Double
-searchResultSimilarity lang SemanticAnalyzer{..} (queryTokens, queryText) (fragTokens, fragText) matches = do
+searchResultSimilarity lang
+                       SemanticAnalyzer{..}
+                       (queryTokens, queryText)
+                       (fragTokens, fragText)
+                       matches = do
   fragIds <- getIds lang (fragTokens, fragText) matches Fragment
   queryIds <- getIds lang (queryTokens, queryText) matches Query
   semanticSimilarity (semanticPreprocess queryIds) (semanticPreprocess fragIds)
@@ -132,7 +136,8 @@ getIds lang (tokens, text) matches queryOrFragment = do
           Nothing     -> do
             $(logError) $ (Text.pack $ buildErrorMsg match)
             throwM $ (SemanticException $ buildErrorMsg match)
-      return $ identifiers lang text (V.concat v)
+      let listOfIds = identifiers lang text (V.concat v)
+      return . concat $ (splitIdText <$> listOfIds)
   where
     tokenRange match = convertRange $ 
       if queryOrFragment == Fragment
