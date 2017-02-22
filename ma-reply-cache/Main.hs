@@ -56,6 +56,7 @@ pollMessages app@App{..} = do
       case maybeMsg of
         Nothing -> return ()
         Just (msg, envelope) -> do
+          $(logDebug) "Got a message from RabbitMQ"
           case decode (msgBody msg) of
             Nothing -> case decode (msgBody msg) of
               Nothing ->
