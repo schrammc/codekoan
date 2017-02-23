@@ -198,6 +198,7 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> pyStringLiteral
          <|> pyNumber
          <|> identifier
+         <|> ("@" *> identifier *> pure PyTokenDecorator)
 
 pyStringLiteral :: Parser PyToken
 pyStringLiteral = ((characterLiteral *> pure ()) <|>
