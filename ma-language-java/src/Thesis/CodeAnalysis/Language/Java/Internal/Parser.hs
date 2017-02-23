@@ -95,6 +95,7 @@ tokenP = "<" *> pure TokenLT
          <|> keyword
          <|> primitive
          <|> tokenNumber
+         <|> label
          <|> identifier
          <|> stringLiteral *> pure TokenStringLiteral
          <|> characterLiteral *> pure TokenCharacterLiteral
@@ -158,6 +159,9 @@ primitive = ("byte"
 -- | Annotations starting with an \@ symbol
 annotation :: Parser Token
 annotation = char '@' *> identifier *> pure TokenAnnotation
+
+label :: Parser Token
+label = identifier *> many' (char ' ') *> ":" *> pure TokenLabel
 
 identifier :: Parser Token
 identifier = do

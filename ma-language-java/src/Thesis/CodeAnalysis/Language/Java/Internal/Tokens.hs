@@ -51,6 +51,7 @@ data Token = TokenLT
            | TokenCharacterLiteral
            | TokenModifier
            | TokenAnnotation
+           | TokenLabel
            deriving (Show,Eq, Ord, Generic, NFData)
 
 instance Hashable Token
