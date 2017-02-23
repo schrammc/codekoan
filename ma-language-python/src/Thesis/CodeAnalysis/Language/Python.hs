@@ -65,9 +65,8 @@ buildIndexForPython = buildIndexFromAnswers python
 
 
 -- | State that the will use internally.
-data ParserState = ParserState{ blockWidth :: Maybe Int
-                              , indentationLevel :: Int
-                              }
+newtype ParserState = ParserState{ indentationLevel :: [Int]
+                                 }
 
 -- | Tokenize a piece of python code. It is critical, that this code is
 -- normalized beforehand. Normalization eliminates all tab characters in the
@@ -75,6 +74,9 @@ data ParserState = ParserState{ blockWidth :: Maybe Int
 -- to parse. Not that this parser will accept correct python 3 code but also a
 -- lot of code that violates some of the indentation rules or things that python
 -- might enforce.
+--
+-- Handy (official) documentation for parsing python can be found
+-- <https://docs.python.org/3/reference/lexical_analysis.html here>.
 tokenizePy :: LanguageText Python -> Maybe (TokenVector PyToken Python)
 tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
   where
@@ -83,7 +85,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       Left _  -> Nothing
     
     parseCode :: Parser [(Int, Maybe PyToken)]
-    parseCode = evalStateT parsePy (ParserState Nothing 0) 
+    parseCode = evalStateT parsePy (ParserState [0])
 
     -- | Recursive parser that parses an entire file while strining along some
     -- parser state. That state contains information on the depth of the current
@@ -128,32 +130,29 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       spacesWithTabs <- lift $ AP.takeWhile isHorizontalSpace
       let spaces = Text.replace "\t" "    " spacesWithTabs
 
-      st@ParserState{..} <- get
+      st <- get
       let n = Text.length spaces
-          same = n == indentationLevel
-          close = n < indentationLevel
-          open  = n > indentationLevel
+          same = n == (head $ indentationLevel st)
+          close = n < (head $ indentationLevel st)
+          open  = n > (head $ indentationLevel st)
+          delta = head (indentationLevel st) - n
 
-      when (blockWidth == Nothing && n > 0) $ put st{blockWidth = Just n}
-
-      st@ParserState{..} <- get
-      let valid = case blockWidth of
-                    Nothing -> True
-                    Just x  -> True --gcd n x > 1
-          delta = indentationLevel - n
-
-      put st{indentationLevel = n}
-
-      if valid
-      then if | n == 0 && same -> return []
-              | same -> return [(n, Nothing)]
-              | open -> return [(0, Just PyTokenIndent), (n, Nothing)]
-              | close ->
-                  let lst = replicate (delta `div` (fromJust blockWidth))
-                                      (0,Just PyTokenUnindent)
-                  in return $ lst ++ [(n,Nothing)]
-              | n > 0 && open -> undefined
-      else fail "Indentation fault"
+      if | same -> return [(n,Nothing)]
+         | open -> do
+             let ilevel' = n:(indentationLevel st)
+             put st{indentationLevel = ilevel'}
+             return [(0, Just PyTokenIndent), (n,Nothing)]
+         | close -> do
+             let (gone, rest) = span (> n) (indentationLevel st)
+             case rest of
+               [] -> fail "Indentation fault"
+               (x:_) | x /= n -> fail "Indentation fault (unexpected indent)"
+                     | otherwise -> do
+                         put st{indentationLevel = rest}
+                         return $
+                           (replicate (length gone)
+                             (0,Just PyTokenUnindent)
+                           ) ++ [(n,Nothing)]
 
 tokenP :: Parser PyToken
 tokenP =     "<"  *> pure PyTokenLT
