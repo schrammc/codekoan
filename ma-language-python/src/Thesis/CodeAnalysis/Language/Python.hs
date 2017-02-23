@@ -170,15 +170,20 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> "*"  *> pure PyTokenMult
          <|> "/"  *> pure PyTokenDiv
          <|> "%"  *> pure PyTokenMod
+         <|> "&"  *> pure PyTokenBinAnd
+         <|> "|"  *> pure PyTokenBinOr
          <|> "("  *> pure PyTokenLParen
          <|> ")"  *> pure PyTokenRParen
          <|> "["  *> pure PyTokenLBrack
          <|> "]"  *> pure PyTokenRBrack
          <|> "{"  *> pure PyTokenLBrace
          <|> "}"  *> pure PyTokenRBrace
+         <|> "^"  *> pure PyTokenBinXOR
+         <|> "~"  *> pure PyTokenBinComplement
          <|> "not" *> pure PyTokenNot
          <|> "and" *> pure PyTokenAnd
          <|> "in"  *> pure PyTokenIn
+         <|> "is"  *> pure PyTokenIs
          <|> "or"  *> pure PyTokenOr
          <|> "class" *> pure PyTokenClass
          <|> "import" *> pure PyTokenImport

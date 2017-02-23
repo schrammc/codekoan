@@ -26,7 +26,9 @@ data PyToken = PyTokenIndent
              | PyTokenBinAnd
              | PyTokenAnd
              | PyTokenBinOr
+             | PyTokenBinXOR
              | PyTokenOr
+             | PyTokenBinComplement
              | PyTokenAdd
              | PyTokenSub
              | PyTokenPow
@@ -67,4 +69,5 @@ data PyToken = PyTokenIndent
              | PyTokenCharacterLiteral
              | PyTokenModifier
              | PyTokenDecorator
+             | PyTokenIs
              deriving (Eq, Ord, Show, Generic, Hashable, NFData)
