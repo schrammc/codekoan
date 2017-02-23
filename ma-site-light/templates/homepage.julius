@@ -18,7 +18,7 @@ $(document).ready(function(){
     } else {
 	$('#searchsim').html(searchsim);
     }
-    localStorage.setItem('a','b');
+
 });
 
 // This guesses the language of a piece of code using
@@ -95,21 +95,21 @@ function genSearchSettings(){
     var searchType = getSearchType();
     switch(searchType){
     case "High Similarity":
-	return({ minMatchLength: 55
-	       , levenshteinDistance: 2
-	       , coveragePercentage: 0.7
+	return({ minMatchLength: 30
+	       , levenshteinDistance: 0
+	       , coveragePercentage: 0.8
 	       , blockFiltering: true
 	       , semanticThreshold: 0.6
 	       });
     case "Medium Similarity":
-	return({ minMatchLength: 20
+	return({ minMatchLength: 15
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.7
 	       , blockFiltering: true
 	       , semanticThreshold: 0.3
 	       });
     case "Low Similarity":
-	return({ minMatchLength: 15
+	return({ minMatchLength: 10
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.5
 	       , blockFiltering: true

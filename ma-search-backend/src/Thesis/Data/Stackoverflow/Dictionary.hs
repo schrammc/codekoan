@@ -9,19 +9,23 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Thesis.Data.Stackoverflow.Dictionary where
 
-import Data.Text
+import           Control.Monad.Catch
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Maybe
+import           Data.Monoid ((<>))
 import qualified Data.Set as S
-import Thesis.CodeAnalysis.Language
-import Thesis.CodeAnalysis.StackoverflowBodyParser (readCodeFromHTMLPost)
-import Thesis.Data.Stackoverflow.Answer
-import Thesis.Data.Stackoverflow.Question
-import Control.Monad.Trans.Maybe
-import Control.Monad.Catch
+import           Data.Text
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.StackoverflowBodyParser (readCodeFromHTMLPost)
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Question
 
-import Data.Vector ((!?))
+import           Data.Vector ((!?))
 import qualified Data.Vector as V
 
 -- | A helper data structure that allows to find tags for all questions in a
@@ -61,7 +65,7 @@ answerWithTag dict@DataDictionary{..} tag aId = do
 -- | Get token vectors and normalized 'LanguageText' of all fragments of an
 -- answer from the dictionary. This will return 'Nothing' if no answer for the
 -- given id could be found.
-answerFragments :: (Monad m) =>
+answerFragments :: (Monad m, MonadLogger m) =>
                    DataDictionary m
                 -> Language t l
                 -> AnswerId
@@ -69,13 +73,19 @@ answerFragments :: (Monad m) =>
 answerFragments DataDictionary{..} lang@Language{..} aId = do
   Answer{..} <- getAnswer aId
   let codeFragments = LanguageText <$> readCodeFromHTMLPost answerBody
-  V.fromList <$> mapM process codeFragments
+  V.fromList <$> mapM process (Prelude.zip [0..] codeFragments)
   where
-    process txt =  MaybeT . return $ do
-      tokenV <- processAndTokenize lang txt
-      return (tokenV, txt)
+    process (fragId, txt) =
+      case processAndTokenize lang txt of
+        Nothing -> do
+          $(logWarn) $ "Failed to parse answer " <>
+                        (pack . show $ answerIdInt aId) <> " fragment " <>
+                        (pack . show $ fragId)
+          return (V.empty, txt)
+        Just v  -> return (v, txt)
+      
 
-getAnswerFragment :: (Monad m) =>
+getAnswerFragment :: (Monad m, MonadLogger m) =>
                      DataDictionary m
                   -> Language t l
                   -> AnswerFragmentMetaData
@@ -87,7 +97,7 @@ getAnswerFragment dict lang (AnswerFragmentMetaData AnswerFragmentId{..} _) = do
 -- | Get the token vector of one specific answer code fragment from the
 -- dictionary. This will return 'Nothing' if the answer code fragment couldn't
 -- be found.
-answerFragmentTokens  :: (Monad m) =>
+answerFragmentTokens  :: (Monad m, MonadLogger m) =>
                          DataDictionary m
                       -> Language t l
                       -> AnswerFragmentId

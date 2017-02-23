@@ -6,6 +6,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Handler.Submit where
 
+import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
 import           Data.Aeson
 import           Data.Aeson.Types (parseMaybe)
@@ -27,6 +28,7 @@ import           Thesis.Messaging.Message
 import           Thesis.Messaging.Query
 import           Thesis.Messaging.ResultSet
 import           Thesis.Search.Settings
+import           Thesis.Util.LoggingUtils
 
 getSubmitR :: Handler Html
 getSubmitR = do
@@ -86,7 +88,7 @@ submitQuery AppSettings{..} (code, language, settings) = do
   return qId
 
 
-resultWidget :: DataDictionary IO -> Text -> Either String ResultSetMsg -> Handler Widget
+resultWidget :: DataDictionary (LoggingT IO) -> Text -> Either String ResultSetMsg -> Handler Widget
 resultWidget dict normalizedText (Left reason) = return $
   [whamlet| <div .alert .alert-danger>
               <center> <b>
@@ -102,7 +104,7 @@ resultWidget dict normalizedText (Right ResultSetMsg{..}) = do
 ^{internalIdW} <br>
 
           |]
-    resultsWithContext <- liftIO $ runMaybeT $
+    resultsWithContext <- liftIO $ runOutstreamLogging $ runMaybeT $
                             mapM (withContext  dict) resultSetResultList
     case resultsWithContext of
       Just rs -> mapM_ (resultMsg normalizedText)
@@ -113,7 +115,7 @@ resultWidget dict normalizedText (Right ResultSetMsg{..}) = do
     internalIdW  = [whamlet|Internal search id:   #{show $ resultSetQueryId}|]
     nFragments = length resultSetResultList
 
-withContext :: DataDictionary IO -> ResultMsg -> MaybeT IO (ResultMsg, Question)
+withContext :: DataDictionary (LoggingT IO) -> ResultMsg -> MaybeT (LoggingT IO) (ResultMsg, Question)
 withContext dict msg@ResultMsg{..} = do
   parentId <- Dict.answerParent dict aId
   parentQuestion <- Dict.getQuestion dict parentId

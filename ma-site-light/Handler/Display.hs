@@ -13,6 +13,7 @@ import           Thesis.Data.Stackoverflow.Dictionary as Dict
 import           Thesis.Messaging.Query
 import           Thesis.Messaging.ResultSet
 import Text.Julius (RawJS (..))
+import Thesis.Util.LoggingUtils
 
 getDisplayR :: Int -> Handler Html
 getDisplayR qInt = do
@@ -66,7 +67,7 @@ resultCoverage t ResultMsg{..} = coveragePercentage (Text.length t) ranges
 singleResultW :: ResultSetMsg -> ResultMsg -> Widget
 singleResultW ResultSetMsg{..} ResultMsg{..} = do
   App{..} <- getYesod
-  Just (parentQuestion, answer) <- liftIO $ runMaybeT $ do
+  Just (parentQuestion, answer) <- liftIO $ runOutstreamLogging $ runMaybeT $ do
     parentId <- Dict.answerParent appDict aId
     q <- Dict.getQuestion appDict parentId
     a <- Dict.getAnswer appDict aId

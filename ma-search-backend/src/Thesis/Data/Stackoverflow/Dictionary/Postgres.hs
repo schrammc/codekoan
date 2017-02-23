@@ -7,6 +7,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.Data.Stackoverflow.Dictionary.Postgres where
 
+import Control.Monad.Logger
+
 import Data.Text (Text)
 import Data.Vector as V (toList)
 
@@ -23,7 +25,7 @@ import Control.Monad.Catch
 import qualified Data.Set as S (fromList, Set)
 
 -- | A 'DataDictionary' that accesses a PostgresSQL database.
-postgresDictionary :: (MonadThrow m, MonadIO m) =>
+postgresDictionary :: (MonadThrow m, MonadIO m, MonadLogger m) =>
                       Connection
                    -> m (DataDictionary m)
 postgresDictionary connection =

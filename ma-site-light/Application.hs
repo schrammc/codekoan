@@ -41,7 +41,7 @@ import Handler.ForwardQuery
 import Handler.Wait
 import Handler.GetForward
 import Handler.Feedback
-
+import Thesis.Util.LoggingUtils
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
 -- comments there for more details.
@@ -55,7 +55,7 @@ makeFoundation :: AppSettings -> IO App
 makeFoundation appSettings = do
     connection <- PSQL.connect (appPostgresConnectInfo appSettings)
     
-    appDict <- postgresDictionary connection
+    appDict <- runOutstreamLogging $ postgresDictionary connection
     appHttpManager <- newManager
     appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     appStatic <-
