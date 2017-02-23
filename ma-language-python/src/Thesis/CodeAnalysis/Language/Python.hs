@@ -198,6 +198,7 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> "def"   *> pure PyTokenDef
          <|> "pass"  *> pure PyTokenPass
          <|> "yield" *> pure PyTokenYield
+         <|> "return" *> pure PyTokenReturn
          <|> loopWord
          <|> pyStringLiteral
          <|> pyNumber

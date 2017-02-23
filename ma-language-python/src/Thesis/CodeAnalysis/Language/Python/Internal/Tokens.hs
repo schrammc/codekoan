@@ -70,4 +70,5 @@ data PyToken = PyTokenIndent
              | PyTokenModifier
              | PyTokenDecorator
              | PyTokenIs
+             | PyTokenReturn
              deriving (Eq, Ord, Show, Generic, Hashable, NFData)
