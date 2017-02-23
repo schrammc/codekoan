@@ -160,6 +160,7 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> ">"  *> pure PyTokenGT
          <|> "==" *> pure PyTokenEQ
          <|> "="  *> pure PyTokenAssign
+         <|> "!=" *> pure PyTokenNEQ
          <|> ":"  *> pure PyTokenColon
          <|> ","  *> pure PyTokenComma
          <|> "."  *> pure PyTokenDot
@@ -195,16 +196,13 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> "yield" *> pure PyTokenYield
          <|> loopWord
          <|> pyStringLiteral
-         <|> pyCharacterLiteral
          <|> pyNumber
          <|> identifier
 
 pyStringLiteral :: Parser PyToken
-pyStringLiteral = stringLiteral *> pure PyTokenStringLiteral
-
--- | A standard character literal like @'a'@.
-pyCharacterLiteral :: Parser PyToken
-pyCharacterLiteral = characterLiteral *> pure PyTokenCharacterLiteral
+pyStringLiteral = ((characterLiteral *> pure ()) <|>
+                   (stringLiteral *> pure ())
+                  ) *> pure PyTokenStringLiteral
 
 identifier :: Parser PyToken
 identifier = do

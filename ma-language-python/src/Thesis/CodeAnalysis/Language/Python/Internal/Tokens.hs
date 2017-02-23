@@ -19,6 +19,7 @@ data PyToken = PyTokenIndent
              | PyTokenLT
              | PyTokenGT
              | PyTokenEQ
+             | PyTokenNEQ
              | PyTokenAssign
              | PyTokenNot
              | PyTokenIn
