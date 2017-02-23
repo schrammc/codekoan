@@ -139,7 +139,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       st@ParserState{..} <- get
       let valid = case blockWidth of
                     Nothing -> True
-                    Just x  -> gcd n x > 1
+                    Just x  -> True --gcd n x > 1
           delta = indentationLevel - n
 
       put st{indentationLevel = n}
