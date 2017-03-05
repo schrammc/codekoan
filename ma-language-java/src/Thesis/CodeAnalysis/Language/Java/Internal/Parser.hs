@@ -103,30 +103,30 @@ tokenP = "<" *> pure TokenLT
          
 
 keyword :: Parser Token
-keyword = ("if"
-           <|> "else"
-           <|> "switch"
-           <|> "case"
-           <|> "class"
-           <|> "interface"
-           <|> "package"
-           <|> "null"
-           <|> "throw"
-           <|> "catch"
-           <|> "finally"
-           <|> "switch"
-           <|> "case"
-           <|> "throws"
-           <|> "super"
-           <|> "this"
-           <|> "new"
-           <|> "continue"
-           <|> "goto"
-           <|> "synchronized"
-           <|> "package"
-           <|> "enum"
-           <|> "assert"
-          ) *> pure TokenKeyword
+keyword = tokenCondition <|> tokenClassStructure <|> tokenKeyword
+  where
+    tokenCondition = ("if"
+                      <|> "else"
+                      <|> "switch"
+                      <|> "case"
+                     ) *> pure TokenKeywordCondition
+    tokenClassStructure = ( "class"
+                            <|> "interface" ) *> pure TokenKeywordClassStructure
+    tokenKeyword = ( "package"
+                     <|> "null"
+                     <|> "throw"
+                     <|> "catch"
+                     <|> "finally"
+                     <|> "throws"
+                     <|> "super"
+                     <|> "this"
+                     <|> "new"
+                     <|> "continue"
+                     <|> "goto"
+                     <|> "synchronized"
+                     <|> "enum"
+                     <|> "assert"
+                   ) *> pure TokenKeyword
 
 -- | A parser for tokens that are used to declare looping constructs
 loopWord :: Parser Token

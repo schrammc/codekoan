@@ -42,6 +42,8 @@ data Token = TokenLT
            | TokenSemicolon
            | TokenImport
            | TokenKeyword
+           | TokenKeywordCondition
+           | TokenKeywordClassStructure
            | TokenBreak
            | TokenLoopWord
            | TokenIdentifier
