@@ -90,13 +90,24 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
     -- | Recursive parser that parses an entire file while strining along some
     -- parser state. That state contains information on the depth of the current
     -- code block. This parser assumes that it always starts at a fresh line.
+    --
     parsePy :: StateT ParserState Parser [(Int, Maybe PyToken)]
     parsePy = do
       -- Generate indentation tokens if necessary
       spaces <- getSpaces
 
+      let contentP = do
+            ts <- AP.many1 lenParser
+            case ts of
+              [] -> return []
+              _ | snd (last ts) == Just PyTokenBackslash -> do
+                    e <- eols
+                    ts' <- contentP
+                    return $ ts ++ e:ts'
+                | otherwise -> return ts
+
       -- Parse the line's contents
-      tks <- lift $ AP.many1 lenParser
+      tks <- lift contentP -- lift $ AP.many1 lenParser
 
       --  Parse a number of linebreaks after the content of the line
       lbs <- (lift $ ((:[]) <$> eols)) <|> (return [])
@@ -178,6 +189,7 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> "{"  *> pure PyTokenLBrace
          <|> "}"  *> pure PyTokenRBrace
          <|> "^"  *> pure PyTokenBinXOR
+         <|> "\\" *> pure PyTokenBackslash
          <|> "~"  *> pure PyTokenBinComplement
          <|> "not" *> pure PyTokenNot
          <|> "and" *> pure PyTokenAnd

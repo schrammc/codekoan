@@ -27,6 +27,7 @@ data PyToken = PyTokenIndent
              | PyTokenAnd
              | PyTokenBinOr
              | PyTokenBinXOR
+             | PyTokenBackslash
              | PyTokenOr
              | PyTokenBinComplement
              | PyTokenAdd
