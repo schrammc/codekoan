@@ -103,7 +103,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
               _ | snd (last ts) == Just PyTokenBackslash -> do
                     e <- eols
                     ts' <- contentP
-                    return $ ts ++ e:ts'
+                    return $ (init ts) ++ (1,Nothing):e:ts'
                 | otherwise -> return ts
 
       -- Parse the line's contents
