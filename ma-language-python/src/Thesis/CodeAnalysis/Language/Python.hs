@@ -96,6 +96,10 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       -- Generate indentation tokens if necessary
       spaces <- getSpaces
 
+      -- This parser will parse the conent of a line. A line in this context is
+      -- not just a text-line. A text-line can also be terminated with a
+      -- backslash. In such a case the follwing text-line is interpreted as a
+      -- continuation of the current line. The backslash is normalized away.
       let contentP = do
             ts <- AP.many1 lenParser
             case ts of
@@ -103,6 +107,9 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
               _ | snd (last ts) == Just PyTokenBackslash -> do
                     e <- eols
                     ts' <- contentP
+                    -- Using init ts here removes the backslash. In order to
+                    -- still have correct ranges for following tokens, we
+                    -- include a (1,Nothing) space.
                     return $ (init ts) ++ (1,Nothing):e:ts'
                 | otherwise -> return ts
 
