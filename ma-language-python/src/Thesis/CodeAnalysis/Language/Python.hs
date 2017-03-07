@@ -70,10 +70,11 @@ data ParserState = ParserState { indentationLevel :: ![Int]
                                , bracketLevel :: !Int
                                , braceLevel   :: !Int
                                }
+                   deriving (Show, Eq)
 
 hasOpenParens :: ParserState -> Bool
-hasOpenParens state = parenLevel state /= 0 &&
-                      bracketLevel state /= 0 &&
+hasOpenParens state = parenLevel state /= 0 ||
+                      bracketLevel state /= 0 ||
                       braceLevel state /= 0
 
 adjustParens :: [PyToken] -> ParserState -> ParserState
@@ -120,7 +121,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
     parsePy :: StateT ParserState Parser [(Int, Maybe PyToken)]
     parsePy = do
       -- Generate indentation tokens if necessary
-      indentBefore <- get
+      indentBefore <- indentationLevel <$> get
       spaces <- getSpaces
 
       -- This parser will parse the conent of a line. A line in this context is
@@ -135,16 +136,19 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
             modify (adjustParens (catMaybes $ snd <$> ts))
             currentState <- get
 
-            case ts of
+            case traceShow currentState $ ts of
               [] -> return []
-              _ | snd (last ts) == Just PyTokenBackslash
-                  || hasOpenParens currentState -> do
+              _ | snd (last ts) == Just PyTokenBackslash -> do
                     e <- lift eols
                     ts' <- loglineP
                     -- Using init ts here removes the backslash. In order to
                     -- still have correct ranges for following tokens, we
                     -- include a (1,Nothing) space.
                     return $ (init ts) ++ (1,Nothing):e:ts'
+                | hasOpenParens currentState -> do
+                    e <- lift eols
+                    ts' <- loglineP
+                    return $ ts ++ e:ts'
                 | otherwise -> return ts
 
       -- Parse the line's contents
@@ -160,7 +164,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
         [] -> do
           -- lines with nothing but space and comment don't influence the
           -- indentation level
-          put indentBefore
+          modify $ \x -> x{indentationLevel = indentBefore}
 
           return $ (filter ((> 0) . fst) spaces) ++ lbs ++ rest
         _  -> return $ spaces ++ tks ++ lbs ++ rest
