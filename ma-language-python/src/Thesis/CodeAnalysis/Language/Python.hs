@@ -136,7 +136,7 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
             modify (adjustParens (catMaybes $ snd <$> ts))
             currentState <- get
 
-            case traceShow currentState $ ts of
+            case ts of
               [] -> return []
               _ | snd (last ts) == Just PyTokenBackslash -> do
                     e <- lift eols
