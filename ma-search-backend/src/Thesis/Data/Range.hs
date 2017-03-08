@@ -35,6 +35,7 @@ module Thesis.Data.Range
 
           -- * Specialized accessors
         , textInRange
+        , textLinesInRange
         , textInRanges
         , vectorInRange
 
@@ -46,6 +47,7 @@ import Data.List (sort, nub)
 import Data.Aeson
 import GHC.Generics(Generic)
 
+import Data.Monoid ((<>))
 import Data.Text (Text)
 import qualified Data.Text as Text
 
@@ -146,6 +148,24 @@ isSubRangeOf (Range a b) (Range c d) = c <= a && d >= b
 textInRange :: Range a -> Text -> Text
 textInRange (Range a b) txt = Text.take (b - a) (Text.drop a txt)
 
+-- | A helper function for display purposes. This function returns the text in
+-- the given range and the line - range for the covered text (end-exclusive).
+--
+-- This is primarily a helper function for displaying and should turn out to be
+-- a performance problem if used to frequently due to 'Data.Text's linear-time
+-- API.
+textLinesInRange :: Range a -> Text -> (Text, (Int, Int))
+textLinesInRange (Range a b) txt =
+  let (beforeA, afterA) = Text.splitAt a txt
+      inRangeT = Text.take (b - a) afterA
+      startLine = if beforeA == Text.pack ""
+                  then 0
+                  else (length $ Text.lines beforeA) - 1
+      stopLine  = length $ Text.lines inRangeT
+      preceding = Text.takeWhileEnd (\c -> c /= '\n') beforeA
+  in (preceding <> Text.take (b - a) afterA
+     , (startLine,startLine+stopLine))
+
 -- | A helper function to convert the phantom type of a range
 convertRange :: Range a -> Range b
 convertRange (Range a b) = (Range a b)
@@ -173,3 +193,4 @@ textInRanges t ranges = texts 0 t (sort ranges)
       let t' = Text.drop (start-pos) t
           (tkText, restText) = Text.splitAt (stop-start) t'
       in tkText:(texts stop restText rs)
+
