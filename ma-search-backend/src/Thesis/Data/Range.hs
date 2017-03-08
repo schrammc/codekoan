@@ -162,9 +162,13 @@ textLinesInRange (Range a b) txt =
                   then 0
                   else (length $ Text.lines beforeA) - 1
       stopLine  = length $ Text.lines inRangeT
-      preceding = Text.takeWhileEnd (\c -> c /= '\n') beforeA
-  in (preceding <> Text.take (b - a) afterA
-     , (startLine,startLine+stopLine))
+      replaceC ' ' = ' '
+      replaceC _   = '.'
+      preceding = Text.map replaceC $
+                  Text.takeWhileEnd (\c -> c /= '\n') beforeA
+
+      precText = preceding <> Text.take (b - a) afterA
+  in precText `seq` (precText, (startLine,startLine+stopLine))
 
 -- | A helper function to convert the phantom type of a range
 convertRange :: Range a -> Range b
