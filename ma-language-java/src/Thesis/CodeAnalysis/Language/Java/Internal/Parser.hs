@@ -103,8 +103,9 @@ tokenP = "<" *> pure TokenLT
          
 
 keyword :: Parser Token
-keyword = tokenCondition <|> tokenClassStructure <|> tokenKeyword
+keyword = tokenCondition <|> tokenClassStructure <|> tokenKeyword <|> tokenBool
   where
+    tokenBool = ("true" <|> "false") *> pure TokenBooleanValue
     tokenCondition = ("if"
                       <|> "else"
                       <|> "switch"
