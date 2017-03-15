@@ -43,11 +43,9 @@ javaStyleComment = javaLineComment <|> javaBlockComment
 lineComment :: Text -> Parser ()
 lineComment commentStart = do
   string commentStart
-  let content = endOfLine <|>
-                endOfInput <|>
-                (do
-                    xs <- AP.takeWhile (not . isEndOfLine)
-                    if xs == "" then return () else content )
+  let content = do
+        xs <- AP.takeWhile (not . isEndOfLine)
+        if xs == "" then return () else content
   content
   return ()
   
