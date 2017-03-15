@@ -122,14 +122,14 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
     parsePy = do
       -- Generate indentation tokens if necessary
       indentBefore <- indentationLevel <$> get
-      spaces <- getSpaces
+      (indentResult, spaces) <- getSpaces
 
       -- This parser will parse the conent of a line. A line in this context is
       -- not just a text-line. A text-line can also be terminated with a
       -- backslash. In such a case the follwing text-line is interpreted as a
       -- continuation of the current line. The backslash is normalized away.
       let loglineP = do
-            ts <- lift $ AP.many1 lenParser
+            ts <- lift $ AP.many' lenParser
 
             -- Adjust the parser state with the current braces, brackets and
             -- curly braces
@@ -155,19 +155,22 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       tks <- loglineP
 
       --  Parse a number of linebreaks after the content of the line
-      lbs <- (lift $ ((:[]) <$> eols)) <|> (return [])
+      lbs <- (lift $ ((:[]) <$> eols))
 
-      
-      rest <- parsePy <|> (lift $ endOfInput *> pure [])
+      adjustedSpaces <- if (null . catMaybes $ snd <$>  tks)
+                        then do
+                          -- lines with nothing but space and comment don't
+                          -- influence the indentation level
+                          modify $ \x -> x{indentationLevel = indentBefore}
+                          return []
+                        else return spaces
+
+      -- Parse either the end of input or further logical lines
+      rest <- (lift $ endOfInput *> pure []) <|> parsePy
 
       case tks of
-        [] -> do
-          -- lines with nothing but space and comment don't influence the
-          -- indentation level
-          modify $ \x -> x{indentationLevel = indentBefore}
-
-          return $ (filter ((> 0) . fst) spaces) ++ lbs ++ rest
-        _  -> return $ spaces ++ tks ++ lbs ++ rest
+        [] -> return $ (filter ((> 0) . fst) adjustedSpaces) ++ lbs ++ rest
+        _  -> return $ adjustedSpaces ++ tks ++ lbs ++ rest
 
     -- | Parses tokens, comments and horizontal whitespace along with
     -- information on the length of the consumed string.
@@ -185,7 +188,8 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
 
     -- | This helper function is for parsing spaces at the beginning of
     -- lines. It generates the 0-width indentatoin tokens.
-    getSpaces:: StateT ParserState Parser [(Int, Maybe PyToken)]
+    getSpaces:: StateT ParserState Parser ( IndentationResult
+                                          , [(Int, Maybe PyToken)])
     getSpaces = do
       spacesWithTabs <- lift $ AP.takeWhile isHorizontalSpace
       let spaces = Text.replace "\t" "    " spacesWithTabs
@@ -197,22 +201,26 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
           open  = n > (head $ indentationLevel st)
           delta = head (indentationLevel st) - n
 
-      if | same -> return [(n,Nothing)]
+      if | same -> return (IndentationAccepted, [(n,Nothing)])
          | open -> do
              let ilevel' = n:(indentationLevel st)
              put st{indentationLevel = ilevel'}
-             return [(0, Just PyTokenIndent), (n,Nothing)]
+             return (IndentationAccepted, [(0, Just PyTokenIndent), (n,Nothing)])
          | close -> do
              let (gone, rest) = span (> n) (indentationLevel st)
              case rest of
-               [] -> fail "Indentation fault"
-               (x:_) | x /= n -> fail "Indentation fault (unexpected indent)"
+               [] -> return (IndentationRejected, [(n,Nothing)])
+               (x:_) | x /= n -> return (IndentationRejected, [(n,Nothing)])
                      | otherwise -> do
                          put st{indentationLevel = rest}
                          return $
-                           (replicate (length gone)
-                             (0,Just PyTokenUnindent)
-                           ) ++ [(n,Nothing)]
+                           ( IndentationAccepted
+                           , (replicate (length gone)
+                               (0,Just PyTokenUnindent)
+                             ) ++ [(n,Nothing)])
+
+data IndentationResult = IndentationAccepted | IndentationRejected
+                       deriving Eq
 
 tokenP :: Parser PyToken
 tokenP =     "<"  *> pure PyTokenLT
