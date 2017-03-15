@@ -155,7 +155,9 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       tks <- loglineP
 
       --  Parse a number of linebreaks after the content of the line
-      lbs <- (lift $ ((:[]) <$> eols))
+      lbs <- lift $ do
+        isAtEnd <- atEnd
+        if isAtEnd then return [] else (:[]) <$> eols
 
       adjustedSpaces <- if (null . catMaybes $ snd <$>  tks)
                         then do
