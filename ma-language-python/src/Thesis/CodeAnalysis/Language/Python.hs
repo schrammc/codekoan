@@ -231,6 +231,7 @@ tokenP =     "<"  *> pure PyTokenLT
          <|> "="  *> pure PyTokenAssign
          <|> "!=" *> pure PyTokenNEQ
          <|> ":"  *> pure PyTokenColon
+         <|> ";"  *> pure PyTokenSemicolon
          <|> ","  *> pure PyTokenComma
          <|> "."  *> pure PyTokenDot
          <|> "+"  *> pure PyTokenAdd
