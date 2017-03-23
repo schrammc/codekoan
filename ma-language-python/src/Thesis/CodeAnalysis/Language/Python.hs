@@ -50,7 +50,7 @@ data Python
 python :: Language PyToken Python
 python = Language{ languageFileExtension = ".py"
                  , languageName = "python"
-                 , tokenize = undefined --tokenizePy
+                 , tokenize = tokenizePy
                  , isTokenIdentifier = (== PyTokenIdentifier)
                  , removeComments = LanguageText
                  , languageGenBlockData = pythonBlockData
@@ -106,8 +106,8 @@ levelChange open close (x:xs) | x == open = 1 + (levelChange open close xs)
 --
 -- Handy (official) documentation for parsing python can be found
 -- <https://docs.python.org/3/reference/lexical_analysis.html here>.
---tokenizePy :: LanguageText Python -> Maybe (TokenVector PyToken Python)
-tokenizePy LanguageText{..} = parsedResult
+tokenizePy :: LanguageText Python -> Maybe (TokenVector PyToken Python)
+tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
   where
     parsedResult = case AP.parseOnly parseCode langText of
       Right x -> Just x
