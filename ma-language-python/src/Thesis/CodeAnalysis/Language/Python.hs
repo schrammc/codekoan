@@ -43,12 +43,14 @@ import           Thesis.CodeAnalysis.Language.Internal
 import           Thesis.CodeAnalysis.Language.Python.Internal.Tokens
 import           Thesis.CodeAnalysis.Language.Python.Internal.BlockAnalysis
 
+import Debug.Trace
+
 data Python
 
 python :: Language PyToken Python
 python = Language{ languageFileExtension = ".py"
                  , languageName = "python"
-                 , tokenize = tokenizePy
+                 , tokenize = undefined --tokenizePy
                  , isTokenIdentifier = (== PyTokenIdentifier)
                  , removeComments = LanguageText
                  , languageGenBlockData = pythonBlockData
@@ -104,8 +106,8 @@ levelChange open close (x:xs) | x == open = 1 + (levelChange open close xs)
 --
 -- Handy (official) documentation for parsing python can be found
 -- <https://docs.python.org/3/reference/lexical_analysis.html here>.
-tokenizePy :: LanguageText Python -> Maybe (TokenVector PyToken Python)
-tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
+--tokenizePy :: LanguageText Python -> Maybe (TokenVector PyToken Python)
+tokenizePy LanguageText{..} = parsedResult
   where
     parsedResult = case AP.parseOnly parseCode langText of
       Right x -> Just x
@@ -164,7 +166,11 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
                           -- lines with nothing but space and comment don't
                           -- influence the indentation level
                           modify $ \x -> x{indentationLevel = indentBefore}
-                          return []
+                          return $
+                            filter (\t ->
+                                     not $ snd t `elem` [ Just PyTokenIndent
+                                                        , Just PyTokenUnindent])
+                                   spaces
                         else return spaces
 
       -- Parse either the end of input or further logical lines
@@ -295,3 +301,43 @@ loopWord = ("for" <|> "while") *> pure PyTokenLoopWord
 
 pyNumber :: Parser PyToken
 pyNumber =  scientific *> pure PyTokenNumber
+
+pyString :: LanguageText Python
+pyString = LanguageText $ "def reverse(text):\n\
+                          \    lst=[]\n\
+                          \    for i in range(0,len(text)):\n\
+                          \        lst.append(text[(len(text)-1)-i])\n\
+                          \        return ''.join(lst)\n"
+
+pyString2 :: LanguageText Python
+pyString2 = LanguageText $ "def foo():\n\
+                           \    print(\"abc\")\n\
+                           \    return x\n\
+                           \\n\
+                           \    def reverse(text):\n\
+                           \        lst=[]\n\
+                           \        for i in range(0,len(text)):\n\
+                           \            lst.append(text[(len(text)-1)-i])\n\
+                           \            return ''.join(lst)\n\
+                           \\n\
+                           \print reverse('reversed')"
+
+pyString3 :: LanguageText Python
+pyString3 = LanguageText "def conv2d_shape(op):\n\
+                         \  if data_format == b\"NCHW\":\n\
+                         \      a b\n\
+                         \      this\n\
+                         \  else:\n\
+                         \      foo\n\
+                         \  #abc\n\
+                         \  #ab\n\
+                         \  #a\n\
+                         \\n\
+                         \a b c d e f g h i j k try:\n\
+                         \    mainstuff()\n\
+                         \    except (KeyboardInterrupt, EOFError) as err:\n\
+                         \        print(err)\n\
+                         \        print(err.args)\n\
+                         \        quit(0)"
+
+xyz = Text.pack "class slist(list):\n    @property\n    def length(self):\n        return len(self)\n"
