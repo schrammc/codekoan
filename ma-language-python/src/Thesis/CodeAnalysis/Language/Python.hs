@@ -285,8 +285,20 @@ tokenP =     "<"  *> pure PyTokenLT
 
 pyStringLiteral :: Parser PyToken
 pyStringLiteral = ((characterLiteral *> pure ()) <|>
-                   (stringLiteral *> pure ())
+                   (stringLiteral *> pure ()) <|>
+                   (pyTripStringLiteral '\'' *> pure ()) <|>
+                   (pyTripStringLiteral '"' *> pure ())
                   ) *> pure PyTokenStringLiteral
+  where
+    -- Helper function for triple multi-line string syntax
+    pyTripStringLiteral :: Char -> Parser PyToken
+    pyTripStringLiteral c = do
+      let trip = string $ Text.pack [c,c,c]
+      trip
+      manyTill anyChar trip
+      return $ PyTokenStringLiteral
+
+
 
 identifier :: Parser PyToken
 identifier = do
@@ -339,5 +351,8 @@ pyString3 = LanguageText "def conv2d_shape(op):\n\
                          \        print(err)\n\
                          \        print(err.args)\n\
                          \        quit(0)"
+
+pyString4 :: LanguageText Python
+pyString4 = LanguageText "'''abc's def'''"
 
 xyz = Text.pack "class slist(list):\n    @property\n    def length(self):\n        return len(self)\n"
