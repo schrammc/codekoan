@@ -139,8 +139,9 @@ hsOperatorP = do
     
 
 numberP :: Parser HsToken
-numberP = ((signed decimal :: Parser Integer) <|>
-           (signed hexadecimal :: Parser Integer)) *> pure HsNumber
+numberP = (((signed decimal :: Parser Integer) *> pure ()) <|>
+           ((signed hexadecimal :: Parser Integer) *> pure ()) <|>
+           (scientific *> pure ()) ) *> pure HsNumber
 
 hsOperatorTextP :: Parser Text
 hsOperatorTextP = do
