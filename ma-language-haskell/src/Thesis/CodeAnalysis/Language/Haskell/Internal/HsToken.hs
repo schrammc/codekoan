@@ -35,6 +35,7 @@ data HsToken = HsIdentifier IdentifierType
              | HsLet
              | HsWhere
              | HsIn
+             | HsDo
              | HsPragma
              | HsIf
              | HsThen
@@ -61,6 +62,8 @@ data HsToken = HsIdentifier IdentifierType
              | HsOpCons
              | HsOpInfixConstructor
              | HsUnderscore
+             | HsCharLiteral
+             | HsStringLiteral
              deriving (Eq, Ord, Show, Generic, Hashable, NFData)
 
 isHsIdentifier (HsIdentifier _) = True

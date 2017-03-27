@@ -15,7 +15,7 @@
 
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE MultiWayIf #-}
 module Thesis.CodeAnalysis.Language.Haskell where
 
 import Control.Applicative ((<|>))
@@ -63,6 +63,7 @@ hsTokenP =     "("     *> pure HsLParen
            <|> "["     *> pure HsLBrack
            <|> "]"     *> pure HsRBrack
            <|> hsPragmaP
+           <|> hsStringLitP
            <|> "{"     *> pure HsLBrace
            <|> "}"     *> pure HsRBrace
            <|> hsOperatorP
@@ -87,6 +88,7 @@ hsSafeIdentifierP = do
         "else"     -> return HsElse
         "let"      -> return HsLet
         "in"       -> return HsIn
+        "do"       -> return HsDo
         "where"    -> return HsWhere
         "class"    -> return HsClass
         "data"     -> return HsData
@@ -189,3 +191,19 @@ haskellBlockComment = do
                        if xs == "" then return () else content)
      content
   return ()
+
+hsStringLitP = do
+  _ <- hsStringP
+  return HsStringLiteral
+
+hsStringP = do
+  char '"'
+  result <- go False
+  return $ '"':result
+  where
+    go escaped = do
+      c <- anyChar
+      if | c == '"' && not escaped -> return [c]
+         | c == '\\' && escaped -> (c:) <$> go False
+         | c == '\\' -> (c:) <$> go True
+         | otherwise -> (c:) <$> go escaped
