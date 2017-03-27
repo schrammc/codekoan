@@ -67,6 +67,7 @@ hsTokenP =     "("     *> pure HsLParen
            <|> hsStringLitP
            <|> "{"     *> pure HsLBrace
            <|> "}"     *> pure HsRBrace
+           <|> numberP
            <|> hsOperatorP
            <|> hsSafeIdentifierP
 
@@ -136,6 +137,10 @@ hsOperatorP = do
     xs | Text.head xs == ':' -> return HsOpInfixConstructor
     _    -> return HsOperator
     
+
+numberP :: Parser HsToken
+numberP = ((signed decimal :: Parser Integer) <|>
+           (signed hexadecimal :: Parser Integer)) *> pure HsNumber
 
 hsOperatorTextP :: Parser Text
 hsOperatorTextP = do
