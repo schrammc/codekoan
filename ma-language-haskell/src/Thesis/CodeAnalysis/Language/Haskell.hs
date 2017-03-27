@@ -67,8 +67,8 @@ hsTokenP =     "("     *> pure HsLParen
            <|> hsStringLitP
            <|> "{"     *> pure HsLBrace
            <|> "}"     *> pure HsRBrace
-           <|> numberP
            <|> hsOperatorP
+           <|> numberP
            <|> hsSafeIdentifierP
 
 -- | Parser for pragmas
