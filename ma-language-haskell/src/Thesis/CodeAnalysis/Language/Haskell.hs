@@ -62,6 +62,7 @@ hsTokenP =     "("     *> pure HsLParen
            <|> ")"     *> pure HsRParen
            <|> "["     *> pure HsLBrack
            <|> "]"     *> pure HsRBrack
+           <|> ","     *> pure HsComma
            <|> hsPragmaP
            <|> hsStringLitP
            <|> "{"     *> pure HsLBrace

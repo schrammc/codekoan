@@ -55,6 +55,7 @@ data HsToken = HsIdentifier IdentifierType
              | HsCase
              | HsOf
              | HsOpCompose
+             | HsComma
              | HsOpFmap
              | HsOpAp
              | HsOpBind
