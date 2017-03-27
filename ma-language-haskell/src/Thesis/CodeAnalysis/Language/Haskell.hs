@@ -65,6 +65,7 @@ hsTokenP =     "("     *> pure HsLParen
            <|> ","     *> pure HsComma
            <|> hsPragmaP
            <|> hsStringLitP
+           <|> hsCharLitP
            <|> "{"     *> pure HsLBrace
            <|> "}"     *> pure HsRBrace
            <|> hsOperatorP
@@ -202,6 +203,12 @@ haskellBlockComment = do
 hsStringLitP = do
   _ <- hsStringP
   return HsStringLiteral
+
+hsCharLitP = do
+  "'"
+  (char '\\' *> anyChar) <|> anyChar
+  "'"
+  return HsCharLiteral
 
 hsStringP = do
   char '"'
