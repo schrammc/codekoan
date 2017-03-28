@@ -18,18 +18,18 @@
 {-# LANGUAGE MultiWayIf #-}
 module Thesis.CodeAnalysis.Language.Haskell where
 
-import Control.Applicative ((<|>))
-import Data.Char
-import Thesis.CodeAnalysis.Language
-import Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken
-import Thesis.CodeAnalysis.Language.CommonTokenParsers
-import Thesis.CodeAnalysis.Language.Internal
-import Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
-
-import Data.Attoparsec.Text as AP
+import           Control.Applicative ((<|>))
+import           Data.Attoparsec.Text as AP
+import           Data.Char
+import           Data.Monoid ((<>))
+import           Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Text (Text)
-import Data.Monoid ((<>))
+import qualified Data.Vector as V
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language.CommonTokenParsers
+import           Thesis.CodeAnalysis.Language.Haskell.Internal.HsToken
+import           Thesis.CodeAnalysis.Language.Internal
+import           Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
 
 -- | A value-less type to tag haskell-stuff at the type-level
 data Haskell
@@ -51,6 +51,18 @@ tokenizeHs LanguageText{..} = buildTokenVector <$> parseResult
       Left _  -> Nothing
     parseHs = many1 partParser
 
+removeImports :: TokenVector HsToken Haskell -> TokenVector HsToken Haskell
+removeImports tv = V.fromList $ go $ V.toList tv
+  where
+    go [] = []
+    go (t:ts) | token t == HsImport =
+      let ts' = dropWhile (\t -> token t `elem` [ HsOpCompose
+                                                , HsIdentifier TypeOrConstructor
+                                                , HsQualified])
+                          ts
+      in go ts'
+              | otherwise = t:(go ts)
+
 partParser :: Parser (Int, Maybe HsToken)
 partParser = do
   (txt, token) <- AP.match $ (const Nothing <$> hsCommentOrSpace) <|>
@@ -69,8 +81,8 @@ hsTokenP =     "("     *> pure HsLParen
            <|> "{"     *> pure HsLBrace
            <|> "}"     *> pure HsRBrace
            <|> hsOperatorP
-           <|> numberP
            <|> hsSafeIdentifierP
+           <|> numberP
 
 -- | Parser for pragmas
 hsPragmaP :: Parser HsToken
