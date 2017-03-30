@@ -54,7 +54,7 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
   | S.member start recognized = removeRepeats' recognized ngramSize xs
   | otherwise =
     let repeats = takeRepeats start rest
-    in if length repeats > 1
+    in if length repeats > 2
        then let (ngr, start', tl') = head $ reverse repeats
                 recognized' = foldl (flip S.insert) recognized (snd3 <$> repeats)
             in [(ngr, start', tl'){-, (ngram, start, tl)-}] ++
@@ -113,7 +113,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
 --                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
-                                  (removeRepeats indexNGramSize ngramsWithTails)
+                                  (removeRepeats 2 ngramsWithTails)
       -- parMap use here is probably not yet optimal
       searchResults = concat $ fmap searchFor relevantNGramTails
 
