@@ -64,6 +64,7 @@ data HsToken = HsIdentifier IdentifierType
              | HsOpInfixConstructor
              | HsUnderscore
              | HsCharLiteral
+             | HsQualified
              | HsStringLiteral
              deriving (Eq, Ord, Show, Generic, Hashable, NFData)
 
