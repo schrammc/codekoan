@@ -109,7 +109,7 @@ buildIndex lang postSource ngramSize = do
       =$ (CL.foldM (\trie -> \(str, v) -> do
                        mapM_ (liftIO . stToIO . BF.Mutable.insert mutableBF) $
                          (hash <$> ngrams ngramSize (V.toList str))
-                       return $ mergeTries trie
+                       return $ (mergeTriesWith S.union) trie
                                   (buildSuffixTrie (Just ngramSize) str (S.singleton v))
                    )
                    Trie.empty
