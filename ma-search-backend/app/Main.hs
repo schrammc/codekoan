@@ -41,7 +41,7 @@ randomTrie = do
       tries = do
         (n, str) <- indexedStrings
         [buildSuffixTrie (Just 7) str n]
-  return $ (foldl' mergeTries empty tries, indexedStrings)
+  return $ (foldl' (mergeTriesWith S.union) empty tries, indexedStrings)
 
 randomStrings :: IO [V.Vector Char]
 randomStrings = do
