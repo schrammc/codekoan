@@ -203,13 +203,19 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   $(logDebug) "Levenshtein - search..."
 
   initialMatches <- findMatches index levenshteinDistance txt minMatchLength
-
   $(logDebug) $ "Initial alignment matches: "
                   <> printNumberOfAlignmentMatches initialMatches
                   <> " in " <> printNumberOfGroups initialMatches
                   <> " groups"
+  let nonRedundantMatches = removeSubsumptionInSet $
+                            answersWithCoverage coveragePercentage initialMatches
 
-  let minLengthMatches = fragmentsLongerThan minMatchLength initialMatches
+  $(logDebug) $ "Non redundant matches: "
+                  <> printNumberOfAlignmentMatches nonRedundantMatches
+                  <> " in " <> printNumberOfGroups nonRedundantMatches
+                  <> " groups"
+
+  let minLengthMatches = fragmentsLongerThan minMatchLength nonRedundantMatches
 
   
   $(logDebug) $ "Groups after length filtering: "

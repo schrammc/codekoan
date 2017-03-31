@@ -17,6 +17,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                  -- * Helper functions
                                , flattenSet
                                , buildSet
+                               , removeSubsumptionInSet
                                )where
 
 import           Data.List (groupBy, sort, sortOn)
@@ -108,16 +109,14 @@ mapSplitFragmentResults ResultSet{..} f = ResultSet $
       [] -> Nothing
       rs  -> Just rs
 
-
--- | Build a result set from a list of alignment matches in which there is no
--- alignment match for an answer is subsumed by another.
+-- | Build a result set from a list of alignment matches.
 buildResultSet :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
 buildResultSet matches = ResultSet mp
   where
     matchGroups =  (groupBy $ \a b ->  resultMetaData a == resultMetaData b) $
                    (sortOn resultMetaData) $
                    matches
-    filteredGroups = filter (not . null) $ removeSubsumption' <$> matchGroups
+    filteredGroups = filter (not . null) $ matchGroups
     mp = M.fromList $ do
       group <- filteredGroups
       return $ length group `seq` (resultMetaData $ head group, [group])
@@ -130,13 +129,11 @@ buildResultSet' results =
   where
     combine mp match = M.insertWith (++) (resultMetaData match) [match] mp
 
+-- | Ensure that a result set is maximal with respect to subsumption, i.e. that
+-- no alignment match for a pattern subsumes another.
 removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
-removeSubsumptionInSet ResultSet{..}  = traceShow ("GROUP SIZES: ",  groupSizes) $
+removeSubsumptionInSet ResultSet{..}  =
   ResultSet $  fmap (\rs -> removeSubsumption <$> rs) resultSetMap
-  where
-    groupSizes = take 500 $ reverse $ sort $ do
-      (_, groups) <- M.toList resultSetMap
-      return . length . concat $ groups
 
 -- | For each fragment remove all search results, that are properly subsumed by
 -- another search result. Note that this can't remove all answer fragments
