@@ -82,13 +82,6 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
                  in common `seq` ra `seq` rb `seq` (common, ra, rb)
     g (CTrieLeaf x)  = Just x
     g (CTrieNode _ x) = x
-    
-
--- | Discards the value from the right trie in case of conflicts
-mergeTries :: (Eq v) => CompressedTrie a v
-           -> CompressedTrie a v
-           -> CompressedTrie a v
-mergeTries = mergeTriesWith const
 
 -- | Build a suffix trie for a word. All leaves of the suffix trie will be
 -- labelled with the given value.
