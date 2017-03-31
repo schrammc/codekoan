@@ -40,4 +40,4 @@ data TokenWithRange t l = TokenWithRange { coveredRange :: Range (LanguageText l
 -- language. Doing this prevents us from inadvertently mixing up e.g. bash and
 -- java code at any point in the program.
 newtype LanguageText l = LanguageText {langText :: Text}
-                       deriving (NFData)
+                       deriving (NFData, Show, Eq)
