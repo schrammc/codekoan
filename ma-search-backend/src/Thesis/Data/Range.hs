@@ -174,8 +174,7 @@ textLinesInRange (Range a b) txt =
 convertRange :: Range a -> Range b
 convertRange (Range a b) = (Range a b)
 
--- | /O(1)/ Get the slice of the vector that's in range. Caller must make sure,
--- that the range is actually contained in the vector
+-- | /O(1)/ Get the slice of the vector that's in range.
 vectorInRange :: Range a -> V.Vector a -> Maybe (V.Vector a)
 vectorInRange (Range a b) vec | b - a >= 0 && b <= V.length vec  =
                                 Just $ V.slice a (b-a) vec
