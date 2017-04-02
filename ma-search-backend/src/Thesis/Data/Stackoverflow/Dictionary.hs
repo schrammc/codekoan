@@ -88,9 +88,9 @@ answerFragments DataDictionary{..} lang@Language{..} aId = do
 getAnswerFragment :: (Monad m, MonadLogger m) =>
                      DataDictionary m
                   -> Language t l
-                  -> AnswerFragmentMetaData
+                  -> AnswerFragmentId
                   -> MaybeT m (TokenVector t l, LanguageText l)
-getAnswerFragment dict lang (AnswerFragmentMetaData AnswerFragmentId{..} _) = do
+getAnswerFragment dict lang AnswerFragmentId{..} = do
   v <- answerFragments dict lang fragmentAnswerId
   MaybeT . return $ v !? fragmentId
 

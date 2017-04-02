@@ -91,7 +91,7 @@ appLoop foundation@(Application{..}) channel = do
   let getTokenV = \fragData@AnswerFragmentMetaData{..} -> MaybeT $ do
         fragMaybe <- runMaybeT $ getAnswerFragment appDictionary
                                                    appLanguage
-                                                   fragData
+                                                   fragmentMetaId
         case fragMaybe of
           Nothing -> do
             $(logError) $ "Failed to get answer fragment " <>
