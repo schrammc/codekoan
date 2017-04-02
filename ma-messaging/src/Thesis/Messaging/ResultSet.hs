@@ -6,19 +6,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.Messaging.ResultSet where
 
-import           Data.Aeson
-import qualified Data.Map as M
-import           Data.Text
-import           Data.Maybe (catMaybes, fromMaybe)
 import           Control.Monad
+import           Control.Monad.Trans.Maybe
+import           Data.Aeson
+import           Data.Foldable (toList)
+import qualified Data.Map as M
+import           Data.Maybe (catMaybes, fromMaybe)
+import           Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Vector as V
 import           GHC.Generics (Generic)
-import           Thesis.Data.Range
-import           Thesis.Search.AlignmentMatch
-import           Thesis.Search.ResultSet
-import           Thesis.Search.FragmentData
-import           Thesis.Messaging.Query
 import           Thesis.CodeAnalysis.Language
-import Control.Monad.Trans.Maybe
+import           Thesis.Data.Range
+import           Thesis.Messaging.Query
+import           Thesis.Search.AlignmentMatch
+import           Thesis.Search.FragmentData
+import           Thesis.Search.ResultSet
 
 data ResultSetMsg =
   ResultSetMsg { resultSetLanguage :: !Text
@@ -60,6 +63,7 @@ resultSetToMsg :: forall t l m fd . (FragmentData fd, Monad m) => Int
                -> ResultSet t l fd
                -- ^ The result set that we're persisting
                -> (fd -> MaybeT m (TokenVector t l, LanguageText l))
+               -- ^ Access to fragment content in DB
                -> Text
                -- ^ The query text
                -> m ResultSetMsg
@@ -68,22 +72,24 @@ resultSetToMsg clusterSize lang replyTo ResultSet{..} getTokenV queryText = do
   let list = getMessageList fragMap
   return $ ResultSetMsg lang replyTo list clusterSize 1 queryText
   where
-    fragmentTexts :: (Monad m ) => m (M.Map fd Text)
+    fragmentTexts :: (Monad m ) => m (M.Map fd (TokenVector t l, LanguageText l))
     fragmentTexts =  M.fromList . catMaybes <$> (
       forM (M.toList resultSetMap) $ \(ann, _) -> runMaybeT $ do
-          (_,txt) <- getTokenV ann
-          return (ann, langText txt)
+          (tokenV, txt) <- getTokenV ann
+          return (ann, (tokenV, txt))
       )
 
-    getMessageList :: (M.Map fd Text) -> [ResultMsg]
+    getMessageList :: (M.Map fd (TokenVector t l, LanguageText l)) -> [ResultMsg]
     getMessageList fragmentTextMap = do
       (ann, matchGroups) <- M.toList resultSetMap
       group <- matchGroups
-      let fragText = fromMaybe "<<FRAGMENT TEXT NOT FOUND!>>"
-                               (M.lookup ann fragmentTextMap)
-      let msgGroup = alignmentMatchToMsg <$> group
+      let (tokenV, fragText) = fromMaybe (V.empty, missingFragText) $ do
+            (v,txt) <- M.lookup ann fragmentTextMap
+            return $ (v, langText txt)
+          missingFragText = "<<FRAGMENT TEXT NOT FOUND!>>"
+          msgGroup = alignmentMatchToMsg (tokenV, fragText) <$> group
           sourceString = printFragData ann
-      return $ ResultMsg (pack sourceString) msgGroup fragText
+      return $ ResultMsg (Text.pack sourceString) msgGroup fragText
 
 data ResultMsg =
   ResultMsg { resultSource :: Text
@@ -94,15 +100,34 @@ data ResultMsg =
 
 data AlignmentMatchMsg =
   AlignmentMatchMsg { alignmentMatchLevenScore :: !Int
-                    , alignmentMatchResultTextRange :: (Range Text)
+                    , alignmentMatchPatternTextRange :: (Range Text)
+                    , alignmentMatchQueryTextRange :: (Range Text)
                     , alignmentMatchPatternTokenRange :: (Range Int)
                     , alignmentMatchQueryTokenRange :: (Range Int)
                     }
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
-alignmentMatchToMsg :: AlignmentMatch t l fd -> AlignmentMatchMsg
-alignmentMatchToMsg AlignmentMatch{..} =
-  AlignmentMatchMsg resultLevenScore
-                    (convertRange resultTextRange)
-                    (convertRange resultFragmentRange)
-                    (convertRange resultQueryRange)
+alignmentMatchToMsg :: (TokenVector t l, Text)
+                    -> AlignmentMatch t l fd
+                    -> AlignmentMatchMsg
+alignmentMatchToMsg (v,_) AlignmentMatch{..} =
+  AlignmentMatchMsg { alignmentMatchLevenScore =
+                        resultLevenScore
+                    , alignmentMatchQueryTextRange =
+                        convertRange resultTextRange
+                    , alignmentMatchPatternTextRange =
+                        determinePatternTextRange v patternTokenRange
+                    , alignmentMatchPatternTokenRange = patternTokenRange
+                    , alignmentMatchQueryTokenRange =
+                        convertRange resultQueryRange
+                    }
+  where
+    patternTokenRange = convertRange resultFragmentRange
+    determinePatternTextRange vec tokenRange =
+      case vectorInRange tokenRange vec of
+        Nothing -> Range 0 0
+        Just matchedV ->
+          let langTextRanges = coveredRange <$> matchedV
+              start = minimum $ rangeStart <$> langTextRanges
+              end = maximum $ rangeStart <$> langTextRanges
+          in Range start end
