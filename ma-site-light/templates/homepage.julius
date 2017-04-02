@@ -57,7 +57,8 @@ function searchType(t){
 }
 
 function submitSearch(){
-    var query = generateQuery();
+    var lang = $('input[name=lang]:checked').attr('val').replace(/\'/g,'');
+    var query = generateQuery(lang);
 
     var submit = function(){
 	$.ajax({
@@ -73,15 +74,12 @@ function submitSearch(){
 	    }
 	});
     };
-    var lang = $('input[name=lang]:checked').attr('val').replace(/\'/g,'');
-    query.queryLanguage=lang;
     submit();
 }
 
-function generateQuery(){
-    var settings = genSearchSettings();
+function generateQuery(language){
+    var settings = genSearchSettings(language);
     var text = $('#proginput').val();
-    var language = 'unknown';
 
     return({ queryText: text
            , queryLanguage: language
@@ -91,11 +89,11 @@ function generateQuery(){
 }
 
 // Generate standard search settings based on the input from the selector
-function genSearchSettings(){
+function genSearchSettings(language){
     var searchType = getSearchType();
     switch(searchType){
     case "High Similarity":
-	return({ minMatchLength: 30
+	return({ minMatchLength: 15
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.8
 	       , blockFiltering: true
@@ -108,13 +106,16 @@ function genSearchSettings(){
 	       , blockFiltering: true
 	       , semanticThreshold: 0.3
 	       });
-    case "Low Similarity":
-	return({ minMatchLength: 10
-	       , levenshteinDistance: 0
-	       , coveragePercentage: 0.5
-	       , blockFiltering: true
-	       , semanticThreshold: null
-	       });
+    case "Low Similarity": {
+	blockF = language != 'python';
+	settings = { minMatchLength: 10
+                   , levenshteinDistance: 0
+                   , coveragePercentage: 0.5
+                   , blockFiltering: true
+                   , semanticThreshold: null
+                   };
+	return settings;
+    }
     default:
 	alert("Unrecognized search settings: " + searchType);
 	return null;

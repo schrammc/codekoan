@@ -1,4 +1,6 @@
-module Handler.Display where
+module Handler.DisplayAlt where
+
+import Control.Monad.Logger
 
 import           Data.Char (isDigit)
 import           Control.Monad.Trans.Maybe
@@ -16,8 +18,8 @@ import           Thesis.Messaging.ResultSet
 import Text.Julius (RawJS (..))
 import Thesis.Util.LoggingUtils
 
-getDisplayR :: Int -> Handler Html
-getDisplayR qInt = do
+getDisplayAltR :: Int -> Handler Html
+getDisplayAltR qInt = do
   App{..} <- getYesod
   reply <- waitForReply appSettings queryId
   case reply of
@@ -37,18 +39,22 @@ Query identifier: #{qInt}
 
 resultsW :: ResultSetMsg -> Widget
 resultsW resultSet@ResultSetMsg{..} = do
+  App{..} <- getYesod
   if null resultSetResultList
-    then [whamlet|<h1>Your Search Yielded no Results
+    then [whamlet|
+                 <center><h1>Your Search Yielded no Results
                  <br style="margin-bottom:10em">
                  |]
     else do
-      [whamlet|<h1 style="text-align:center">Found #{length resultSetResultList} code pattern #{reuses}:
+      let groups = resultGroups resultSet
+      [whamlet|<h1 style="text-align:center">Code pattern reuse detected at #{length groups} sites:
               |]
-      forM_ (sortedResults resultSet) $ \result ->
+      let sortedGroups = reverse $ sortOn groupAvgPatternCoverage groups
+      forM_ sortedGroups $ \gr ->
         [whamlet|
                 <div .row>
                   <div .col-lg-12>
-                    ^{singleResultW resultSet result}
+                    ^{resultGroupW gr}
                 |]
   where
     reuses :: Text
@@ -56,14 +62,88 @@ resultsW resultSet@ResultSetMsg{..} = do
              then "reuses"
              else "reuse"
 
-sortedResults :: ResultSetMsg -> [ResultMsg]
-sortedResults ResultSetMsg{..} =
-  reverse $ sortOn (resultCoverage resultQueryText) resultSetResultList
+data ResultGroup = ResultGroup [Range Text] [ResultMsg] Text
 
-resultCoverage :: Text -> ResultMsg -> Double
-resultCoverage t ResultMsg{..} = coveragePercentage (Text.length t) ranges
+groupAvgPatternCoverage :: ResultGroup -> Double
+groupAvgPatternCoverage (ResultGroup _ msgs _) =
+  (Prelude.maximum $ resultCoverage <$> msgs)
+
+resultGroups :: ResultSetMsg -> [ResultGroup]
+resultGroups msg = do
+  gr <- groupBy (\a b -> resultDocRanges a == resultDocRanges b)
+                (sortOn (sort . resultCoverage) $ resultSetResultList msg)
+  return $ ResultGroup (resultDocRanges $ Prelude.head gr)
+                       gr
+                       (resultQueryText msg)
+  where
+    resultDocRanges resMsg =
+      sort $ alignmentMatchPatternTextRange <$> resultAlignmentMatches resMsg
+
+resultCoverage :: ResultMsg -> Double
+resultCoverage ResultMsg{..} =
+  coveragePercentage (Text.length resultFragmentText) ranges
   where
     ranges = alignmentMatchPatternTextRange <$>resultAlignmentMatches
+
+resultGroupW :: ResultGroup -> Widget
+resultGroupW gr@(ResultGroup ranges msgs queryText) = do
+  let frac = groupAvgPatternCoverage gr
+  [whamlet|
+           <h3> <b>Site with reuse #{frac}</b>
+
+           Similarities with #{length msgs} Stack Overflow code #{frac}
+
+           <div .row>
+
+           <div .row>
+             <div .col-lg-6>
+               <br>
+               <center> The matched #{pieces} from your query document:
+               <br>
+               ^{queryPieces}
+             <div .col-lg-6>
+               <br>
+               <center> The relevant Stack Overflow code patterns:
+               <br>
+               ^{fragGroups}
+          <hr>
+          |]
+  where
+    frag :: Text
+    frag | length msgs == 1 = "fragment"
+         | otherwise = "fragments"
+    pieces :: Text
+    pieces = if length ranges > 1
+             then "pieces"
+             else "piece"
+    queryPieces = forM_ (resultAlignmentMatches $ Prelude.head msgs) $ \AlignmentMatchMsg{..} -> do
+      let qt = textInRangeNice alignmentMatchResultTextRange queryText
+      [whamlet|
+              <div .well>
+                <pre>
+
+                    #{qt}
+              |]
+    fragGroups = forM_ msgs $ \ResultMsg{..} -> do
+      App{..} <- getYesod
+      let (aIdTxt, rest) = Text.span isDigit resultSource
+          aIdInt = read $ Text.unpack aIdTxt
+          aId = AnswerId aIdInt
+          link = "http://stackoverflow.com/a/" <> (Text.takeWhile isDigit resultSource)
+      Just (parentQuestion, answer) <- liftIO $ runOutstreamLogging $ runMaybeT $ do
+        parentId <- Dict.answerParent appDict aId
+        q <- Dict.getQuestion appDict parentId
+        a <- Dict.getAnswer appDict aId
+        return (q, a)
+  
+      [whamlet|
+                <b><a target="_blank" href=#{link}>#{questionTitle parentQuestion}</a>
+                <br>
+                <br>
+
+                <div .well>
+                  <pre>
+                    #{resultFragmentText} |]
 
 singleResultW :: ResultSetMsg -> ResultMsg -> Widget
 singleResultW ResultSetMsg{..} ResultMsg{..} = do
@@ -108,7 +188,7 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
   where
     link = "http://stackoverflow.com/a/" <> (Text.takeWhile isDigit resultSource)
     queryPieces = forM_ resultAlignmentMatches $ \AlignmentMatchMsg{..} -> do
-      let qt = textInRangeNice alignmentMatchResultTextRange resultQueryText
+      let qt = textInRangeNice alignmentMatchPatternTextRange resultQueryText
       [whamlet|
               <div .well>
                 <pre>
@@ -125,7 +205,6 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
     fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
     aId = AnswerId aIdInt
 
-textInRangeNice :: Range Text -> Text -> Text
 textInRangeNice range text =
   let (txt, (start,end)) = textLinesInRange range text
       txtLines = zip formattedLineNumbers (Text.lines txt)

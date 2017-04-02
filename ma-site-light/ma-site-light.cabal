@@ -25,6 +25,7 @@ library
                      Handler.Comment
                      Handler.Submit
                      Handler.Display
+                     Handler.DisplayAlt
                      Handler.ForwardQuery
                      Handler.Wait
                      Handler.GetForward

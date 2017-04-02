@@ -37,6 +37,7 @@ import Handler.Home
 import Handler.Comment
 import Handler.Submit
 import Handler.Display
+import Handler.DisplayAlt
 import Handler.ForwardQuery
 import Handler.Wait
 import Handler.GetForward
