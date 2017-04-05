@@ -133,7 +133,7 @@ buildResultSet' results =
 -- no alignment match for a pattern subsumes another.
 removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
 removeSubsumptionInSet ResultSet{..}  =
-  ResultSet $  fmap (\rs -> removeSubsumption <$> rs) resultSetMap
+  ResultSet $  fmap (\rs -> removeSubsumption' <$> rs) resultSetMap
 
 -- | For each fragment remove all search results, that are properly subsumed by
 -- another search result. Note that this can't remove all answer fragments
