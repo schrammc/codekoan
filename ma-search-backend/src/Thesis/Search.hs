@@ -114,7 +114,6 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
 --                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
                                   (removeRepeats 2 ngramsWithTails)
-      -- parMap use here is probably not yet optimal
       searchResults = concat $ fmap searchFor relevantNGramTails
 
   $(logDebug) $ "Number of search starting points " <>
@@ -139,7 +138,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
            let queryRange = Range start (start + length foundTokens)
            case ngramWithRange (take (length foundTokens) ts) of
              Nothing -> []
-             Just x -> return $! AlignmentMatch { resultTextRange = fst x
+             Just x -> return $! AlignmentMatch { resultTextRange = x
                                                 , resultMatchedTokens = foundTokens
                                                 , resultQueryRange = queryRange
                                                 , resultMetaData = metadata
@@ -155,10 +154,11 @@ mergePositionRanges (Range start _) (Range _ end) =
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
-ngramWithRange :: [TokenWithRange t l] -> Maybe (Range (LanguageText l), [t])
+ngramWithRange :: [TokenWithRange t l] -> Maybe (Range (LanguageText l))
 ngramWithRange [] = Nothing
-ngramWithRange xs = let (rs, ts) = unzip $ (\(TokenWithRange r t) -> (r,t)) <$> xs
-                    in Just (foldl1 mergePositionRanges rs, ts)
+ngramWithRange xs = let start = rangeStart . coveredRange $ head xs
+                        end   = rangeEnd . coveredRange $ head (reverse xs)
+                    in Just $ Range start end
 
 search :: (Ord t, FragmentData ann) =>
           SearchIndex t l ann
