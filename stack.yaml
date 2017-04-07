@@ -38,6 +38,7 @@ resolver: lts-8.0
 packages:
 - ./ma-search-backend
 - ./ma-messaging
+- ./ma-survey
 #- ./ma-site
 #- ./ma-site-light
 - ./ma-postgres-indexer
