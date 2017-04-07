@@ -215,7 +215,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                   <> printNumberOfAlignmentMatches initialMatches
                   <> " in " <> printNumberOfGroups initialMatches
                   <> " groups"
-  let nonRedundantMatches = -- removeSubsumptionInSet $
+  let nonRedundantMatches = removeSubsumptionInSet $
                             answersWithCoverage coveragePercentage initialMatches
 
   $(logDebug) $ "Non redundant matches: "
