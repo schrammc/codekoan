@@ -120,8 +120,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
   $(logDebug) $ "Number of search results: " <>
-                (Text.pack . show $ length (force searchResults)) <>
-                ", building result set... "
+                (Text.pack . show . sum $ length <$> (force searchResults))
 
   return $ ResultSet $ (:[]) <$> searchResults
 
@@ -255,7 +254,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
       $(logDebug) "Skipping word similarity analysis."
       return blockFiltered
     Just  t -> do
-      $(logDebug) "Proceeding with similarity analysis..."
+      $(logDebug) "Proceeding with identifier similarity analysis..."
       qData <- MaybeT $ return queryData
       res <- resultsWithSimilarity lang dict analyzer qData blockFiltered t
       return $ answersWithCoverage coveragePercentage res
