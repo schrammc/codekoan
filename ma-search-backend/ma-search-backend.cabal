@@ -104,7 +104,7 @@ library
                      , xml-conduit >= 1.3
                      , xml-types >= 0.3.6
   default-language:    Haskell2010
-  ghc-options: -W
+  ghc-options: -W -O2 -optc-O3
 
 test-suite ma-search-backend-test
   type:                exitcode-stdio-1.0
