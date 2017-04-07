@@ -161,7 +161,7 @@ removeSubsumption' results' = maxSet [] results
               sortOn (\r -> ( rangeStart $ resultQueryRange r
                             , (-1) * (rangeLength $ resultQueryRange r)))
                      results'
-    append x = (++ [x])
+    append x = (x:)
     maxSet _      []        = []
     maxSet active (next:xs) =
       let (subsumedByNone, active') = adjustActive active next
@@ -170,8 +170,8 @@ removeSubsumption' results' = maxSet [] results
          else maxSet active' xs
     adjustActive []     next = (True, [next])
     adjustActive active next =
-      let active' = filter (\a -> (rangeEnd $ resultQueryRange a) >=
-                                  (rangeStart $ resultQueryRange next))
+      let active' = dropWhile (\a -> (rangeEnd $ resultQueryRange a) <
+                                     (rangeStart $ resultQueryRange next))
                     active
           subsumedByNone = null $
                            filter (subsumedByProper next) active'
