@@ -109,25 +109,15 @@ mapSplitFragmentResults ResultSet{..} f = ResultSet $
       [] -> Nothing
       rs  -> Just rs
 
--- | Build a result set from a list of alignment matches.
-buildResultSet :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
-buildResultSet matches = ResultSet mp
-  where
-    matchGroups =  (groupBy $ \a b ->  resultMetaData a == resultMetaData b) $
-                   (sortOn resultMetaData) $
-                   matches
-    filteredGroups = filter (not . null) $ matchGroups
-    mp = M.fromList $ do
-      group <- filteredGroups
-      return $ length group `seq` (resultMetaData $ head group, [group])
-
 -- | Build a result set from a list of search results.
-buildResultSet' :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
-buildResultSet' [] = ResultSet M.empty
-buildResultSet' results =
+buildResultSet :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
+buildResultSet [] = ResultSet M.empty
+buildResultSet results =
   ResultSet $ M.map (\x -> [x]) $ foldl combine M.empty results
   where
-    combine mp match = M.insertWith (++) (resultMetaData match) [match] mp
+    f match Nothing = Just [match]
+    f match (Just ms) = Just $ match:ms
+    combine mp match = M.alter (f match) (resultMetaData match) mp
 
 -- | Ensure that a result set is maximal with respect to subsumption, i.e. that
 -- no alignment match for a pattern subsumes another.
