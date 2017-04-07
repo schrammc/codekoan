@@ -15,6 +15,7 @@ import           Control.Parallel.Strategies
 import           Control.Monad.Logger
 import           Data.Hashable (Hashable)
 import           Data.Monoid ((<>))
+import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import qualified Data.Text as Text
@@ -114,7 +115,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
 --                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
                                   (removeRepeats 2 ngramsWithTails)
-      searchResults = concat $ fmap searchFor relevantNGramTails
+      searchResults = foldl addToSet M.empty $ fmap searchFor relevantNGramTails
 
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
@@ -122,11 +123,18 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
                 (Text.pack . show $ length (force searchResults)) <>
                 ", building result set... "
 
-  return $ buildResultSet searchResults
+  return $ ResultSet $ (:[]) <$> searchResults
 
   where
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)
+
+    addToSet mp matches = foldl addM mp matches
+      where
+        addM mp match =
+          case M.lookup (resultMetaData match) mp of
+              Nothing -> M.insert (resultMetaData match) [match] mp
+              Just xs -> M.insert (resultMetaData match) (match:xs) mp
 
     searchFor (ngram, start, ts) =
       let tokenVector = V.fromList $ token <$> ts
