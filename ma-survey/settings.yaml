@@ -1,0 +1,6 @@
+dbSettings:
+  dbPassword: "analytics-pgs"
+  dbUser: "postgres"
+  dbHost: "damar.pms.ifi.lmu.de"
+submitUrl: "http://damar.pms.ifi.lmu.de:6368/submit"
+getUrl: "https://damar.pms.ifi.lmu.de/get"
