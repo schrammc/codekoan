@@ -49,11 +49,12 @@ resultsW resultSet@ResultSetMsg{..} = do
       let groups = resultGroups resultSet
       [whamlet|<h1 style="text-align:center">Code pattern reuse detected at #{length groups} sites:
               |]
-      let sortedGroups = reverse $ sortOn groupAvgPatternCoverage groups
-      forM_ sortedGroups $ \gr ->
+      let sortedGroups = reverse $ sortOn fst (rankGroups groups)
+      forM_ sortedGroups $ \(rank, gr) ->
         [whamlet|
                 <div .row>
                   <div .col-lg-12>
+$#                    <b>#{rank}
                     ^{resultGroupW gr}
                 |]
   where
@@ -62,22 +63,39 @@ resultsW resultSet@ResultSetMsg{..} = do
              then "reuses"
              else "reuse"
 
+    rankGroups :: [ResultGroup] -> [(Double, ResultGroup)]
+    rankGroups gs =
+      let maxLength = Prelude.maximum $ groupAvgPatternTokenRangeLength <$> gs
+          rankGroup g =
+            let l = groupAvgPatternTokenRangeLength g / maxLength
+                c = groupAvgPatternCoverage g
+            in (c * l, g)
+      in rankGroup <$> gs
+
 data ResultGroup = ResultGroup [Range Text] [ResultMsg] Text
 
 groupAvgPatternCoverage :: ResultGroup -> Double
 groupAvgPatternCoverage (ResultGroup _ msgs _) =
-  (Prelude.maximum $ resultCoverage <$> msgs)
+  (sum $ resultCoverage <$> msgs) / (fromIntegral $ length msgs)
+
+groupAvgPatternTokenRangeLength :: ResultGroup -> Double
+groupAvgPatternTokenRangeLength (ResultGroup _ msgs _) =
+  (fromIntegral . sum $ totalTokenLength <$> msgs) / (fromIntegral $ length msgs)
+  where
+    totalTokenLength msg = sum $ do
+      match <- resultAlignmentMatches msg
+      return . rangeLength $ alignmentMatchPatternTokenRange match
 
 resultGroups :: ResultSetMsg -> [ResultGroup]
 resultGroups msg = do
-  gr <- groupBy (\a b -> resultDocRanges a == resultDocRanges b)
-                (sortOn (sort . resultCoverage) $ resultSetResultList msg)
+  gr <- groupBy (\a b -> resultDocRanges a == resultDocRanges b) $
+                sortOn resultDocRanges (resultSetResultList msg)
   return $ ResultGroup (resultDocRanges $ Prelude.head gr)
                        gr
                        (resultQueryText msg)
   where
     resultDocRanges resMsg =
-      sort $ alignmentMatchPatternTextRange <$> resultAlignmentMatches resMsg
+      sort $ alignmentMatchQueryTextRange <$> resultAlignmentMatches resMsg
 
 resultCoverage :: ResultMsg -> Double
 resultCoverage ResultMsg{..} =
@@ -89,9 +107,9 @@ resultGroupW :: ResultGroup -> Widget
 resultGroupW gr@(ResultGroup ranges msgs queryText) = do
   let frac = groupAvgPatternCoverage gr
   [whamlet|
-           <h3> <b>Site with reuse #{frac}</b>
+           <h3> <b>Site with reuse </b>
 
-           Similarities with #{length msgs} Stack Overflow code #{frac}
+           Similarities with #{length msgs} Stack Overflow code
 
            <div .row>
 
@@ -117,14 +135,27 @@ resultGroupW gr@(ResultGroup ranges msgs queryText) = do
              then "pieces"
              else "piece"
     queryPieces = forM_ (resultAlignmentMatches $ Prelude.head msgs) $ \AlignmentMatchMsg{..} -> do
-      let qt = textInRangeNice alignmentMatchResultTextRange queryText
+      let qt = textInRangeNice alignmentMatchQueryTextRange queryText
       [whamlet|
               <div .well>
                 <pre>
 
                     #{qt}
               |]
-    fragGroups = forM_ msgs $ \ResultMsg{..} -> do
+    fragGroups = do
+      let (firstFrags, restFrags) = Prelude.splitAt 3 msgs
+      forM_ firstFrags renderFrag
+      when (not $ null restFrags) $ do
+        ident <- newIdent
+        identBtn <- newIdent
+        [whamlet|
+<button .btn .btn-info id="#{identBtn}" data-toggle="collapse" data-target="##{ident}" onclick="$('##{identBtn}').hide()">... and #{length restFrags} others
+
+<div id="#{ident}" .collapse>
+  ^{forM_ restFrags renderFrag}
+|]
+
+    renderFrag ResultMsg{..} = do
       App{..} <- getYesod
       let (aIdTxt, rest) = Text.span isDigit resultSource
           aIdInt = read $ Text.unpack aIdTxt
@@ -143,7 +174,8 @@ resultGroupW gr@(ResultGroup ranges msgs queryText) = do
 
                 <div .well>
                   <pre>
-                    #{resultFragmentText} |]
+                    #{resultFragmentText}|]
+      return ()
 
 singleResultW :: ResultSetMsg -> ResultMsg -> Widget
 singleResultW ResultSetMsg{..} ResultMsg{..} = do
@@ -205,6 +237,7 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
     fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
     aId = AnswerId aIdInt
 
+textInRangeNice :: Range Text -> Text -> Text
 textInRangeNice range text =
   let (txt, (start,end)) = textLinesInRange range text
       txtLines = zip formattedLineNumbers (Text.lines txt)

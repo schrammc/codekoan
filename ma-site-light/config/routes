@@ -7,8 +7,8 @@
 
 /comments      CommentR POST
 /debug         SubmitR  GET POST
-/display/#Int  DisplayR GET
-/displayalt/#Int  DisplayAltR GET
+/displayalt/#Int  DisplayR GET
+/display/#Int  DisplayAltR GET
 /query         QueryR   POST
 /wait/#Int     WaitR    GET
 /feedback      FeedbackR POST
