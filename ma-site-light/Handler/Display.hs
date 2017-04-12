@@ -108,7 +108,7 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
   where
     link = "http://stackoverflow.com/a/" <> (Text.takeWhile isDigit resultSource)
     queryPieces = forM_ resultAlignmentMatches $ \AlignmentMatchMsg{..} -> do
-      let qt = textInRangeNice alignmentMatchResultTextRange resultQueryText
+      let qt = textInRangeNice alignmentMatchQueryTextRange resultQueryText
       [whamlet|
               <div .well>
                 <pre>

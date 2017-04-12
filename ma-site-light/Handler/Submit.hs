@@ -165,7 +165,7 @@ Code in query document that was covered:
     <div .well>
       <pre>
         <code>
-          #{textInRange alignmentMatchResultTextRange code}
+          #{textInRange alignmentMatchQueryTextRange code}
   <div .col-md-6>
     <div .well>
       <pre>
