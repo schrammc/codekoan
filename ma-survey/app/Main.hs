@@ -138,5 +138,5 @@ allFiles path = do
     then return (path:[])
     else do
       entries <- listDirectory path
-      paths <- concat <$> forM entries allFiles
-      return $ (\p -> path ++ "/" ++ p) <$> paths
+      paths <- concat <$> forM ((\p -> path ++ "/" ++ p) <$>  entries) allFiles
+      return $ paths
