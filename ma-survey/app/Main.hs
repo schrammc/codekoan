@@ -2,15 +2,19 @@
 module Main where
 
 import Control.Concurrent
+import Control.Concurrent.Async.Lifted
 import Thesis.Messaging.Query
 import Thesis.Messaging.ResultSet
 import Data.List (isSuffixOf)
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString as BS
 import           Control.Monad
 import qualified Data.Yaml
 import           System.Directory
 import           System.Environment
 import           Thesis.SurveySettings
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as TIO
 import Thesis.Search.Settings
 import Network.HTTP.Conduit
@@ -37,7 +41,16 @@ printHelpString = do
 runWithSettings :: SurveySettings -> FilePath -> IO ()
 runWithSettings settings dirPath = do
   files <- filterCodeFiles <$> allFiles dirPath
+  when (null files) $
+    print $ "Warning: no files to process in directory " ++ dirPath
+  results <- mapConcurrently (process settings) files
+  let fileText = T.decodeUtf8 . BS.concat . BL.toChunks . Aeson.encode $ results
+  TIO.writeFile "output.json" fileText
   return ()
+  where
+    process settings path = do
+      res <- processFile settings path
+      return (path, res)
 
 filterCodeFiles :: [FilePath] -> [FilePath]
 filterCodeFiles ps =
@@ -45,6 +58,15 @@ filterCodeFiles ps =
                 isSuffixOf ".py" p ||
                 isSuffixOf ".hs" p
          ) ps
+
+processFile :: SurveySettings -> FilePath -> IO ResultSetMsg
+processFile settings path = do
+  print $ "Processing: " ++ path
+  queryId <- submitFile settings path
+  print $ "Query id for " ++ path ++ " " ++ (show queryId)
+  result <- waitForResult settings queryId
+  print $ "Finished processing file " ++ path
+  return result
 
 submitFile :: SurveySettings -> FilePath -> IO QueryId
 submitFile surveySettings path = do
@@ -96,7 +118,7 @@ waitForResult settings (QueryId qId) = do
       res <- httpLbs req manager
       let Just resp = Aeson.decode (getResponseBody res)
           result = Aeson.parseMaybe parser resp
-      print (result)
+
       case result of
         Nothing -> return Nothing
         Just r -> return $ Just r
@@ -113,8 +135,8 @@ allFiles :: FilePath -> IO [FilePath]
 allFiles path = do
   isDir <- doesDirectoryExist path
   if not isDir
-  then return $ (path:[])
-  else do
-    entries <- listDirectory path
-    paths <- concat <$> forM entries allFiles
-    return $ (\p -> path ++ "/" ++ p) <$> paths
+    then return (path:[])
+    else do
+      entries <- listDirectory path
+      paths <- concat <$> forM entries allFiles
+      return $ (\p -> path ++ "/" ++ p) <$> paths
