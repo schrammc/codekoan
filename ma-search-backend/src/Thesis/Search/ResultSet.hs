@@ -20,7 +20,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , removeSubsumptionInSet
                                )where
 
-import           Data.List (groupBy, sort, sortOn)
+import           Data.List (groupBy, sortOn)
 import           Data.Maybe (catMaybes)
 import qualified Data.Map.Strict as M
 
@@ -28,8 +28,6 @@ import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
 import           Control.DeepSeq
-import           Thesis.Data.Range
-import           Debug.Trace
 
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l ann =

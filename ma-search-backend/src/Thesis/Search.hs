@@ -10,8 +10,6 @@ module Thesis.Search where
 
 import           Control.Monad.Catch
 import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.Class
-import           Control.Parallel.Strategies
 import           Control.Monad.Logger
 import           Data.Hashable (Hashable)
 import           Data.Monoid ((<>))
