@@ -79,7 +79,7 @@ postgresGetAnswer connection AnswerId{..} = do
                         aBody
                         aRating
                         aParent
-  case answers of
+  case length answers `seq` answers of
     [] -> MaybeT $ return Nothing
     (a:_) -> return a
   
@@ -98,6 +98,6 @@ postgresGetQuestion connection QuestionId{..} = do
                           qTitle
                           qRating
                           qTags
-  case questions of
+  case length questions `seq` questions of
     [] -> MaybeT $ return Nothing
     (q:_) -> return q
