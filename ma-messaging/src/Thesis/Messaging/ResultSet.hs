@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.Messaging.ResultSet where
 
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Trans.Maybe
 import           Data.Aeson
@@ -31,7 +32,7 @@ data ResultSetMsg =
                , resultNumber :: !Int
                , resultQueryText :: !Text
                }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, NFData)
 
 -- | Merge a list of result sets. It is checked if these 'ResultSetMsg's all
 -- have the same language.
@@ -70,7 +71,7 @@ resultSetToMsg :: forall t l m fd . (FragmentData fd, Monad m) => Int
 resultSetToMsg clusterSize lang replyTo ResultSet{..} getTokenV queryText = do
   fragMap <- fragmentTexts
   let list = getMessageList fragMap
-  return $ ResultSetMsg lang replyTo list clusterSize 1 queryText
+  return $!! ResultSetMsg lang replyTo list clusterSize 1 queryText
   where
     fragmentTexts :: (Monad m ) => m (M.Map fd (TokenVector t l, LanguageText l))
     fragmentTexts =  M.fromList . catMaybes <$> (
@@ -96,7 +97,7 @@ data ResultMsg =
             , resultAlignmentMatches :: [AlignmentMatchMsg]
             , resultFragmentText :: Text
             }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, NFData)
 
 data AlignmentMatchMsg =
   AlignmentMatchMsg { alignmentMatchLevenScore :: !Int
@@ -105,7 +106,7 @@ data AlignmentMatchMsg =
                     , alignmentMatchPatternTokenRange :: (Range Int)
                     , alignmentMatchQueryTokenRange :: (Range Int)
                     }
-  deriving (Show, Eq, Generic, FromJSON, ToJSON)
+  deriving (Show, Eq, Generic, FromJSON, ToJSON, NFData)
 
 alignmentMatchToMsg :: (TokenVector t l, Text)
                     -> AlignmentMatch t l fd

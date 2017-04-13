@@ -14,6 +14,7 @@ module Thesis.Messaging.Query
        , buildQuery
        )where
 
+import Control.DeepSeq (NFData)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
@@ -22,7 +23,7 @@ import Data.Aeson
 import Thesis.Search.Settings
 
 newtype QueryId = QueryId Int
-                deriving (Eq, Ord, Read, Show, Generic, ToJSON, FromJSON)
+                deriving (Eq, Ord, Read, Show, Generic, ToJSON, FromJSON, NFData)
 
 -- | A single query document
 data Query = Query { queryText :: Text
