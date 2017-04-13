@@ -93,15 +93,3 @@ getAnswerFragment :: (Monad m, MonadLogger m) =>
 getAnswerFragment dict lang AnswerFragmentId{..} = do
   v <- answerFragments dict lang fragmentAnswerId
   MaybeT . return $ v !? fragmentId
-
--- | Get the token vector of one specific answer code fragment from the
--- dictionary. This will return 'Nothing' if the answer code fragment couldn't
--- be found.
-answerFragmentTokens  :: (Monad m, MonadLogger m) =>
-                         DataDictionary m
-                      -> Language t l
-                      -> AnswerFragmentId
-                      -> MaybeT m (TokenVector t l, LanguageText l)
-answerFragmentTokens dict lang AnswerFragmentId{..} = do
-  fragmentContent <- answerFragments dict lang fragmentAnswerId
-  MaybeT $ return (fragmentContent !? fragmentId)
