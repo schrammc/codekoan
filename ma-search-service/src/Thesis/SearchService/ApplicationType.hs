@@ -52,7 +52,7 @@ data Application m where
                  , appIndex            :: SearchIndex t l AnswerFragmentMetaData
                  }  -> Application m
 
-buildFoundation :: forall m . (MonadThrow m, MonadIO m, MonadLogger m)
+buildFoundation :: forall m . (MonadCatch m, MonadThrow m, MonadIO m, MonadLogger m)
                    => ServiceSettings
                 -> m (Application m)
 buildFoundation settings@ServiceSettings{..} = do
@@ -67,7 +67,7 @@ buildFoundation settings@ServiceSettings{..} = do
   $(logInfo) "Connecting to postgresql..."
   psqlConnection <- liftIO $ PSQL.connect serviceDBConnectInfo
   $(logInfo) "PostgreSQL connection established!"
-  appDictionary <- postgresDictionary psqlConnection
+  appDictionary <- postgresDictionary serviceDBConnectInfo
 
   let buildApp :: forall t l . (Ord t, Hashable t, NFData t) =>
                   Language t l

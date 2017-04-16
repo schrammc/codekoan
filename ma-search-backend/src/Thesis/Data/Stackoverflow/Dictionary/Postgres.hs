@@ -5,36 +5,78 @@
 -- A 'DataDictionary' implementation using a PostgresSQL backend
 {-# LANGUAGE RecordWildCards#-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Thesis.Data.Stackoverflow.Dictionary.Postgres where
 
-import Control.Monad.Logger
+import           Control.Concurrent.MVar
+import           Control.Monad.Logger
+import           Control.Monad.Catch
 
-import Data.Text (Text)
-import Data.Vector as V (toList)
+import           Data.Monoid ((<>))
+import           Data.Text (Text, pack)
+import           Data.Vector as V (toList)
 
-import Database.PostgreSQL.Simple
+import           Database.PostgreSQL.Simple as PSQL
 
-import Thesis.Data.Stackoverflow.Dictionary
-import Thesis.Data.Stackoverflow.Answer
-import Thesis.Data.Stackoverflow.Question
+import           Thesis.Data.Stackoverflow.Dictionary
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Question
 
-import Control.Monad.Trans.Maybe
-import Control.Monad.IO.Class
-import Control.Monad.Catch
+import           Control.Monad.Trans.Maybe
+import           Control.Monad.IO.Class
+import           Control.Monad.Catch
 
 import qualified Data.Set as S (fromList, Set)
 
 -- | A 'DataDictionary' that accesses a PostgresSQL database.
-postgresDictionary :: (MonadThrow m, MonadIO m, MonadLogger m) =>
-                      Connection
+--
+-- On Sql errors, retry is attempted three times before giving up and throwing
+-- the error a level outwards.
+postgresDictionary :: (MonadCatch m, MonadThrow m, MonadIO m, MonadLogger m) =>
+                      ConnectInfo
                    -> m (DataDictionary m)
-postgresDictionary connection =
-  return $ DataDictionary{ answerParent = postgresAnswerParent connection
-                         , questionTags = postgresQuestionTags connection
-                         , getAnswer    = postgresGetAnswer connection
-                         , getQuestion  = postgresGetQuestion connection
+postgresDictionary connectInfo = do
+  connection <- liftIO $ PSQL.connect connectInfo
+  cVar <- liftIO $ newMVar connection
+  return $ DataDictionary{ answerParent = \aId -> 
+                             withPsqlConnection cVar
+                                                (\c -> postgresAnswerParent c aId)
+                         , questionTags = \qId ->
+                             withPsqlConnection cVar
+                                                (\c -> postgresQuestionTags c qId)
+                         , getAnswer    = \qId ->
+                             withPsqlConnection cVar
+                                                (\c -> postgresGetAnswer c qId)
+                         , getQuestion  = \aId ->
+                             withPsqlConnection cVar
+                                                (\c -> postgresGetQuestion c aId)
                          }
+  where
+    withPsqlConnection connVar action = do
+      conn <- liftIO $ takeMVar connVar
+      result <- catch (doWithConnection conn) (\(e :: SqlError) -> retry 3 e)
+      return result
+      where
+        doWithConnection connection = do
+          result <- action connection
+          liftIO $ putMVar connVar connection
+          return result
+        retry n e = do
+          connection <- liftIO $ PSQL.connect connectInfo
+          $(logWarn) $ "SqlError: Reconnecting and retrying (" <>
+                       (pack $ show n) <> ")"
+          $(logWarn) $ "SqlError message:" <> (pack $ show e)
+          catch (doWithConnection connection) $ \(e :: SqlError) ->
+                if n <= 0
+                  then do
+                    $(logError) "Too many retries, connection broken!"
+                    throwM e
+                  else retry (n-1) e
 
+                
+
+  
 -- | Get the parent question id for an answer id from postgres
 postgresAnswerParent :: (MonadIO m) =>
                         Connection
