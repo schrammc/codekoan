@@ -10,29 +10,27 @@
 module Thesis.Data.Stackoverflow.Dictionary.Postgres where
 
 import           Control.Concurrent.MVar
-import           Control.Monad.Logger
 import           Control.Monad.Catch
+import           Control.Monad.IO.Class
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Maybe
 
 import           Data.Monoid ((<>))
+import qualified Data.Set as S (fromList, Set)
 import           Data.Text (Text, pack)
 import           Data.Vector as V (toList)
 
 import           Database.PostgreSQL.Simple as PSQL
 
-import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Data.Stackoverflow.Question
-
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.IO.Class
-import           Control.Monad.Catch
-
-import qualified Data.Set as S (fromList, Set)
 
 -- | A 'DataDictionary' that accesses a PostgresSQL database.
 --
--- On Sql errors, retry is attempted three times before giving up and throwing
--- the error a level outwards.
+-- If an 'SqlError' happens, each action is retried thrice before giving up.
+--
+-- 'SqlError's are always logged.
 postgresDictionary :: (MonadCatch m, MonadThrow m, MonadIO m, MonadLogger m) =>
                       ConnectInfo
                    -> m (DataDictionary m)
@@ -58,10 +56,12 @@ postgresDictionary connectInfo = do
       result <- catch (doWithConnection conn) (\(e :: SqlError) -> retry 3 e)
       return result
       where
+        -- Helper to attempt the action and fill the MVar
         doWithConnection connection = do
           result <- action connection
           liftIO $ putMVar connVar connection
           return result
+        -- Helper for retrying
         retry n e = do
           connection <- liftIO $ PSQL.connect connectInfo
           $(logWarn) $ "SqlError: Reconnecting and retrying (" <>
