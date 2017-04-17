@@ -31,6 +31,9 @@ import           Thesis.Data.Stackoverflow.Question
 -- If an 'SqlError' happens, each action is retried thrice before giving up.
 --
 -- 'SqlError's are always logged.
+--
+-- TODO: This implementation internally uses an MVar but does not handle async
+-- exceptions correctly. This needs to be addressed in the future.
 postgresDictionary :: (MonadCatch m, MonadThrow m, MonadIO m, MonadLogger m) =>
                       ConnectInfo
                    -> m (DataDictionary m)
@@ -52,8 +55,15 @@ postgresDictionary connectInfo = do
                          }
   where
     withPsqlConnection connVar action = do
-      conn <- liftIO $ takeMVar connVar
-      result <- catch (doWithConnection conn) (\(e :: SqlError) -> retry 3 e)
+      conn <- liftIO $ do
+        maybeConn <- tryTakeMVar connVar
+        case maybeConn of
+          Nothing -> PSQL.connect connectInfo
+          Just conn -> return conn
+      result <- catch (doWithConnection conn)
+                      (\(e :: SqlError) -> do
+                          liftIO $ PSQL.close conn
+                          retry 3 e)
       return result
       where
         -- Helper to attempt the action and fill the MVar
@@ -63,19 +73,18 @@ postgresDictionary connectInfo = do
           return result
         -- Helper for retrying
         retry n e = do
-          connection <- liftIO $ PSQL.connect connectInfo
           $(logWarn) $ "SqlError: Reconnecting and retrying (" <>
                        (pack $ show n) <> ")"
           $(logWarn) $ "SqlError message:" <> (pack $ show e)
+
+          connection <- liftIO $ PSQL.connect connectInfo
+
           catch (doWithConnection connection) $ \(e :: SqlError) ->
                 if n <= 0
                   then do
                     $(logError) "Too many retries, connection broken!"
                     throwM e
                   else retry (n-1) e
-
-                
-
   
 -- | Get the parent question id for an answer id from postgres
 postgresAnswerParent :: (MonadIO m) =>
