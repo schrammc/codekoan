@@ -115,8 +115,8 @@ waitForResult settings (QueryId qId) = do
       result <- tryGet
       case result of
         Right (r, StatusFinished) -> return $ r
-        Right (_, StatusException) -> return Nothing
-        _ -> threadDelay sleepTime >> go
+        Right (_, StatusPending) -> threadDelay sleepTime >> go
+        _ -> return Nothing
     tryGet = do
       req <- parseRequest $ T.unpack (getUrl settings) ++ "/" ++ show qId
       let settings = mkManagerSettings (TLSSettingsSimple True False False) Nothing
@@ -125,18 +125,21 @@ waitForResult settings (QueryId qId) = do
       let Just resp = Aeson.decode (getResponseBody res)
       case resp of
         Nothing -> return $ Left "Json parse failure"
-        Just responseJSON -> case Aeson.parseMaybe parser responseJSON of
-          Nothing -> return $ Left "Json parse failure (structural)"
-          Just r -> return $ Right r
+        Just responseJSON ->
+          case Aeson.parseMaybe parser responseJSON of
+            Nothing -> return $ Left "Json parse failure (structural)"
+            Just r -> return $ Right r
       
     parser = Aeson.withObject "object" $ \o -> do
       status <- o .: "status"
       if | status == ("finished" :: String) -> do
-           res <- o .: "result" :: Aeson.Parser ResultSetMsg
-           return (Just res, StatusFinished)
-         | status == "pending" ->
-           return (Nothing, StatusPending)
-         | otherwise -> fail ""
+             res <- o .: "result" :: Aeson.Parser ResultSetMsg
+             return (Just res, StatusFinished)
+         | status == "pending" -> do
+             res <- o .: "result" :: Aeson.Parser ResultSetMsg
+             return (Just res, StatusPending)
+         | status == "nothing" -> return (Nothing, StatusPending)
+         | otherwise -> return (Nothing, StatusException)
     sleepTime = 10 * 1000 * 1000
 
 allFiles :: FilePath -> IO [FilePath]
