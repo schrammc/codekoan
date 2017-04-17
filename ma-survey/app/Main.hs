@@ -43,7 +43,7 @@ runWithSettings :: SurveySettings -> FilePath -> IO ()
 runWithSettings settings dirPath = do
   files <- filterCodeFiles <$> allFiles dirPath
   when (null files) $
-    print $ "Warning: no files to process in directory " ++ dirPath
+    putStrLn $ "Warning: no files to process in directory " ++ dirPath
   results <- mapConcurrently (process settings) files
   let fileText = T.decodeUtf8 . BS.concat . BL.toChunks . Aeson.encode $ results
   TIO.writeFile "output.json" fileText
@@ -62,11 +62,11 @@ filterCodeFiles ps =
 
 processFile :: SurveySettings -> FilePath -> IO (Maybe ResultSetMsg)
 processFile settings path = do
-  print $ "Processing: " ++ path
+  putStrLn $ "Processing: " ++ path
   queryId <- submitFile settings path
-  print $ "Query id for " ++ path ++ " " ++ (show queryId)
+  putStrLn $ "Query id for " ++ path ++ " " ++ (show queryId)
   result <- waitForResult settings queryId
-  print $ "Finished processing file " ++ path
+  putStrLn $ "Finished processing file " ++ path
   return result
 
 submitFile :: SurveySettings -> FilePath -> IO QueryId
