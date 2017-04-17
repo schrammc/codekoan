@@ -70,7 +70,7 @@ resultsWithSimilarity lang
                       analyzer@SemanticAnalyzer{..}
                       queryDoc
                       set
-                      thresh = traceShow "aaabbb" $ do
+                      thresh = do
   let resultSetList  = M.toList $ resultSetMap set
   lst <- catMaybeTs $ (flip fmap) resultSetList $ \(ann, groups) -> do
     tv <- getTokenV ann
