@@ -122,7 +122,7 @@ waitForResult settings (QueryId qId) = do
       let settings = mkManagerSettings (TLSSettingsSimple True False False) Nothing
       manager <- newManager settings
       res <- httpLbs req manager
-      let Just resp = Aeson.decode (getResponseBody res)
+      let resp = Aeson.decode (getResponseBody res)
       case resp of
         Nothing -> return $ Left "Json parse failure"
         Just responseJSON ->
