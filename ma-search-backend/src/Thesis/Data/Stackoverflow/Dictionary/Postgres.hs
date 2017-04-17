@@ -32,54 +32,49 @@ import           Thesis.Data.Stackoverflow.Question
 --
 -- 'SqlError's are always logged.
 --
--- TODO: This implementation internally uses an MVar but does not handle async
--- exceptions correctly. This needs to be addressed in the future.
-postgresDictionary :: (MonadCatch m, MonadThrow m, MonadIO m, MonadLogger m) =>
+postgresDictionary :: ( MonadMask m
+                      , MonadIO m
+                      , MonadLogger m) =>
                       ConnectInfo
                    -> m (DataDictionary m)
 postgresDictionary connectInfo = do
   connection <- liftIO $ PSQL.connect connectInfo
   cVar <- liftIO $ newMVar connection
-  return $ DataDictionary{ answerParent = \aId -> 
+  return $ DataDictionary{ answerParent = \aId -> MaybeT $
                              withPsqlConnection cVar
                                                 (\c -> postgresAnswerParent c aId)
-                         , questionTags = \qId ->
+                         , questionTags = \qId -> MaybeT $
                              withPsqlConnection cVar
                                                 (\c -> postgresQuestionTags c qId)
-                         , getAnswer    = \qId ->
+                         , getAnswer    = \qId -> MaybeT $
                              withPsqlConnection cVar
                                                 (\c -> postgresGetAnswer c qId)
-                         , getQuestion  = \aId ->
+                         , getQuestion  = \aId -> MaybeT $
                              withPsqlConnection cVar
                                                 (\c -> postgresGetQuestion c aId)
                          }
   where
-    withPsqlConnection connVar action = do
-      conn <- liftIO $ do
-        maybeConn <- tryTakeMVar connVar
-        case maybeConn of
-          Nothing -> PSQL.connect connectInfo
-          Just conn -> return conn
-      result <- catch (doWithConnection conn)
-                      (\(e :: SqlError) -> do
-                          liftIO $ PSQL.close conn
-                          retry 3 e)
-      return result
+    withPsqlConnection connVar action = 
+      catch doWithConnection (\(e :: SqlError) -> retry 3 e)
       where
-        -- Helper to attempt the action and fill the MVar
-        doWithConnection connection = do
-          result <- action connection
-          liftIO $ putMVar connVar connection
-          return result
+        -- Helper to attempt the action and fill the MVar. This guarantees that
+        -- the MVar is not empty even in the presence of async exceptions.
+        doWithConnection = liftIO $ 
+          withMVar connVar (\connection -> runMaybeT $ action connection)
         -- Helper for retrying
         retry n e = do
           $(logWarn) $ "SqlError: Reconnecting and retrying (" <>
                        (pack $ show n) <> ")"
           $(logWarn) $ "SqlError message:" <> (pack $ show e)
 
-          connection <- liftIO $ PSQL.connect connectInfo
-
-          catch (doWithConnection connection) $ \(e :: SqlError) ->
+          liftIO $ modifyMVarMasked_
+                     connVar
+                     (\oldConnection -> do
+                         newConnection <- PSQL.connect connectInfo
+                         PSQL.close oldConnection
+                         return newConnection)
+            
+          catch doWithConnection $ \(e :: SqlError) ->
                 if n <= 0
                   then do
                     $(logError) "Too many retries, connection broken!"

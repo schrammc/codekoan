@@ -43,7 +43,7 @@ import           Control.DeepSeq
 
 import Data.Hashable (Hashable)
 data Application m where
-  Application :: (MonadThrow m, MonadIO m, NFData t, Hashable t, Ord t) =>
+  Application :: (MonadMask m, MonadIO m, NFData t, Hashable t, Ord t) =>
                  { appRabbitConnection :: !Connection
                  , appSettings         :: !ServiceSettings
                  , appQueue            :: !Text.Text
@@ -52,7 +52,7 @@ data Application m where
                  , appIndex            :: SearchIndex t l AnswerFragmentMetaData
                  }  -> Application m
 
-buildFoundation :: forall m . (MonadCatch m, MonadThrow m, MonadIO m, MonadLogger m)
+buildFoundation :: forall m . (MonadMask m, MonadThrow m, MonadIO m, MonadLogger m)
                    => ServiceSettings
                 -> m (Application m)
 buildFoundation settings@ServiceSettings{..} = do
