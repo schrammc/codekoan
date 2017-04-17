@@ -47,7 +47,7 @@ data Application m where
                  { appRabbitConnection :: !Connection
                  , appSettings         :: !ServiceSettings
                  , appQueue            :: !Text.Text
-                 , appGetDictionary       :: m (DataDictionary m)
+                 , appDictionary       :: DataDictionary m
                  , appLanguage         :: Language t l
                  , appIndex            :: SearchIndex t l AnswerFragmentMetaData
                  }  -> Application m
@@ -67,13 +67,13 @@ buildFoundation settings@ServiceSettings{..} = do
   $(logInfo) "Connecting to postgresql..."
   psqlConnection <- liftIO $ PSQL.connect serviceDBConnectInfo
   $(logInfo) "PostgreSQL connection established!"
-  let appGetDictionary = postgresDictionary serviceDBConnectInfo
+  appDictionary <- postgresDictionary serviceDBConnectInfo
 
   let buildApp :: forall t l . (Ord t, Hashable t, NFData t) =>
                   Language t l
                -> SearchIndex t l AnswerFragmentMetaData
                -> Application m
-      buildApp = Application conn settings serviceExchange appGetDictionary
+      buildApp = Application conn settings serviceExchange appDictionary
 
   let filteredAnswerSource =
         answersWithTags psqlConnection [serviceQuestionTag]

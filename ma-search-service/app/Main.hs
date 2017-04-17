@@ -87,7 +87,6 @@ appLoop foundation@(Application{..}) channel = do
   $(logDebug) "Listeing for queries..."
 
   (amqpMessage, envelope) <- getMessage 0
-  appDictionary <- appGetDictionary
 
   let getTokenV = \AnswerFragmentMetaData{..} -> MaybeT $ do
         fragMaybe <- runMaybeT $ getAnswerFragment appDictionary
