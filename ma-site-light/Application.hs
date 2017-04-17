@@ -56,7 +56,7 @@ makeFoundation :: AppSettings -> IO App
 makeFoundation appSettings = do
     connection <- PSQL.connect (appPostgresConnectInfo appSettings)
     
-    appDict <- runOutstreamLogging $ postgresDictionary connection
+    appDict <- runOutstreamLogging $ postgresDictionary appPostgresConnectInfo
     appHttpManager <- newManager
     appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     appStatic <-
