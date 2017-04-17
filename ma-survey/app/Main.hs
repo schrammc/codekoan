@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiWayIf #-}
 module Main where
 
 import Control.Concurrent
@@ -23,7 +24,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
 import Data.Aeson ((.:))
 import Network.Connection
-
+import Data.Maybe (catMaybes)
 main = do
   args <- getArgs
   case args of
@@ -59,7 +60,7 @@ filterCodeFiles ps =
                 isSuffixOf ".hs" p
          ) ps
 
-processFile :: SurveySettings -> FilePath -> IO ResultSetMsg
+processFile :: SurveySettings -> FilePath -> IO (Maybe ResultSetMsg)
 processFile settings path = do
   print $ "Processing: " ++ path
   queryId <- submitFile settings path
@@ -101,7 +102,11 @@ submitFile surveySettings path = do
                      , querySettings = settings
                      }
 
-waitForResult :: SurveySettings -> QueryId -> IO ResultSetMsg
+data ResultStatus = StatusPending
+                  | StatusFinished
+                  | StatusException
+
+waitForResult :: SurveySettings -> QueryId -> IO (Maybe ResultSetMsg)
 waitForResult settings (QueryId qId) = do
   threadDelay sleepTime
   go
@@ -109,26 +114,29 @@ waitForResult settings (QueryId qId) = do
     go = do
       result <- tryGet
       case result of
-        Just r -> return r
-        Nothing -> threadDelay sleepTime >> go
+        Right (r, StatusFinished) -> return $ r
+        Right (_, StatusException) -> return Nothing
+        _ -> threadDelay sleepTime >> go
     tryGet = do
       req <- parseRequest $ T.unpack (getUrl settings) ++ "/" ++ show qId
       let settings = mkManagerSettings (TLSSettingsSimple True False False) Nothing
       manager <- newManager settings
       res <- httpLbs req manager
       let Just resp = Aeson.decode (getResponseBody res)
-          result = Aeson.parseMaybe parser resp
-
-      case result of
-        Nothing -> return Nothing
-        Just r -> return $ Just r
-      
+      case resp of
+        Nothing -> return $ Left "Json parse failure"
+        Just responseJSON -> case Aeson.parseMaybe parser responseJSON of
+          Nothing -> return $ Left "Json parse failure (structural)"
+          Just r -> return $ Right r
       
     parser = Aeson.withObject "object" $ \o -> do
       status <- o .: "status"
-      if status == ("finished" :: String)
-        then o .: "result" :: Aeson.Parser ResultSetMsg
-        else fail ""
+      if | status == ("finished" :: String) -> do
+           res <- o .: "result" :: Aeson.Parser ResultSetMsg
+           return (Just res, StatusFinished)
+         | status == "pending" ->
+           return (Nothing, StatusPending)
+         | otherwise -> fail ""
     sleepTime = 10 * 1000 * 1000
 
 allFiles :: FilePath -> IO [FilePath]
