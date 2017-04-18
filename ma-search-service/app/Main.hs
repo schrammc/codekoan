@@ -67,7 +67,8 @@ main = runOutstreamLogging $ do
 
   $(logInfo) "Starting listeining for messages..."
 
-  onException (openChannel appRabbitConnection >>= appLoop foundation) $ do
+  catchAll (openChannel appRabbitConnection >>= appLoop foundation) $ \e -> do
+    $(logError) $ "Fatal Exception: " <> (pack $ show e)
     $(logInfo) "Shutting down"
 
   return ()
