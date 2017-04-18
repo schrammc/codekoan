@@ -60,7 +60,7 @@ postgresDictionary connectInfo = do
         -- Helper to attempt the action and fill the MVar. This guarantees that
         -- the MVar is not empty even in the presence of async exceptions.
         doWithConnection = liftIO $ 
-          withMVarMasked connVar (\connection -> runMaybeT $ action connection)
+          withMVarMasked connVar (\connection -> uninterruptibleMask_ $ runMaybeT $ action connection)
         -- Helper for retrying
         retry n e = do
           $(logWarn) $ "SqlError: Reconnecting and retrying (" <>
@@ -69,7 +69,7 @@ postgresDictionary connectInfo = do
 
           liftIO $ modifyMVarMasked_
                      connVar
-                     (\oldConnection -> do
+                     (\oldConnection -> uninterruptibleMask_ $ do
                          newConnection <- PSQL.connect connectInfo
                          PSQL.close oldConnection
                          return newConnection)
