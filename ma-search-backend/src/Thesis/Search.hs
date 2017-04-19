@@ -35,8 +35,8 @@ import           Debug.Trace
 
 removeRepeats :: (Eq t) =>
                  Int
-              -> [([TokenWithRange t l], Int,b)]
-              -> [([TokenWithRange t l], Int,b)]
+              -> [(V.Vector (TokenWithRange t l), Int,b)]
+              -> [(V.Vector (TokenWithRange t l), Int,b)]
 removeRepeats n lst' = removeRepeats' S.empty n (zip lst (tail $ List.tails lst))
   where
     snd3 (_,x,_) = x
@@ -45,9 +45,9 @@ removeRepeats n lst' = removeRepeats' S.empty n (zip lst (tail $ List.tails lst)
 removeRepeats' :: (Eq t) =>
                   S.Set Int
                -> Int
-               -> [(([TokenWithRange t l], Int, b)
-                   , [([TokenWithRange t l], Int, b)])]
-               -> [([TokenWithRange t l], Int, b)]
+               -> [((V.Vector (TokenWithRange t l), Int, b)
+                   , [(V.Vector (TokenWithRange t l), Int, b)])]
+               -> [(V.Vector (TokenWithRange t l), Int, b)]
 removeRepeats' _ _ [] = []
 removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
   | S.member start recognized = removeRepeats' recognized ngramSize xs
@@ -134,14 +134,14 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
               Just xs -> M.insert (resultMetaData match) (match:xs) mp
 
     searchFor (ngram, start, ts) =
-      let tokenVector = V.fromList $ token <$> ts
+      let tokenVector = ts
           result = search index n tokenVector minMatchLength
       in do
            (foundTokens, metadata, range, score) <- result
            -- TODO: instead of length foundTokens we need the length of the
            -- tokens that have been matched in the query doc!
            let queryRange = Range start (start + length foundTokens)
-           case ngramWithRange (take (length foundTokens) ts) of
+           case ngramWithRange (V.take (length foundTokens) ts) of
              Nothing -> []
              Just x -> return $! AlignmentMatch { resultTextRange = x
                                                 , resultMatchedTokens = foundTokens
@@ -159,16 +159,17 @@ mergePositionRanges (Range start _) (Range _ end) =
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
-ngramWithRange :: [TokenWithRange t l] -> Maybe (Range (LanguageText l))
-ngramWithRange [] = Nothing
-ngramWithRange xs = let start = rangeStart . coveredRange $ head xs
-                        end   = rangeEnd . coveredRange $ head (reverse xs)
+ngramWithRange :: V.Vector (TokenWithRange t l) -> Maybe (Range (LanguageText l))
+ngramWithRange xs | V.null xs = Nothing
+                  | otherwise =
+                    let start = rangeStart . coveredRange $ V.head xs
+                        end   = rangeEnd . coveredRange $ V.last xs
                     in Just $ Range start end
 
 search :: (Ord t, FragmentData ann) =>
           SearchIndex t l ann
        -> Int  -- ^ Levenshtein distance
-       -> V.Vector t
+       -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
        -> [([t], ann, Range t , Int)]
 search SearchIndex{..} n xs minMatchLength = do
@@ -178,7 +179,7 @@ search SearchIndex{..} n xs minMatchLength = do
   let rg = buildRange md tks dist
   return $ length tks `seq` (tks, md, rg, levenD)
   where
-    aut = LevensteinAutomaton (V.length xs) n (xs V.!)
+    aut = LevensteinAutomaton (V.length xs) n (token . (xs V.!))
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
