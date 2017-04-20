@@ -146,7 +146,7 @@ trieLeavesDist :: CompressedTrie a v -> [(v, Int)]
 trieLeavesDist (CTrieLeaf v) = [(v,0)]
 trieLeavesDist (CTrieNode mp v) = ((, 0) <$> toList v) ++ do
   (_,(xs, nd)) <- M.toList mp
-  let n = length xs
+  let n = V.length xs
   (val, k) <- trieLeavesDist nd
   let count = k + n
   count `seq` return (val, count)
