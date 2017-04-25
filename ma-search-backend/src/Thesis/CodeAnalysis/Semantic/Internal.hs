@@ -26,6 +26,7 @@ import Thesis.SearchException
 import Control.Monad.Trans.Class
 import Control.Monad.Catch
 import Control.Monad.Trans.Maybe
+import Thesis.Util.MonadUtils
 
 import Data.Maybe
 
@@ -86,13 +87,6 @@ resultsWithSimilarity lang
 
   return $ ResultSet (M.fromList lst)
 
-catMaybeTs :: (Functor f, Monad f) => [MaybeT f a] -> MaybeT f [a]
-catMaybeTs xs = MaybeT $ Just <$> maybeList
-
-  where
-    maybeList = catMaybes <$> (mapM runMaybeT xs)
-
-  
 searchResultSimilarity :: (MonadLogger m, MonadThrow m) =>
                           Language t l
                        -> SemanticAnalyzer m a
