@@ -1,39 +1,61 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE TupleSections #-}
 module Main where
 
-import Control.Concurrent
-import Control.Concurrent.Async.Lifted
-import Thesis.Messaging.Query
-import Thesis.Messaging.ResultSet
-import Data.List (isSuffixOf)
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString as BS
+import           Control.Concurrent
+import           Control.Concurrent.Async.Lifted
 import           Control.Monad
-import qualified Data.Yaml
-import           System.Directory
-import           System.Environment
-import           Thesis.SurveySettings
+import           Control.Monad.IO.Class
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Maybe
+import           Data.Aeson ((.:))
+import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Types as Aeson
+import qualified Data.Attoparsec.Text as AP
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
+import           Data.Char
+import           Data.List (isSuffixOf, sortOn)
+import qualified Data.Map as M
+import           Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as TIO
-import Thesis.Search.Settings
-import Network.HTTP.Conduit
-import Network.HTTP.Simple hiding (httpLbs)
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Types as Aeson
-import Data.Aeson ((.:))
-import Network.Connection
-import Data.Maybe (catMaybes)
+import qualified Data.Yaml
+import qualified Database.PostgreSQL.Simple as PSQL
+import           Network.Connection
+import           Network.HTTP.Conduit
+import           Network.HTTP.Simple hiding (httpLbs)
+import           System.Directory
+import           System.Environment
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Data.Stackoverflow.Dictionary
+import           Thesis.Data.Stackoverflow.Dictionary.Postgres
+import           Thesis.Messaging.Query
+import           Thesis.Messaging.ResultSet
+import           Thesis.Search.Settings
+import           Thesis.SurveySettings
+import           Thesis.Util.MonadUtils
+
 main = do
   args <- getArgs
   case args of
-    settingsPath:dirPath:[] -> do
+    "process":settingsPath:dirPath:[] -> do
       settingsMaybe <- Data.Yaml.decodeFile settingsPath :: IO (Maybe SurveySettings)
       case settingsMaybe of
         Nothing -> do
           putStrLn "Settings file doesn't contain valid yaml!"
         Just settings -> runWithSettings settings dirPath
+    "analyze":settingsPath:filePath:[] -> do
+      settingsMaybe <- Data.Yaml.decodeFile settingsPath :: IO (Maybe SurveySettings)
+      case settingsMaybe of
+        Nothing -> do
+          putStrLn "Settings file doesn't contain valid yaml!"
+        Just settings -> do
+          putStrLn $ "Analyzing " ++ filePath
+          runAnalysis settings filePath
+      return ()
     _ -> printHelpString
 
 printHelpString = do
@@ -151,3 +173,53 @@ allFiles path = do
       entries <- listDirectory path
       paths <- concat <$> forM ((\p -> path ++ "/" ++ p) <$>  entries) allFiles
       return $ paths
+
+runAnalysis :: SurveySettings -> FilePath -> IO ()
+runAnalysis settings path = runStdoutLoggingT $ do
+  resultMaybe <- liftIO $ Aeson.decode <$> BL.readFile path :: LoggingT IO (Maybe [(FilePath, Maybe ResultSetMsg)])
+  case resultMaybe of
+    Nothing -> liftIO $ putStrLn "Parser failure"
+    Just result -> do
+      liftIO $ putStrLn $ "Parser success: " ++ (show $ length result)
+      dictionary <- postgresDictionary $ buildConnectInfo settings
+      analyzeTags settings dictionary (catMaybes $ snd <$> result)
+      return ()
+
+analyzeTags :: MonadIO m =>
+               SurveySettings
+            -> DataDictionary m
+            -> [ResultSetMsg]
+            -> m ()
+analyzeTags settings dict resultSets = do
+  let results = concat $ resultSetResultList <$> resultSets
+      sources = catMaybes $ sourceToFragId . resultSource <$> results
+
+  liftIO $ putStrLn $ "Number of sources: " ++ (show $ length sources)
+
+  let sourceCounts = M.toList $
+                     M.unionsWith (+) $
+                     (\aId -> M.singleton aId 1) <$> sources
+  rootTagsMaybe <- runMaybeT . catMaybeTs $
+                     (\(a,n) -> (,n) <$> answerRootTags dict (fragmentAnswerId a)) <$> sourceCounts
+  case rootTagsMaybe of
+    Nothing -> error "unlikely case (shouldn't happen)"
+    Just tagSets  -> do
+      let tagMaps = do
+            (tagSet, count) <- tagSets
+            return (M.fromSet (const count) tagSet)
+          tagMap = reverse $ sortOn snd $ M.toList $ M.unionsWith (+) tagMaps
+      forM_ tagMap $ \(tag, count) -> do
+        liftIO . putStrLn $ (T.unpack tag) ++ ": " ++ (show count)
+  return ()
+
+sourceToFragId :: T.Text -> Maybe AnswerFragmentId
+sourceToFragId t =
+  case AP.parseOnly parser t of
+    Left _ -> Nothing
+    Right x -> Just x
+  where
+    parser = do
+      aIdInt <- AP.decimal
+      AP.takeWhile (not . isDigit)
+      fragIdInt <- AP.decimal
+      return $ AnswerFragmentId (AnswerId aIdInt) fragIdInt
