@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TupleSections #-}
 module Main where
@@ -16,12 +17,14 @@ import qualified Data.Attoparsec.Text as AP
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import           Data.Char
+import           Data.Foldable (foldl')
 import           Data.List (isSuffixOf, sortOn)
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import           Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as TIO
+import qualified Data.Vector as V
 import qualified Data.Yaml
 import qualified Database.PostgreSQL.Simple as PSQL
 import           Network.Connection
@@ -204,11 +207,19 @@ analyzeTags settings conn resultSets = do
   case rootTagsMaybe of
     Nothing -> error "unlikely case (shouldn't happen)"
     Just tagSets  -> do
-      let tagMaps = do
+      baseCounts <- liftIO $ tagCountsForLanguage conn (T.pack "java")
+      let baseFreqs = relativeFrequencies baseCounts
+          tagMaps = do
             (tagSet, count) <- tagSets
             return (M.fromSet (const count) tagSet)
-          tagMap = reverse $ sortOn snd $ M.toList $ M.unionsWith (+) tagMaps
-      forM_ tagMap $ \(tag, count) -> do
+          tagMap = M.unionsWith (+) tagMaps
+
+          sampleFreqs = relativeFrequencies tagMap
+          relativeReps = relativeRep baseFreqs sampleFreqs
+          
+          tm = reverse $ sortOn snd $ M.toList $ (freqToDouble <$> relativeReps)
+
+      forM_ tm $ \(tag, count) -> do
         liftIO . putStrLn $ (T.unpack tag) ++ ": " ++ (show count)
   return ()
 
@@ -223,3 +234,37 @@ sourceToFragId t =
       AP.takeWhile (not . isDigit)
       fragIdInt <- AP.decimal
       return $ AnswerFragmentId (AnswerId aIdInt) fragIdInt
+
+tagCountsForLanguage :: PSQL.Connection -> T.Text -> IO (M.Map T.Text Int)
+tagCountsForLanguage conn t =
+  PSQL.fold conn
+            "SELECT tags FROM questions \
+            \WHERE ? = ANY(questions.tags)"
+            (PSQL.Only t)
+            M.empty
+            f
+  where
+    f :: M.Map T.Text Int -> PSQL.Only (V.Vector T.Text) -> IO (M.Map T.Text Int)
+    f mp (PSQL.Only nexts) = return $!
+      foldl' (\mp next -> M.insertWith (+) next 1 mp) mp nexts
+
+newtype RelativeFrequency = RelativeFrequency {freqToDouble :: Double}
+                          deriving ( Eq, Ord, Num, Show, RealFloat, RealFrac
+                                   , Floating, Real, Fractional)
+    
+relativeFrequencies :: M.Map a Int -> M.Map a RelativeFrequency
+relativeFrequencies mp = f <$> mp
+  where
+    maxValue = fromIntegral $ maximum mp
+    f x = (fromIntegral x) / maxValue
+
+-- | Find out which values are relatively overreprresented with respect to a
+-- base popoulation. Values > 1 mean overrepresentation while values < 1 mean
+-- underrepresentation.
+relativeRep :: (Ord a) =>
+               M.Map a RelativeFrequency
+               -- ^ The totality
+            -> M.Map a RelativeFrequency
+            -- ^ The sample
+            -> M.Map a RelativeFrequency
+relativeRep totality sample = M.intersectionWith (/) sample totality
