@@ -181,16 +181,16 @@ runAnalysis settings path = runStdoutLoggingT $ do
     Nothing -> liftIO $ putStrLn "Parser failure"
     Just result -> do
       liftIO $ putStrLn $ "Parser success: " ++ (show $ length result)
-      dictionary <- postgresDictionary $ buildConnectInfo settings
-      analyzeTags settings dictionary (catMaybes $ snd <$> result)
+      conn <- liftIO . PSQL.connect $ buildConnectInfo settings
+      analyzeTags settings conn  (catMaybes $ snd <$> result)
       return ()
 
 analyzeTags :: MonadIO m =>
                SurveySettings
-            -> DataDictionary m
+            -> PSQL.Connection
             -> [ResultSetMsg]
             -> m ()
-analyzeTags settings dict resultSets = do
+analyzeTags settings conn resultSets = do
   let results = concat $ resultSetResultList <$> resultSets
       sources = catMaybes $ sourceToFragId . resultSource <$> results
 
@@ -200,7 +200,7 @@ analyzeTags settings dict resultSets = do
                      M.unionsWith (+) $
                      (\aId -> M.singleton aId 1) <$> sources
   rootTagsMaybe <- runMaybeT . catMaybeTs $
-                     (\(a,n) -> (,n) <$> answerRootTags dict (fragmentAnswerId a)) <$> sourceCounts
+                     (\(a,n) -> (,n) <$> postgresAnswerRootTags conn (fragmentAnswerId a)) <$> sourceCounts
   case rootTagsMaybe of
     Nothing -> error "unlikely case (shouldn't happen)"
     Just tagSets  -> do

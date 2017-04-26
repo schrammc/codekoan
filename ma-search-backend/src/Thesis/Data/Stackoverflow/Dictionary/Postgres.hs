@@ -80,6 +80,22 @@ postgresDictionary connectInfo = do
                     $(logError) "Too many retries, connection broken!"
                     throwM e
                   else retry (n-1) e
+
+postgresAnswerRootTags :: (MonadIO m) =>
+                          Connection
+                       -> AnswerId
+                       -> MaybeT m (S.Set Text)
+postgresAnswerRootTags conn aId = do
+  results <- liftIO $ PSQL.query conn
+                                 "SELECT questions.tags \
+                                 \FROM questions JOIN answers \
+                                 \    ON answers.parent = questions.id \
+                                 \WHERE answers.id = ? \
+                                 \LIMIT 1"
+                                 (PSQL.Only $ answerIdInt aId)
+  case results of
+    [] -> MaybeT $ return Nothing
+    ((PSQL.Only xs):_) -> return . S.fromList . V.toList $ xs
   
 -- | Get the parent question id for an answer id from postgres
 postgresAnswerParent :: (MonadIO m) =>
