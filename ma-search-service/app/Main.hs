@@ -11,8 +11,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
-import           Control.Concurrent
 import           Control.Concurrent.Async.Lifted
+import           Control.Concurrent.Lifted
+import           Control.Concurrent.STM
+import           Control.Concurrent.STM.TChan
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
@@ -20,9 +22,10 @@ import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Control
 import           Control.Monad.Trans.Maybe
 import           Data.Aeson
+import qualified Data.ByteString.Lazy as BSL
 import           Data.Maybe (fromJust, fromMaybe)
 import           Data.Monoid ((<>))
-import           Data.Text (pack)
+import           Data.Text (Text, pack)
 import qualified Network.AMQP as AMQP
 import           Network.HTTP.Simple
 import           Thesis.CodeAnalysis.Language
@@ -67,7 +70,11 @@ main = runOutstreamLogging $ do
 
   $(logInfo) "Starting listeining for messages..."
 
-  catchAll (openChannel appRabbitConnection >>= appLoop foundation) $ \e -> do
+  replyChan <- liftIO $ newTChanIO
+  replyThread appRabbitConnection replyChan
+
+  catchAll (openChannel appRabbitConnection >>=
+            appLoop foundation replyChan) $ \e -> do
     $(logError) $ "Fatal Exception: " <> (pack $ show e)
     $(logInfo) "Shutting down"
 
@@ -79,12 +86,35 @@ openChannel connection = do
   $(logDebug) "Opening rabbitMQ channel..."
   liftIO $ AMQP.openChannel connection
 
+replyThread :: (MonadBaseControl IO m, MonadIO m, MonadLogger m) =>
+               AMQP.Connection
+            -> TChan (Text, BSL.ByteString)
+            -> m ()
+replyThread conn replyChan = do
+  $(logInfo) "Launching reply thread"
+  replyAmqpChan <- openChannel conn
+  fork $ go replyAmqpChan
+  return ()
+  where
+    go replyAmqpChan = do
+      $(logDebug) "Waiting to send reply"
+      (destination, body) <- liftIO $ atomically $ readTChan replyChan
+
+      $(logDebug) "Sending another reply..."
+      liftIO $ AMQP.publishMsg replyAmqpChan destination ""
+              AMQP.newMsg{AMQP.msgBody = body}
+
+      $(logDebug) "Reply sent."
+      go replyAmqpChan
+
 
 -- | The application's main loop, that never terminates
 appLoop :: (MonadBaseControl IO m, MonadCatch m, MonadIO m, MonadLogger m) =>
            Application m
-        -> AMQP.Channel -> m ()
-appLoop foundation@(Application{..}) channel = do
+        -> TChan (Text, BSL.ByteString)
+        -> AMQP.Channel
+        -> m ()
+appLoop foundation@(Application{..}) replyChan channel = do
   $(logDebug) "Listeing for queries..."
 
   (amqpMessage, envelope) <- getMessage 0
@@ -147,14 +177,13 @@ appLoop foundation@(Application{..}) channel = do
             -- Send the reply to the replies queue in rabbitmq
             replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
       
-            liftIO $ AMQP.publishMsg channel "replies" ""
-              AMQP.newMsg{AMQP.msgBody = encode replyMessage}
+            liftIO $ atomically $ writeTChan replyChan ("replies", encode replyMessage)
             return ()
 
   $(logDebug) "Acknowledging message..."
   liftIO $ AMQP.ackEnv envelope
   
-  appLoop foundation channel
+  appLoop foundation replyChan channel
   where
     -- | Get a message, if not at first successful, wait increasingly long (up
     -- to 10ms, so as not to block the CPU senslessly).
@@ -166,7 +195,7 @@ appLoop foundation@(Application{..}) channel = do
           return (msg, envelope)
         Nothing -> do
           let newWait = if wait < 10000 then wait + 100 else wait
-          liftIO $ threadDelay newWait
+          threadDelay newWait
           getMessage newWait
     remoteAnalyzer = buildMonadicAnalyzer getSimilarity
     getSimilarity a b = do
@@ -182,8 +211,7 @@ appLoop foundation@(Application{..}) channel = do
       reply <- buildMessage "search service"
                             "reply"
                             (qId, message)
-      AMQP.publishMsg channel "replies" ""
-            AMQP.newMsg{AMQP.msgBody = encode reply}
+      liftIO $ atomically $ writeTChan replyChan ("replies", encode reply)
       return ()
 
 -- | Get a value from a 'Maybe' or throw an 'error' with the given string.
