@@ -14,7 +14,6 @@ module Main where
 import           Control.Concurrent.Async.Lifted
 import           Control.Concurrent.Lifted
 import           Control.Concurrent.STM
-import           Control.Concurrent.STM.TChan
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
@@ -68,7 +67,7 @@ main = runOutstreamLogging $ do
   $(logInfo) "Constructing app-foundation..."
   foundation@(Application{..}) <- buildFoundation settings
 
-  $(logInfo) "Starting listeining for messages..."
+  $(logInfo) "Starting listening for messages..."
 
   replyChan <- liftIO $ newTChanIO
   replyThread appRabbitConnection replyChan
@@ -91,20 +90,18 @@ replyThread :: (MonadBaseControl IO m, MonadIO m, MonadLogger m) =>
             -> TChan (Text, BSL.ByteString)
             -> m ()
 replyThread conn replyChan = do
-  $(logInfo) "Launching reply thread"
+  liftIO $ putStrLn "Launching reply thread (stdout)"
   replyAmqpChan <- openChannel conn
   fork $ go replyAmqpChan
   return ()
   where
     go replyAmqpChan = do
-      $(logDebug) "Waiting to send reply"
+      liftIO $ putStrLn "Waiting to send reply"
       (destination, body) <- liftIO $ atomically $ readTChan replyChan
 
-      $(logDebug) "Sending another reply..."
       liftIO $ AMQP.publishMsg replyAmqpChan destination ""
               AMQP.newMsg{AMQP.msgBody = body}
 
-      $(logDebug) "Reply sent."
       go replyAmqpChan
 
 
@@ -115,7 +112,7 @@ appLoop :: (MonadBaseControl IO m, MonadCatch m, MonadIO m, MonadLogger m) =>
         -> AMQP.Channel
         -> m ()
 appLoop foundation@(Application{..}) replyChan channel = do
-  $(logDebug) "Listeing for queries..."
+  $(logDebug) "Listening for queries..."
 
   (amqpMessage, envelope) <- getMessage 0
 
