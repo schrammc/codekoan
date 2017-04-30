@@ -37,7 +37,6 @@ import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Data.Stackoverflow.Dictionary.Postgres
 
 import           Thesis.Search.Index
-import           Thesis.Search.FragmentData
 
 import           Control.DeepSeq
 
