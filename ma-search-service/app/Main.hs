@@ -13,7 +13,6 @@ module Main where
 
 import           Control.Concurrent.Async.Lifted
 import           Control.Concurrent.Lifted
-import           Control.Concurrent.STM
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
@@ -69,7 +68,7 @@ main = runOutstreamLogging $ do
 
   $(logInfo) "Starting listening for messages..."
 
-  replyChan <- liftIO $ newTChanIO
+  replyChan <- newChan
   replyThread appRabbitConnection replyChan
 
   catchAll (openChannel appRabbitConnection >>=
@@ -87,7 +86,7 @@ openChannel connection = do
 
 replyThread :: (MonadBaseControl IO m, MonadIO m, MonadLogger m) =>
                AMQP.Connection
-            -> TChan (Text, BSL.ByteString)
+            -> Chan (Text, BSL.ByteString)
             -> m ()
 replyThread conn replyChan = do
   liftIO $ putStrLn "Launching reply thread (stdout)"
@@ -97,7 +96,7 @@ replyThread conn replyChan = do
   where
     go replyAmqpChan = do
       liftIO $ putStrLn "Waiting to send reply"
-      (destination, body) <- liftIO $ atomically $ readTChan replyChan
+      (destination, body) <- liftIO $ readChan replyChan
 
       liftIO $ AMQP.publishMsg replyAmqpChan destination ""
               AMQP.newMsg{AMQP.msgBody = body}
@@ -108,7 +107,7 @@ replyThread conn replyChan = do
 -- | The application's main loop, that never terminates
 appLoop :: (MonadBaseControl IO m, MonadCatch m, MonadIO m, MonadLogger m) =>
            Application m
-        -> TChan (Text, BSL.ByteString)
+        -> Chan (Text, BSL.ByteString)
         -> AMQP.Channel
         -> m ()
 appLoop foundation@(Application{..}) replyChan channel = do
@@ -174,7 +173,7 @@ appLoop foundation@(Application{..}) replyChan channel = do
             -- Send the reply to the replies queue in rabbitmq
             replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
       
-            liftIO $ atomically $ writeTChan replyChan ("replies", encode replyMessage)
+            writeChan replyChan ("replies", encode replyMessage)
             return ()
 
   $(logDebug) "Acknowledging message..."
@@ -184,14 +183,14 @@ appLoop foundation@(Application{..}) replyChan channel = do
   where
     -- | Get a message, if not at first successful, wait increasingly long (up
     -- to 10ms, so as not to block the CPU senslessly).
-    getMessage wait = do
+    getMessage waitTime = do
       amqpResult <- liftIO $ AMQP.getMsg channel AMQP.Ack appQueue
       case amqpResult of
         Just (msg, envelope) -> do
           $(logDebug) "RabbitMQ - message received."
           return (msg, envelope)
         Nothing -> do
-          let newWait = if wait < 10000 then wait + 100 else wait
+          let newWait = if waitTime < 10000 then waitTime + 100 else waitTime
           threadDelay newWait
           getMessage newWait
     remoteAnalyzer = buildMonadicAnalyzer getSimilarity
@@ -208,7 +207,7 @@ appLoop foundation@(Application{..}) replyChan channel = do
       reply <- buildMessage "search service"
                             "reply"
                             (qId, message)
-      liftIO $ atomically $ writeTChan replyChan ("replies", encode reply)
+      writeChan replyChan ("replies", encode reply)
       return ()
 
 -- | Get a value from a 'Maybe' or throw an 'error' with the given string.
