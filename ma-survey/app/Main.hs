@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -30,8 +31,12 @@ import qualified Database.PostgreSQL.Simple as PSQL
 import           Network.Connection
 import           Network.HTTP.Conduit
 import           Network.HTTP.Simple hiding (httpLbs)
+import           Statistics.Distribution
+import           Statistics.Distribution.Normal
 import           System.Directory
 import           System.Environment
+import           System.FilePath
+import qualified Thesis.Data.Range as Range
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Stackoverflow.Dictionary
 import           Thesis.Data.Stackoverflow.Dictionary.Postgres
@@ -69,9 +74,9 @@ runWithSettings settings dirPath = do
   files <- filterCodeFiles <$> allFiles dirPath
   when (null files) $
     putStrLn $ "Warning: no files to process in directory " ++ dirPath
-  results <- mapConcurrently (process settings) files
+  results <- mapM (process settings) files
   let fileText = T.decodeUtf8 . BS.concat . BL.toChunks . Aeson.encode $ results
-  TIO.writeFile "output.json" fileText
+  TIO.writeFile (directoryName dirPath ++".json") fileText
   return ()
   where
     process settings path = do
@@ -185,16 +190,17 @@ runAnalysis settings path = runStdoutLoggingT $ do
     Just result -> do
       liftIO $ putStrLn $ "Parser success: " ++ (show $ length result)
       conn <- liftIO . PSQL.connect $ buildConnectInfo settings
-      analyzeTags settings conn  (catMaybes $ snd <$> result)
+      analyzeTags path settings conn  (catMaybes $ snd <$> result)
       return ()
 
 analyzeTags :: MonadIO m =>
-               SurveySettings
+               FilePath
+            -> SurveySettings
             -> PSQL.Connection
             -> [ResultSetMsg]
             -> m ()
-analyzeTags settings conn resultSets = do
-  let results = concat $ resultSetResultList <$> resultSets
+analyzeTags path settings conn resultSets = do
+  let results = filter isRelevant $ concat $ resultSetResultList <$> resultSets
       sources = catMaybes $ sourceToFragId . resultSource <$> results
 
   liftIO $ putStrLn $ "Number of sources: " ++ (show $ length sources)
@@ -207,21 +213,34 @@ analyzeTags settings conn resultSets = do
   case rootTagsMaybe of
     Nothing -> error "unlikely case (shouldn't happen)"
     Just tagSets  -> do
-      baseCounts <- liftIO $ tagCountsForLanguage conn (T.pack "java")
+      baseCounts <- M.filter (> 100) <$> (liftIO $ tagCountsForLanguage conn (T.pack "java"))
       let baseFreqs = relativeFrequencies baseCounts
           tagMaps = do
             (tagSet, count) <- tagSets
             return (M.fromSet (const count) tagSet)
-          tagMap = M.unionsWith (+) tagMaps
+          sampleCounts = M.unionsWith (+) tagMaps
 
-          sampleFreqs = relativeFrequencies tagMap
+          sampleFreqs = relativeFrequencies sampleCounts
           relativeReps = relativeRep baseFreqs sampleFreqs
+          normals      = normalScores baseFreqs sampleCounts
           
-          tm = reverse $ sortOn snd $ M.toList $ (freqToDouble <$> relativeReps)
+          tm = reverse $ sortOn (snd) $ M.toList $ buildScores $
+                 M.intersectionWith ProbAndCount normals sampleCounts
 
-      forM_ tm $ \(tag, count) -> do
-        liftIO . putStrLn $ (T.unpack tag) ++ ": " ++ (show count)
+      let fileLines = (flip fmap) tm $ \(tag, score) -> do
+            (T.unpack tag) ++ " -> " ++ (show score)
+      liftIO $ writeFile (path ++ ".tags") (unlines fileLines)
   return ()
+
+buildScores :: M.Map T.Text ProbAndCount -> M.Map T.Text Double
+buildScores mp = M.intersectionWith (+) adjustedFreqs (getProb <$> mp)
+  where
+    adjustedFreqs = freqToDouble . (\x -> 0.002 * x) <$> freqs
+    freqs = relativeFrequencies $ getCount <$> mp
+
+data ProbAndCount = ProbAndCount { getProb :: Double
+                                 , getCount :: Int
+                                 }
 
 sourceToFragId :: T.Text -> Maybe AnswerFragmentId
 sourceToFragId t =
@@ -267,4 +286,41 @@ relativeRep :: (Ord a) =>
             -> M.Map a RelativeFrequency
             -- ^ The sample
             -> M.Map a RelativeFrequency
-relativeRep totality sample = M.intersectionWith (/) sample totality
+relativeRep totality sample = M.intersectionWith (*) sample totality
+
+normalScores :: (Ord a) =>
+                M.Map a RelativeFrequency
+             -> M.Map a Int
+             -> M.Map a Double
+normalScores freqs counts = M.intersectionWith f freqs counts
+  where
+    n = maximum counts
+    f frequency count =
+      let freq = freqToDouble frequency
+          sd = (fromIntegral n * freq * (1-freq))
+          dist = normalDistr ((fromIntegral n) * freq)   sd
+      in if freq == 1
+         then 1
+         else cumulative dist (fromIntegral count)
+
+isRelevant :: ResultMsg  -> Bool
+isRelevant msg =
+  let totalTokenLength = sum $
+        (Range.rangeLength . alignmentMatchPatternTokenRange) <$>
+           (resultAlignmentMatches msg)
+  in totalTokenLength > 30
+
+fac n | n <= 0 = 0
+      | otherwise = fac' n 1
+  where
+    fac' 1 !acc = acc
+    fac' n !acc = fac' (n-1) (acc * n)
+
+directoryName :: FilePath -> String
+directoryName "" = ""
+directoryName path =
+  if fileName /= ""
+  then fileName
+  else takeFileName $ takeDirectory path
+  where
+    fileName = takeFileName path
