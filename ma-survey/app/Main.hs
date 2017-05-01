@@ -190,8 +190,32 @@ runAnalysis settings path = runStdoutLoggingT $ do
     Just result -> do
       liftIO $ putStrLn $ "Parser success: " ++ (show $ length result)
       conn <- liftIO . PSQL.connect $ buildConnectInfo settings
+      analyzeFreqs path settings conn $
+        catMaybes $ (\(a,b) -> (a,) <$> b) <$> result
       analyzeTags path settings conn  (catMaybes $ snd <$> result)
       return ()
+
+analyzeFreqs :: MonadIO m =>
+                FilePath
+             -> SurveySettings
+             -> PSQL.Connection
+             -> [(FilePath, ResultSetMsg)]
+             -> m ()
+analyzeFreqs path settings conn resultSets =
+  liftIO $ writeFile (path ++ ".freqs") (unlines fileLines)
+  where
+    (paths, sets) = unzip resultSets
+    coverages = resCoverage <$> sets
+    withPath = zip paths coverages
+    sorted = reverse $ sortOn snd withPath
+    fileLines = (flip fmap) sorted $ \(path, cov) -> path ++ ";" ++ (show cov)
+
+resCoverage :: ResultSetMsg -> Double
+resCoverage msg =
+  let relevantResults = filter isRelevant $ resultSetResultList msg
+      matches = concat $ resultAlignmentMatches <$> relevantResults
+      ranges = alignmentMatchQueryTextRange <$> matches
+  in Range.coveragePercentage (T.length $ resultQueryText msg) ranges
 
 analyzeTags :: MonadIO m =>
                FilePath
