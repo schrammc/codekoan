@@ -89,18 +89,18 @@ replyThread :: (MonadBaseControl IO m, MonadIO m, MonadLogger m) =>
             -> Chan (Text, BSL.ByteString)
             -> m ()
 replyThread conn replyChan = do
-  liftIO $ putStrLn "Launching reply thread (stdout)"
+  $(logInfo) "Launching reply thread (stdout)"
   replyAmqpChan <- openChannel conn
   fork $ go replyAmqpChan
   return ()
   where
     go replyAmqpChan = do
-      liftIO $ putStrLn "Waiting to send reply"
+      $(logDebug) "Waiting to send reply"
       (destination, body) <- liftIO $ readChan replyChan
 
       liftIO $ AMQP.publishMsg replyAmqpChan destination ""
               AMQP.newMsg{AMQP.msgBody = body}
-
+      $(logInfo) "Reply sent"
       go replyAmqpChan
 
 
