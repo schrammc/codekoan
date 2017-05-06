@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -186,15 +188,28 @@ allFiles path = do
 runAnalysis :: SurveySettings -> FilePath -> IO ()
 runAnalysis settings path = runStdoutLoggingT $ do
   resultMaybe <- liftIO $ Aeson.decode <$> BL.readFile path :: LoggingT IO (Maybe [(FilePath, Maybe ResultSetMsg)])
-  case resultMaybe of
+  case filterRelevant <$> resultMaybe of
     Nothing -> liftIO $ putStrLn "Parser failure"
     Just result -> do
       liftIO $ putStrLn $ "Parser success: " ++ (show $ length result)
       conn <- liftIO . PSQL.connect $ buildConnectInfo settings
-      analyzeFreqs path settings conn $
-        catMaybes $ (\(a,b) -> (a,) <$> b) <$> result
-      analyzeTags path settings conn  (catMaybes $ snd <$> result)
+      let justResults = catMaybes $ (\(a,b) -> (a,) <$> b) <$> result
+      analyzeFreqs path settings conn justResults
+
+      analyzeTags path settings conn  (snd <$> justResults)
+      analyzeVerbatim path settings conn justResults
+      
       return ()
+
+filterRelevant :: [(FilePath, Maybe ResultSetMsg)]
+               -> [(FilePath, Maybe ResultSetMsg)]
+filterRelevant rs = do
+  (path, maybeResult) <- rs
+  return $ case maybeResult of
+             Nothing -> (path, Nothing)
+             Just res ->
+               let resultList' = filter isRelevant (resultSetResultList res)
+               in (path, Just $ res{resultSetResultList = resultList'})
 
 analyzeFreqs :: MonadIO m =>
                 FilePath
@@ -202,18 +217,50 @@ analyzeFreqs :: MonadIO m =>
              -> PSQL.Connection
              -> [(FilePath, ResultSetMsg)]
              -> m ()
-analyzeFreqs path settings conn resultSets =
+analyzeFreqs path settings conn resultSets = do
   liftIO $ writeFile (path ++ ".freqs") (unlines fileLines)
+  liftIO $ writeFile (path ++ ".freqs.summary") $
+    "Average coverage: " ++ (show $ sum coverages / sum relativeLengths)
   where
     (paths, sets) = unzip resultSets
-    coverages = resCoverage <$> sets
+    coverages = zipWith (*) (resCoverage <$> sets) relativeLengths
+    lengths = T.length . resultQueryText <$> sets
+    maxlength = fromIntegral $ maximum lengths
+    relativeLengths =
+      (flip fmap) lengths $ \l -> (fromIntegral l) / maxlength
     withPath = zip paths coverages
     sorted = reverse $ sortOn snd withPath
     fileLines = (flip fmap) sorted $ \(path, cov) -> path ++ ";" ++ (show cov)
 
+analyzeVerbatim :: MonadIO m =>
+                   FilePath
+                -> SurveySettings
+                -> PSQL.Connection
+                -> [(FilePath, ResultSetMsg)]
+                -> m ()
+analyzeVerbatim prefix settings conn resultSets =
+  liftIO $ writeFile (prefix ++ ".verbatimcounts") $ unlines resultLines
+  where
+    resultLines = (flip fmap) (sortOn (length . snd) results) $ \(path, rs) ->
+      path ++ " -> " ++ (show $ length rs)
+    results = do
+      (path, resultSet@ResultSetMsg{..}) <- resultSets
+      let pathResults = do
+            result <- resultSetResultList
+            if isCopy result resultQueryText
+              then return result
+              else []
+      return (path, pathResults)
+    isCopy ResultMsg{..} queryText = and $ do
+      match <- resultAlignmentMatches
+      return $ isCopyMatch match resultFragmentText queryText
+    isCopyMatch AlignmentMatchMsg{..} patternText queryText =
+      T.words (Range.textInRange alignmentMatchQueryTextRange queryText) ==
+      T.words (Range.textInRange alignmentMatchPatternTextRange patternText)
+
 resCoverage :: ResultSetMsg -> Double
 resCoverage msg =
-  let relevantResults = filter isRelevant $ resultSetResultList msg
+  let relevantResults = resultSetResultList msg
       matches = concat $ resultAlignmentMatches <$> relevantResults
       ranges = alignmentMatchQueryTextRange <$> matches
   in Range.coveragePercentage (T.length $ resultQueryText msg) ranges
@@ -225,7 +272,7 @@ analyzeTags :: MonadIO m =>
             -> [ResultSetMsg]
             -> m ()
 analyzeTags path settings conn resultSets = do
-  let results = filter isRelevant $ concat $ resultSetResultList <$> resultSets
+  let results = concat $ resultSetResultList <$> resultSets
       sources = catMaybes $ sourceToFragId . resultSource <$> results
 
   liftIO $ putStrLn $ "Number of sources: " ++ (show $ length sources)
@@ -252,9 +299,16 @@ analyzeTags path settings conn resultSets = do
           tm = reverse $ sortOn (snd) $ M.toList $ buildScores $
                  M.intersectionWith ProbAndCount normals sampleCounts
 
-      let fileLines = (flip fmap) tm $ \(tag, score) -> do
+      let fileLines  = (flip fmap) tm $ \(tag, score) ->
             (T.unpack tag) ++ " -> " ++ (show score)
+          pureLines = (flip fmap) (M.toList normals) $  \(tag, score) ->
+            (T.unpack tag) ++ " -> " ++ (show score)
+          countLines = (flip fmap) (M.toList sampleCounts) $ \(tag, count) ->
+            (T.unpack tag) ++ " -> " ++ (show count)
       liftIO $ writeFile (path ++ ".tags") (unlines fileLines)
+      liftIO $ writeFile (path ++ ".tags.pure") (unlines pureLines)
+      liftIO $ writeFile (path ++ ".counts") (unlines countLines)
+
   return ()
 
 buildScores :: M.Map T.Text ProbAndCount -> M.Map T.Text Double
@@ -349,3 +403,6 @@ directoryName path =
   else takeFileName $ takeDirectory path
   where
     fileName = takeFileName path
+
+average :: (Foldable f) => f Double -> Double
+average ds = sum ds / (fromIntegral $ length ds)
