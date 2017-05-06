@@ -41,6 +41,7 @@ packages:
 - ./ma-survey
 #- ./ma-site
 #- ./ma-site-light
+- ./ma-rmq-injector
 - ./ma-postgres-indexer
 - ./ma-language-haskell
 - ./ma-language-java
