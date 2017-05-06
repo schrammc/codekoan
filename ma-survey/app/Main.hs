@@ -123,6 +123,7 @@ submitFile surveySettings path = do
                               , coveragePercentage = 0.7
                               , blockFiltering = True
                               , semanticThreshold = Just 0.3
+                              , minSumResultLength = 30
                               }
     buildQuery = do
       t <- TIO.readFile path
