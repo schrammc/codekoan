@@ -19,8 +19,8 @@ runOutstreamLogging  = (`runLoggingT` writeOutput)
       BS.hPutStrLn handle (fromLogStr formatted)
       hFlush handle
 
-    getHandle LevelError = stderr
-    getHandle LevelWarn  = stderr
+    getHandle LevelError = stdout
+    getHandle LevelWarn  = stdout
     getHandle _ = stdout
 
     formatStr location _ level str = do
