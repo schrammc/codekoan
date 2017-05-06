@@ -12,5 +12,6 @@ data SearchSettings =
                  , coveragePercentage :: Double
                  , blockFiltering :: Bool
                  , semanticThreshold :: Maybe Double
+                 , minSumResultLength :: Int
                  }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
