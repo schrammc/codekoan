@@ -13,7 +13,7 @@ import           Control.Monad.Trans.Maybe
 import           Control.Monad.Logger
 import           Data.Hashable (Hashable)
 import           Data.Monoid ((<>))
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import qualified Data.Text as Text
@@ -128,10 +128,10 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
 
     addToSet mp matches = foldl addM mp matches
       where
-        addM mp match =
-          case M.lookup (resultMetaData match) mp of
-              Nothing -> M.insert (resultMetaData match) [match] mp
-              Just xs -> M.insert (resultMetaData match) (match:xs) mp
+        addM mp match = M.insertWith (\(x:[]) xs -> x:xs)
+                                     (resultMetaData match)
+                                     [match]
+                                     mp
 
     searchFor (ngram, start, ts) =
       let tokenVector = ts
