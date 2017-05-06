@@ -8,6 +8,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , mapSplitFragmentResults
                                , answersWithCoverage
                                , fragmentsLongerThan
+                               , filterSumTotalLength
                                -- * SummaryInformation
                                , numberOfAnswers
                                , numberOfFragments
@@ -67,6 +68,8 @@ answersWithCoverage cov resultSet =
   where
     cov' = max 0 (min 1 cov)
 
+-- | Filters out individual alignment matches that are shorter than the given
+-- minimum length.
 fragmentsLongerThan :: (Eq t)
                        => Int -- ^ Minimum length of an answer fragment
                        -> ResultSet t l ann
@@ -221,3 +224,20 @@ buildSet lst = ResultSet $ M.fromList fragGroups
                -> (ann, [[AlignmentMatch t l ann]])
     mergeGroup [] = error "Thesis.CodeAnalysis.Semantic - impossible case"
     mergeGroup xs@((ann, _):_) = (ann, snd <$> xs)
+
+-- | Filters out groups of alignment matches for which the sum of the query
+-- token ranges is shorter than the given minimum amount.
+filterSumTotalLength :: Int
+                        -- ^ Minimum sum of query token ranges in remaining
+                        -- results
+                     -> ResultSet t l ann
+                     -> ResultSet t l ann
+filterSumTotalLength n resultSet =
+  mapFragmentResults resultSet $ \_ results ->
+    if totalLength results >= n
+    then Just results
+    else Nothing
+  where
+    -- The length of all query token ranges summed up
+    totalLength :: [AlignmentMatch t l ann] -> Int
+    totalLength xs = sum $ rangeLength . resultQueryRange <$> xs
