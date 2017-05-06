@@ -208,12 +208,16 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  initialMatches <- findMatches index levenshteinDistance txt minMatchLength
+  initialMatches <- filterSumTotalLength minSumResultLength <$>
+                    fragmentsLongerThan minMatchLength <$>
+                    findMatches index levenshteinDistance txt minMatchLength
+
   $(logDebug) $ "Initial alignment matches: "
                   <> printNumberOfAlignmentMatches initialMatches
                   <> " in " <> printNumberOfGroups initialMatches
                   <> " groups"
-  let nonRedundantMatches = removeSubsumptionInSet $
+  let nonRedundantMatches = filterSumTotalLength minSumResultLength $
+                            removeSubsumptionInSet $
                             answersWithCoverage coveragePercentage initialMatches
 
   $(logDebug) $ "Non redundant matches: "
@@ -221,13 +225,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                   <> " in " <> printNumberOfGroups nonRedundantMatches
                   <> " groups"
 
-  let minLengthMatches = fragmentsLongerThan minMatchLength nonRedundantMatches
-
-  
-  $(logDebug) $ "Groups after length filtering: "
-                <> printNumberOfGroups minLengthMatches
-
-  let coverageAnalyzed = answersWithCoverage coveragePercentage minLengthMatches
+  let coverageAnalyzed = answersWithCoverage coveragePercentage nonRedundantMatches
 
   $(logDebug) $ "Groups after coverage / length: "
                 <> printNumberOfGroups coverageAnalyzed
@@ -243,7 +241,8 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                                                  (token <$> queryTokens)
                                                  coverageAnalyzed
                      $(logDebug) "Repeat coverage filter on individual results..."
-                     return $ answersWithCoverage coveragePercentage r
+                     return $ answersWithCoverage coveragePercentage $
+                              filterSumTotalLength minSumResultLength r
                    else do
                      $(logDebug) "Skipping block analysis."
                      MaybeT . return . Just $  coverageAnalyzed
@@ -266,4 +265,3 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
     getQueryTokens = processAndTokenize lang txt
     printNumberOfAlignmentMatches = Text.pack . show . numberOfAlignmentMatches
     printNumberOfGroups = Text.pack . show . numberOfFragments
-
