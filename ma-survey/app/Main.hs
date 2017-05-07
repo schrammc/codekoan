@@ -35,6 +35,7 @@ import           Network.HTTP.Conduit
 import           Network.HTTP.Simple hiding (httpLbs)
 import           Statistics.Distribution
 import           Statistics.Distribution.Normal
+import           Statistics.Distribution.ChiSquared
 import           System.Directory
 import           System.Environment
 import           System.FilePath
@@ -295,6 +296,8 @@ analyzeTags path settings conn resultSets = do
           sampleFreqs = relativeFrequencies sampleCounts
           relativeReps = relativeRep baseFreqs sampleFreqs
           normals      = normalScores baseFreqs sampleCounts
+
+          chi = chiSquareScores baseCounts sampleCounts
           
           tm = reverse $ sortOn (snd) $ M.toList $ buildScores $
                  M.intersectionWith ProbAndCount normals sampleCounts
@@ -305,7 +308,11 @@ analyzeTags path settings conn resultSets = do
             (T.unpack tag) ++ " -> " ++ (show score)
           countLines = (flip fmap) (M.toList sampleCounts) $ \(tag, count) ->
             (T.unpack tag) ++ " -> " ++ (show count)
+          chiLines = (flip fmap) (M.toList chi) $ \(tag, score) ->
+            (T.unpack tag) ++ " -> " ++ (show score)
+          
       liftIO $ writeFile (path ++ ".tags") (unlines fileLines)
+      liftIO $ writeFile (path ++ ".tags.chi") (unlines chiLines)
       liftIO $ writeFile (path ++ ".tags.pure") (unlines pureLines)
       liftIO $ writeFile (path ++ ".counts") (unlines countLines)
 
@@ -382,6 +389,18 @@ normalScores freqs counts = M.intersectionWith f freqs counts
          then 1
          else cumulative dist (fromIntegral count)
 
+chiSquareScores :: (Ord a) =>
+                   M.Map a Int
+                -> M.Map a Int
+                -> M.Map a Double
+chiSquareScores soCounts sampleCounts =
+  M.intersectionWith f soCounts sampleCounts
+  where
+    f so sample = chiSquaredTest (so, maxSo - so) (sample, maxSample - sample)
+    maxSo = maximum soCounts
+    maxSample = maximum sampleCounts
+    
+
 isRelevant :: ResultMsg  -> Bool
 isRelevant msg =
   let totalTokenLength = sum $
@@ -406,3 +425,12 @@ directoryName path =
 
 average :: (Foldable f) => f Double -> Double
 average ds = sum ds / (fromIntegral $ length ds)
+
+chiSquaredTest :: (Int,Int) -> (Int, Int) -> Double
+chiSquaredTest (def, defNo) (var, varNo) = cumulative dist c2
+  where
+    c2 :: Double
+    c2 = fromIntegral ((((def * varNo - defNo * var) ^ 2) * (def + defNo + var + varNo))) /
+          (fromIntegral ((def + defNo) * (var + varNo) * (def + var) * (defNo + varNo)))
+          
+    dist = chiSquared 1
