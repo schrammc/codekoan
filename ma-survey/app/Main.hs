@@ -304,11 +304,11 @@ analyzeTags path settings conn resultSets = do
 
       let fileLines  = (flip fmap) tm $ \(tag, score) ->
             (T.unpack tag) ++ " -> " ++ (show score)
-          pureLines = (flip fmap) (M.toList normals) $  \(tag, score) ->
+          pureLines = (flip fmap) (reverse $ sortOn (snd) $ M.toList normals) $  \(tag, score) ->
             (T.unpack tag) ++ " -> " ++ (show score)
           countLines = (flip fmap) (M.toList sampleCounts) $ \(tag, count) ->
             (T.unpack tag) ++ " -> " ++ (show count)
-          chiLines = (flip fmap) (M.toList chi) $ \(tag, score) ->
+          chiLines = (flip fmap) (reverse $ sortOn snd $ M.toList chi) $ \(tag, score) ->
             (T.unpack tag) ++ " -> " ++ (show score)
           
       liftIO $ writeFile (path ++ ".tags") (unlines fileLines)
@@ -378,8 +378,9 @@ normalScores :: (Ord a) =>
                 M.Map a RelativeFrequency
              -> M.Map a Int
              -> M.Map a Double
-normalScores freqs counts = M.intersectionWith f freqs counts
+normalScores freqs counts = M.intersectionWith f freqs relevantCounts
   where
+    relevantCounts = M.filter (> 20) counts
     n = maximum counts
     f frequency count =
       let freq = freqToDouble frequency
@@ -427,8 +428,13 @@ average :: (Foldable f) => f Double -> Double
 average ds = sum ds / (fromIntegral $ length ds)
 
 chiSquaredTest :: (Int,Int) -> (Int, Int) -> Double
-chiSquaredTest (def, defNo) (var, varNo) = cumulative dist c2
+chiSquaredTest (def, defNo) (var, varNo) =
+  if (fromIntegral var / fromIntegral (var+varNo)) > (fromIntegral def / fromIntegral (defNo+def))
+  then (1 + chiSq) / 2
+  else (1 - chiSq) / 2
   where
+    
+    chiSq = cumulative dist c2
     c2 :: Double
     c2 = fromIntegral ((((def * varNo - defNo * var) ^ 2) * (def + defNo + var + varNo))) /
           (fromIntegral ((def + defNo) * (var + varNo) * (def + var) * (defNo + varNo)))
