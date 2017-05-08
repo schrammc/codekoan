@@ -2,6 +2,7 @@
 module Thesis.Search.NGrams where
 
 import qualified Data.Vector as V
+import Data.List (sortOn)
 -- | A list of n long nonoverlapping, contiguous subsequences of the given
 -- sequence
 ngrams :: Int -> V.Vector a -> [V.Vector a]
@@ -18,7 +19,7 @@ allNGrams n dat = do
 allNgramTails :: Int -> V.Vector a -> [(V.Vector a, Int, V.Vector a)]
 allNgramTails n dat | n <= 0 = []
                     | otherwise =
-  let result = concat $ do
+  let result = sortOn ind $ concat $ do
         x <- [0..n-1]
         let dat' = V.drop x (dat)
         [shift x $ ngrs dat']
@@ -28,6 +29,7 @@ allNgramTails n dat | n <= 0 = []
     shift k xs = do
       (a,b,c) <- xs
       return (a, b+k, c)
+    ind (_, i, _) = i
 
 -- | A list of n long nonoverlapping, contiguous subsequences of the given
 -- sequence, paired with the remainder of the sequence starting with the
