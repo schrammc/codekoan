@@ -162,6 +162,8 @@ appLoop foundation@(Application{..}) replyChan channel = do
           Right (Just matches) -> do
             $(logInfo) $ pack $ "Sending reply to query " ++ show queryId ++
                                 " back to rabbitmq..."
+
+            $(logDebug) "Constructing JSON-Serializable result..."
       
             reply <- resultSetToMsg (serviceClusterSize appSettings)
                                     (languageName appLanguage)
@@ -169,9 +171,13 @@ appLoop foundation@(Application{..}) replyChan channel = do
                                     matches
                                     getTokenV
                                     queryText
+
+            $(logDebug) "Building RMQ-Message..."
       
             -- Send the reply to the replies queue in rabbitmq
             replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
+
+            $(logDebug) "Pushing to reply channel"
       
             writeChan replyChan ("replies", encode replyMessage)
             return ()
