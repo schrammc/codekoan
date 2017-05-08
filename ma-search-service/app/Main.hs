@@ -23,7 +23,7 @@ import           Data.Aeson
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Maybe (fromJust, fromMaybe)
 import           Data.Monoid ((<>))
-import           Data.Text (Text, pack)
+import           Data.Text (Text, pack, unpack)
 import qualified Network.AMQP as AMQP
 import           Network.HTTP.Simple
 import           Thesis.CodeAnalysis.Language
@@ -165,21 +165,31 @@ appLoop foundation@(Application{..}) replyChan channel = do
 
             $(logDebug) "Constructing JSON-Serializable result..."
       
-            reply <- resultSetToMsg (serviceClusterSize appSettings)
-                                    (languageName appLanguage)
-                                    (fromJust queryId)
-                                    matches
-                                    getTokenV
-                                    queryText
+            replyEither <- race (waitAndTimeout 1) $
+                                resultSetToMsg (serviceClusterSize appSettings)
+                                               (languageName appLanguage)
+                                               (fromJust queryId)
+                                               matches
+                                               getTokenV
+                                               queryText
 
-            $(logDebug) "Building RMQ-Message..."
+            case replyEither of
+              Right reply -> do
+                $(logDebug) "Building RMQ-Message..."
       
-            -- Send the reply to the replies queue in rabbitmq
-            replyMessage <-  liftIO $ buildMessage "search service" "reply" reply
+                -- Send the reply to the replies queue in rabbitmq
+                replyMessage <- liftIO $ buildMessage "search service"
+                                                      "reply"
+                                                      reply
 
-            $(logDebug) "Pushing to reply channel"
+
+                $(logDebug) "Pushing to reply channel"
       
-            writeChan replyChan ("replies", encode replyMessage)
+                writeChan replyChan ("replies", encode replyMessage)
+              Left _ -> do
+                let errorMessage = "Failed to construct serializable in a minute."
+                $(logError) errorMessage
+                liftIO $ sendExceptionMsg queryId (unpack errorMessage)
             return ()
 
   $(logDebug) "Acknowledging message..."
