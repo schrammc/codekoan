@@ -2,13 +2,15 @@
 {-# LANGUAGE OverloadedStrings#-}
 module Thesis.Util.LoggingUtils where
 
-import Control.Monad.Logger
+import           Control.Monad.Logger
 
-import System.IO
-import Data.Time.Clock
-import Data.Monoid ((<>))
-import Data.ByteString.Char8 as BS
-import System.Log.FastLogger (fromLogStr)
+import           Control.Concurrent (myThreadId)
+import qualified Data.ByteString.Char8 as BS
+import           Data.Char (isDigit)
+import           Data.Monoid ((<>))
+import           Data.Time
+import           System.IO
+import           System.Log.FastLogger (fromLogStr)
 
 runOutstreamLogging :: LoggingT m a -> m a
 runOutstreamLogging  = (`runLoggingT` writeOutput)
@@ -23,9 +25,13 @@ runOutstreamLogging  = (`runLoggingT` writeOutput)
     getHandle LevelWarn  = stdout
     getHandle _ = stdout
 
+
     formatStr location _ level str = do
-      time <- getCurrentTime
-      return $ (toLogStr $ show time) <> " -- " <> formatLevel level
+      time <- getCurrentTime >>= utcToLocalZonedTime
+      tId <- (dropWhile (not . isDigit)) . show  <$> myThreadId
+      let threadIdString = "[" <> (toLogStr tId) <> "]"
+      return $ (toLogStr $ show time) <> " -- " <> threadIdString
+               <> formatLevel level
                <> " :: " <> str <> " <<Source: "
                <> (toLogStr $ loc_package location) <> "/"
                <> (toLogStr $ loc_module location) <> " " <>
