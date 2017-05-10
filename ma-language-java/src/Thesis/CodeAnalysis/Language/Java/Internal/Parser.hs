@@ -90,17 +90,25 @@ tokenP = "<" *> pure TokenLT
          <|> ";" *> pure TokenSemicolon
          <|> "break" *> pure TokenBreak
          <|> "import" *> pure TokenImport
-         <|> modifier
-         <|> loopWord
-         <|> keyword
-         <|> primitive
+         <|> followedByNonAlphaNum modifier
+         <|> followedByNonAlphaNum loopWord
+         <|> followedByNonAlphaNum keyword
+         <|> followedByNonAlphaNum primitive
          <|> tokenNumber
          <|> label
          <|> identifier
          <|> stringLiteral *> pure TokenStringLiteral
          <|> characterLiteral *> pure TokenCharacterLiteral
          <|> annotation
-         
+
+followedByNonAlphaNum :: Parser a -> Parser a
+followedByNonAlphaNum parser = do
+  x <- parser
+  peekVal <- peekChar
+  case peekVal of
+    Nothing -> return x
+    Just c | isAlphaNum c -> fail "Followed by alpha num"
+           | otherwise -> return x
 
 keyword :: Parser Token
 keyword = tokenCondition <|> tokenClassStructure <|> tokenKeyword <|> tokenBool
