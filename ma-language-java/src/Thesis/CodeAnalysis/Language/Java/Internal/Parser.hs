@@ -88,8 +88,9 @@ tokenP = "<" *> pure TokenLT
          <|> ":" *> pure TokenColon
          <|> "?" *> pure TokenQuestion
          <|> ";" *> pure TokenSemicolon
-         <|> "break" *> pure TokenBreak
-         <|> "import" *> pure TokenImport
+         <|> followedByNonAlphaNum "break" *> pure TokenBreak
+         <|> followedByNonAlphaNum "import" *> pure TokenImport
+         <|> followedByNonAlphaNum "return" *> pure TokenReturn
          <|> followedByNonAlphaNum modifier
          <|> followedByNonAlphaNum loopWord
          <|> followedByNonAlphaNum keyword
