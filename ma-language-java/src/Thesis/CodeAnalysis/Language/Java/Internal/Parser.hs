@@ -125,6 +125,7 @@ keyword = tokenCondition <|> tokenClassStructure <|> tokenKeyword <|> tokenBool
     tokenKeyword = ( "package"
                      <|> "null"
                      <|> "throw"
+                     <|> "try"
                      <|> "catch"
                      <|> "finally"
                      <|> "throws"
