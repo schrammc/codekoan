@@ -1,5 +1,5 @@
 -- |
--- Copyright: Christof Schramm 2016
+-- Copyright: Christof Schramm 2016, 2017
 -- License: All rights reserved
 --
 -- This module contains generator for the 'BlockData' data type for all
@@ -73,20 +73,30 @@ blockString indent unindent tks = do
      | token == unindent -> return BlockEnd
      | otherwise -> []
 
+data RelationTracker = RelationTracker {maxDown :: !Int, current :: !Int}
+
+startTracker = RelationTracker 0 0
+
+trackerToRelation :: RelationTracker -> BlockRelation
+trackerToRelation RelationTracker{..} =
+  BlockRelation {down = abs maxDown, up = current - maxDown}
+
 blockRelation :: Eq t => t -> t -> V.Vector t -> Int -> Int -> BlockRelation
 blockRelation indent unindent tks a b | V.length tks == 0 = inSameBlock
                                       | a == b = inSameBlock
                                       | otherwise =
-                                          foldl' f inSameBlock relevantRegion
+                                          trackerToRelation $
+                                            foldl' f startTracker relevantRegion
   where
     relevantRegion = V.unsafeSlice x (y-x) tks
---    f :: (Eq t) => BlockRelation -> t -> BlockRelation
-    f br@BlockRelation{..} t =
-      if | t == indent   -> if | down > 0 -> br{down=down-1}
-                               | otherwise -> br{up=up+1}
-         | t == unindent -> if | up > 0 -> br{up = up-1}
-                               | otherwise -> br{down = down+1}
-         | otherwise -> br
+--    f :: RelationTracker -> t -> RelationTracker
+    f tr@RelationTracker{..} t =
+      if | t == indent   -> tr{current = current + 1}
+         | t == unindent ->
+           if current == maxDown
+           then tr{ maxDown = maxDown - 1, current = current - 1}
+           else tr{ current = current - 1}
+         | otherwise -> tr
 
     -- x and y are the minimum of a and b and the maximum of a and b after a
     -- normalization that puts each value in the interval of 
