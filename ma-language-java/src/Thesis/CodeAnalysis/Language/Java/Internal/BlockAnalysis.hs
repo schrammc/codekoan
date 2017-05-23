@@ -12,12 +12,13 @@
 module Thesis.CodeAnalysis.Language.Java.Internal.BlockAnalysis where
 
 import qualified Data.Vector as V
-import           Thesis.CodeAnalysis.Semantic.BlockData (BlockData)
-import           Thesis.CodeAnalysis.Language.Java.Internal.Tokens
 import           Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
+import           Thesis.CodeAnalysis.Language.Java.Internal.Tokens
+import           Thesis.CodeAnalysis.Semantic.BlockData (BlockData)
+import           Thesis.Util.VectorView
 
 -- | A java implementation of 'standardBlockData'
-javaBlockData :: V.Vector Token
-              -> V.Vector Token
+javaBlockData :: VectorView Token
+              -> VectorView Token
               -> BlockData Token
-javaBlockData =  standardBlockData TokenLBrace TokenRBrace
+javaBlockData = standardBlockData TokenLBrace TokenRBrace

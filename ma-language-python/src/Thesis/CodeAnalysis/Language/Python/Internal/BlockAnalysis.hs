@@ -10,16 +10,16 @@
 
 module Thesis.CodeAnalysis.Language.Python.Internal.BlockAnalysis where
 
+import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
 import           Thesis.CodeAnalysis.Language.Python.Internal.Tokens
 import           Thesis.CodeAnalysis.Semantic.BlockData (BlockData)
-
-import qualified Data.Vector as V
+import           Thesis.Util.VectorView
 
 -- | A python implementation of 'standardBlockData'
-pythonBlockData :: V.Vector PyToken
+pythonBlockData :: VectorView PyToken
                    -- ^ Tokens of the query document
-                -> V.Vector PyToken
+                -> VectorView PyToken
                 -- ^ Tokens of the code pattern
                 -> BlockData PyToken
 pythonBlockData queryTokens fragmentTokens =

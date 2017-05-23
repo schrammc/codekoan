@@ -76,14 +76,15 @@ import qualified Data.Map as M
 import qualified Data.Vector as V
 
 import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Semantic.BlockData
 import           Thesis.Data.Graph
 import           Thesis.Data.Range
-import           Thesis.Search.ResultSet
 import           Thesis.Search.AlignmentMatch
-import           Thesis.CodeAnalysis.Semantic.BlockData
+import           Thesis.Search.ResultSet
+import           Thesis.Util.VectorView
 
-normalizeV :: V.Vector a -> Int -> Int
-normalizeV vector k = max 0 $ min k (V.length vector - 1)
+normalizeV :: Foldable f => f a -> Int -> Int
+normalizeV vector k = max 0 $ min k (length vector - 1)
 
 -- | Analyze the block accordance of two alignment matches
 blockAccordance :: BlockData t
@@ -137,7 +138,7 @@ resultSetBlockAnalysis :: (Monad m, Ord ann) =>
                           -- ^ Access to source code of fragments
                        -> Language t l
                        -- ^ The language that we work with
-                       -> V.Vector t
+                       -> VectorView t
                        -- ^ The token vector of the query document
                        -> ResultSet t l ann
                        -- ^ The result set that is to be analyzed
@@ -148,10 +149,8 @@ resultSetBlockAnalysis getTokenV lang queryTokens ResultSet{..} = do
     -- Get the full tokens of the answer fragment and use them to do
     -- block analysis on each group of answer fragments.
     (fragTks,_)  <- getTokenV ann
-    let fragTokens = token <$> fragTks
-        blockData = mkBlockData queryTokens fragTokens
+    let fragTokens = token <$$$> fragTks
+        blockData = languageGenBlockData lang queryTokens fragTokens
         analyzedGroups = concat $ blockAnalysis blockData <$> groups
     return (ann, analyzedGroups)
   return $ ResultSet (M.fromList updatedLst)
-  where
-    mkBlockData = languageGenBlockData lang

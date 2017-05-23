@@ -23,6 +23,7 @@ import           Thesis.Messaging.Query
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
 import           Thesis.Search.ResultSet
+import           Thesis.Util.VectorView
 
 data ResultSetMsg =
   ResultSetMsg { resultSetLanguage :: !Text
@@ -128,7 +129,7 @@ alignmentMatchToMsg (v,_) AlignmentMatch{..} =
       case vectorInRange tokenRange vec of
         Nothing -> Range 0 0
         Just matchedV ->
-          let langTextRanges = coveredRange <$> matchedV
+          let langTextRanges = coveredRange <$$$> matchedV
               start = minimum $ rangeStart <$> langTextRanges
               end = maximum $ rangeStart <$> langTextRanges
           in Range start end

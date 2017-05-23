@@ -16,11 +16,12 @@ module Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
        , flatBlockData
        ) where
 
-import           Data.Foldable (foldl')
+import           Data.Foldable (foldl', toList)
 import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Semantic.BlockData
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Range
+import           Thesis.Util.VectorView
 
 -- | A 'BlockData' value, that judges everything to be in the same block
 --
@@ -39,9 +40,9 @@ standardBlockData :: (Eq t) =>
                    -- ^ Token that signifies the start of a code block
                 -> t
                 -- ^ Token that signifies the end of a code block
-                -> V.Vector t
+                -> VectorView t
                 -- ^ The tokens of the processed and tokenized query document
-                -> V.Vector t
+                -> VectorView t
                 -- ^ The tokens of the processed and tokenized pattern-code
                 -> BlockData t
 standardBlockData indent unindent queryTokens fragmentTokens =
@@ -56,19 +57,19 @@ standardBlockData indent unindent queryTokens fragmentTokens =
 blockStringInRegion :: (Eq t) =>
                        t
                     -> t
-                    -> V.Vector t
+                    -> VectorView t
                     -> Range t
                     -> [BlockDelim]
 blockStringInRegion indent unindent tks (Range{..}) =
   blockString indent unindent subSlice
   where
-    subSlice = V.unsafeSlice a (b - a) tks
+    subSlice = unsafeSliceView a (b - a) tks
     a = normalizeV tks rangeStart
     b = normalizeV tks rangeEnd
 
-blockString :: Eq t => t -> t -> V.Vector t -> [BlockDelim]
+blockString :: Eq t => t -> t -> VectorView t -> [BlockDelim]
 blockString indent unindent tks = do
-  token <- V.toList tks
+  token <- toList tks
   if | token == indent   -> return BlockStart
      | token == unindent -> return BlockEnd
      | otherwise -> []
@@ -81,14 +82,14 @@ trackerToRelation :: RelationTracker -> BlockRelation
 trackerToRelation RelationTracker{..} =
   BlockRelation {down = abs maxDown, up = current - maxDown}
 
-blockRelation :: Eq t => t -> t -> V.Vector t -> Int -> Int -> BlockRelation
-blockRelation indent unindent tks a b | V.length tks == 0 = inSameBlock
+blockRelation :: Eq t => t -> t -> VectorView t -> Int -> Int -> BlockRelation
+blockRelation indent unindent tks a b | length tks == 0 = inSameBlock
                                       | a == b = inSameBlock
                                       | otherwise =
                                           trackerToRelation $
                                             foldl' f startTracker relevantRegion
   where
-    relevantRegion = V.unsafeSlice x (y-x) tks
+    relevantRegion = unsafeSliceView x (y-x) tks
 --    f :: RelationTracker -> t -> RelationTracker
     f tr@RelationTracker{..} t =
       if | t == indent   -> tr{current = current + 1}

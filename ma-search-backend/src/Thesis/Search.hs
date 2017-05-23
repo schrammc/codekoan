@@ -8,18 +8,21 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Thesis.Search where
 
+import           Control.DeepSeq
 import           Control.Monad.Catch
-import           Control.Monad.Trans.Maybe
 import           Control.Monad.Logger
+import           Control.Monad.Trans.Maybe
 import           Data.Hashable (Hashable)
-import           Data.Monoid ((<>))
-import qualified Data.Map.Strict as M
-import qualified Data.Set as S
-import qualified Data.Vector as V
-import qualified Data.Text as Text
 import qualified Data.List as List
+import qualified Data.Map.Strict as M
+import           Data.Monoid ((<>))
+import qualified Data.Set as S
+import qualified Data.Text as Text
+import qualified Data.Vector as V
+import           Debug.Trace
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
+import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Range hiding (coveragePercentage)
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.BloomFilter
@@ -29,9 +32,7 @@ import           Thesis.Search.Levenstein
 import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
-import           Thesis.CodeAnalysis.Semantic.Blocks
-import           Control.DeepSeq
-import           Debug.Trace
+import           Thesis.Util.VectorView
 
 removeRepeats :: (Eq t) =>
                  Int
@@ -64,7 +65,7 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
     takeRepeats _ [] = []
     takeRepeats lastRec ((ngram', start', x):rst)
      | start' > (ngramSize + lastRec) = []
-     | (token <$> ngram) == (token <$> ngram') =
+     | (token <$$$> ngram) == (token <$$$> ngram') =
          (ngram',start', x):(takeRepeats start' rst)
      | otherwise = takeRepeats lastRec rst
 
@@ -242,7 +243,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                      $(logDebug) "Performing block analysis..."
                      r <- resultSetBlockAnalysis dict
                                                  lang
-                                                 (token <$> queryTokens)
+                                                 (token <$$$> queryTokens)
                                                  coverageAnalyzed
                      $(logDebug) "Repeat coverage filter on individual results..."
                      return $ answersWithCoverage coveragePercentage $

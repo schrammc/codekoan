@@ -24,6 +24,7 @@ import qualified Data.Vector as V
 import Thesis.Data.Range
 import Thesis.CodeAnalysis.Language.Internal
 import Thesis.CodeAnalysis.Semantic.BlockData
+import Thesis.Util.VectorView
 
 -- | A datatype for a language polymorphic over two types
 --
@@ -46,7 +47,7 @@ data Language t l where
               , isTokenIdentifier :: t -> Bool
                 -- ^ If the token is an identifier token, the underlying
                 -- identifier will be used in word similarity filtering
-              , languageGenBlockData :: V.Vector t -> V.Vector t -> BlockData t
+              , languageGenBlockData :: VectorView t -> VectorView t -> BlockData t
                 -- ^ From a given query document and a given code pattern in
                 -- token-string form build a 'BlockData' helper value.
               } -> Language t l
