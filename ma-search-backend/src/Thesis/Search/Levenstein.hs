@@ -60,31 +60,27 @@ startL (LevensteinAutomaton{..}) = LevenState $ values
 stepL :: (Eq a) => LevensteinAutomaton a -> LevenState -> a -> LevenState
 stepL LevensteinAutomaton{..} (LevenState []) _ = LevenState []
 stepL LevensteinAutomaton{..} LevenState{..} x =
-  LevenState $ reverse $ foldl f lst statesWithSuccessors
+  LevenState $ goThroughLine initialElement stateList
   where
-    -- Successors of positions in the state. The last position has no successor
-    successors = (Just <$> (tail stateList))++[Nothing]
+    initialElement = case head stateList of
+      (i,v) | v < levenN -> Just (i, v+1)
+      _                  -> Nothing
 
-    --  Pairs of state positions with their successor positions
-    statesWithSuccessors = (zip stateList successors)
-
-    -- If we can extend the state of the first position downwards, we do
-    lst = case head stateList of
-      (i,v) | v < levenN -> [(i, v+1)]
-      _                  -> []
-
-    f :: [(Int,Int)] -> ((Int,Int), Maybe (Int,Int)) -> [(Int,Int)]
-    f l ((i,v), suc) = let cost = if levenIndex i == x then 0 else 1
-                           fromLeft = case l of
-                             (_,v'):_ -> ((v'+1):)
-                             _        -> id
-                           fromTop = case suc of
-                             Just (i',v') | i' == i+1 -> ((v'+1):)
-                             _                        -> id
-                           val = foldl1 min (fromTop $ fromLeft [v + cost])
-                        in if i < levenSize && val <= levenN
-                           then ((i+1),val):l
-                           else l
+    goThroughLine :: Maybe (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
+    goThroughLine l [] = []
+    goThroughLine l ((i,v): rest) = 
+      let cost = if levenIndex i == x then 0 else 1
+          fromLeft = case l of
+            Just (_,v') -> min (v'+1)
+            _           -> id
+          fromTop = case rest of
+           (i',v'):_ | i' == i+1 -> min (v'+1)
+           _                     -> id
+          val = fromTop $ fromLeft (v + cost)
+          
+      in if i < levenSize && val <= levenN
+         then ((i+1),val):(goThroughLine (Just ((i+1),val)) rest)
+         else goThroughLine l rest
 
 -- | Predicate to determine if the given automaton state is accepting
 acceptL :: LevensteinAutomaton a -> LevenState -> Bool
