@@ -41,7 +41,7 @@ foldrVectorView f x (VectorView mapper v) = go (l-1) x
     go i x | i < 0    = x
            | otherwise =
              let next = mapper ((V.unsafeIndex) v i)
-             in go (i-1) (f next x)
+             in go (i-1) $! f next x
 
 toVector :: VectorView a -> V.Vector a
 toVector (VectorView mapper v) = mapper <$> v

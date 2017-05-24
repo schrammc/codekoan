@@ -92,10 +92,11 @@ blockAccordance :: BlockData t
                 -> AlignmentMatch t l ann
                 -> Bool
 blockAccordance BlockData{..} resA resB =
-  queryDist == fragmentDist
---  && blockStringEquality
-  && noQueryOverlap
+     noQueryOverlap
   && noFragOverlap
+  && queryDist == fragmentDist
+--  && blockStringEquality
+
   where
     queryDist = queryRelation (rangeStart $ resultQueryRange resA)
                               (rangeStart $ resultQueryRange resB)
