@@ -17,7 +17,6 @@ module Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
        ) where
 
 import           Data.Foldable (foldl', toList)
-import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Semantic.BlockData
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Range
@@ -45,8 +44,9 @@ standardBlockData :: (Eq t) =>
                 -> VectorView t
                 -- ^ The tokens of the processed and tokenized pattern-code
                 -> BlockData t
-standardBlockData indent unindent queryTokens fragmentTokens =
-  BlockData { queryRelation    = blockRelation indent unindent queryTokens
+standardBlockData indent unindent queryTokens = \fragmentTokens ->
+  BlockData { queryRelation    =
+                 blockRelationWithPreData indent unindent queryTokens
             , fragmentRelation = blockRelation indent unindent fragmentTokens
             , queryBlockString    =
                   blockStringInRegion indent unindent queryTokens
@@ -82,25 +82,55 @@ trackerToRelation :: RelationTracker -> BlockRelation
 trackerToRelation RelationTracker{..} =
   BlockRelation {down = abs maxDown, up = current - maxDown}
 
-blockRelation :: Eq t => t -> t -> VectorView t -> Int -> Int -> BlockRelation
-blockRelation indent unindent tks a b | length tks == 0 = inSameBlock
-                                      | a == b = inSameBlock
-                                      | otherwise =
-                                          trackerToRelation $
-                                            foldl' f startTracker relevantRegion
+preData :: (Eq t) => t -> t -> VectorView t -> [(Int ,t)]
+preData unindent indent v = filter (isIndentT . snd) $ zip [0 ..] (toList v)
+  where
+    isIndentT t = unindent == t || indent == t
+
+blockRelationWithPreData :: (Eq t) => t -> t -> VectorView t -> Int -> Int -> BlockRelation
+blockRelationWithPreData unindent indent tks = \a b ->
+  let 
+    relevantRegion =
+      snd <$> (takeWhile ((< y) . fst) $ dropWhile ((< x) . fst) pd)
+    x = normalizeV tks $ min a b
+    y = normalizeV tks $ max a b
+  in 
+  blockRelationBasic unindent indent relevantRegion x y
+  where
+    pd = preData unindent indent tks
+
+blockRelation :: (Eq t) => t -> t -> VectorView t -> Int -> Int -> BlockRelation
+blockRelation indent unindent tks a b =
+  blockRelationBasic indent unindent relevantRegion x y
   where
     relevantRegion = unsafeSliceView x (y-x) tks
---    f :: RelationTracker -> t -> RelationTracker
-    f tr@RelationTracker{..} t =
-      if | t == indent   -> tr{current = current + 1}
-         | t == unindent ->
-           if current == maxDown
-           then tr{ maxDown = maxDown - 1, current = current - 1}
-           else tr{ current = current - 1}
-         | otherwise -> tr
-
     -- x and y are the minimum of a and b and the maximum of a and b after a
     -- normalization that puts each value in the interval of 
     x = normalizeV tks $ min a b
     y = normalizeV tks $ max a b
 
+-- | Assumes that a <= b or bad things happend
+blockRelationBasic :: (Foldable f, Eq t) =>
+                      t
+                   -> t
+                   -> f t
+                   -> Int
+                   -> Int
+                   -> BlockRelation
+blockRelationBasic indent unindent tks a b
+  | length tks == 0 = inSameBlock
+  | a == b = inSameBlock
+  | otherwise = trackerToRelation $ foldl' f startTracker tks
+  where
+--    relevantRegion = unsafeSliceView x (y-x) tks
+    f = updateTracker indent unindent
+
+
+updateTracker :: Eq t => t -> t -> RelationTracker -> t -> RelationTracker
+updateTracker indent unindent tr@RelationTracker{..} t =
+  if | t == indent   -> tr{current = current + 1}
+     | t == unindent ->
+       if current == maxDown
+       then tr{ maxDown = maxDown - 1, current = current - 1}
+       else tr{ current = current - 1}
+     | otherwise -> tr

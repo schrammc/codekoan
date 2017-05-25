@@ -151,7 +151,9 @@ resultSetBlockAnalysis getTokenV lang queryTokens ResultSet{..} = do
     -- block analysis on each group of answer fragments.
     (fragTks,_)  <- getTokenV ann
     let fragTokens = token <$$$> fragTks
-        blockData = languageGenBlockData lang queryTokens fragTokens
+        blockData = buildBlockData fragTokens
         analyzedGroups = concat $ blockAnalysis blockData <$> groups
     return (ann, analyzedGroups)
   return $ ResultSet (M.fromList updatedLst)
+  where
+    buildBlockData fragTokens = languageGenBlockData lang queryTokens fragTokens
