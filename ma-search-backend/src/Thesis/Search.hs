@@ -198,7 +198,14 @@ buildRange dat tks d =
 -- | Perform a search based on a set of search settings.
 --
 -- Can throw a 'SemanticException' if something goes wrong in semantic processing.
-performSearch :: (NFData t, Hashable t, Ord t, Monad m, MonadThrow m, MonadLogger m, Ord ann, FragmentData ann) =>
+performSearch :: ( NFData t
+                 , Hashable t
+                 , Ord t
+                 , Monad m
+                 , MonadThrow m
+                 , MonadLogger m
+                 , Ord ann
+                 , FragmentData ann) =>
                  SearchIndex t l ann
               -> Language t l
 --              -> DataDictionary m

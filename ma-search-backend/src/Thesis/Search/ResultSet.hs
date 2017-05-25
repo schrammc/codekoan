@@ -126,32 +126,6 @@ removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l an
 removeSubsumptionInSet ResultSet{..}  =
   ResultSet $  fmap (\rs -> removeSubsumption' <$> rs) resultSetMap
 
--- | For each fragment remove all search results, that are properly subsumed by
--- another search result. Note that this can't remove all answer fragments
--- from a search result set, as there is always at least one search result per
--- answer fragment, that is not subsumed by another.
-removeSubsumption :: (Eq t, Eq ann) =>
-                       [AlignmentMatch t l ann]
-                    -> [AlignmentMatch t l ann]
-removeSubsumption results' = concat $ isIn <$> results
-  where
-    results = nubSimple $ sortOn (rangeEnd . resultQueryRange) results'
-    isIn r = let relevant = dropWhile
-                              (\r' -> (rangeEnd . resultQueryRange $ r') <
-                                      (rangeEnd . resultQueryRange $ r))
-                              results
-                 overlapping = filter
-                                 (\r' -> (rangeStart . resultQueryRange $ r') <=
-                                         (rangeStart . resultQueryRange $ r)
-                                         )
-                                 relevant
-                 subsumedByNone = null $
-                                  filter (/= r) $
-                                  filter (subsumedByProper r) overlapping
-             in if subsumedByNone
-                then [r]
-                else []
-
 removeSubsumption' :: (Eq t, Eq ann) =>
                       [AlignmentMatch t l ann]
                    -> [AlignmentMatch t l ann]
@@ -175,7 +149,7 @@ removeSubsumption' results' = maxSet [] results
                                      (rangeStart $ resultQueryRange next))
                     active
           subsumedByNone = null $
-                           filter (subsumedByProper next) active'
+                           filter (subsumedProperSame next) active'
       in if subsumedByNone
          then (True, append next active')
          else (False, active')

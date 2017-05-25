@@ -28,19 +28,31 @@ instance (NFData t, NFData ann) => NFData (AlignmentMatch t l ann) where
            resultFragmentRange am `deepseq`
            resultLevenScore am `deepseq` ()
 
+-- | Same as 'subsumedBy' assuming a and b are matched to the same resultMeta ann
+subsumedProperSame a b = textRangeSubsumption && fragmentSubsumption && proper
+  where
+    proper = resultLevenScore a >= resultLevenScore b
+    fragmentSubsumption = isSubRangeOf (resultFragmentRange a)
+                                       (resultFragmentRange b)
+    textRangeSubsumption = isSubRangeOf (resultTextRange a)
+                                        (resultTextRange b)
+
 -- | Returns true if the second search result covers more than the first search
 -- result and therefore makes the first search result redundant.
 --
 -- NOTE THAT THIS FUNCTION DOES NOT TAKE 'resultLevenScore' INTO CONSIDERATION.
-subsumedBy :: (Eq t, Eq ann) => AlignmentMatch t l ann -> AlignmentMatch t l ann -> Bool
+subsumedBy :: (Eq t, Eq ann) =>
+              AlignmentMatch t l ann
+           -> AlignmentMatch t l ann
+           -> Bool
 subsumedBy a b = sameFragment &&
                  fragmentSubsumption &&
                  textRangeSubsumption -- &&
 --                 tokenSubsumption
   where
     sameFragment = resultMetaData a == resultMetaData b
-    tokenSubsumption = isSubsequenceOf (resultMatchedTokens a)
-                                       (resultMatchedTokens b)
+--    tokenSubsumption = isSubsequenceOf (resultMatchedTokens a)
+--                                       (resultMatchedTokens b)
     fragmentSubsumption = isSubRangeOf (resultFragmentRange a)
                                        (resultFragmentRange b)
     textRangeSubsumption = isSubRangeOf (resultTextRange a)
