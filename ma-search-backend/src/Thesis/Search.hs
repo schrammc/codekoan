@@ -129,11 +129,14 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
 
     addToSet mp matches = foldl addM mp matches
       where
-        addM mp match = M.insertWith insMerge
-                                     (resultMetaData match)
-                                     [match]
-                                     mp
-        insMerge (x:[]) ys@(y:_) | subsumedBy x y = ys
+        -- TODO: The range length check should NOT be necessary here!
+        addM mp match | (rangeLength $ resultQueryRange match) > minMatchLength =
+                          M.insertWith insMerge
+                                       (resultMetaData match)
+                                       [match]
+                                       mp
+                      | otherwise = mp
+        insMerge (x:[]) ys@(y:_) | subsumedProperSame x y = ys
                                  | otherwise = x:ys
         insMerge _ _ =
           error "Thesis.Search.findMatches.insMerge: impossible case"
