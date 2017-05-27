@@ -76,7 +76,7 @@ fragmentsLongerThan :: (Eq t)
                        -> ResultSet t l ann
 fragmentsLongerThan n resultSet =
   mapFragmentResults resultSet $ \_ -> \results -> 
-    case filter (\r -> length (resultMatchedTokens r) >= n) results of
+    case filter (\r -> rangeLength (resultFragmentRange r) >= n) results of
       [] -> Nothing
       rs -> length rs `seq` Just rs
 
@@ -214,4 +214,4 @@ filterSumTotalLength n resultSet =
   where
     -- The length of all query token ranges summed up
     totalLength :: [AlignmentMatch t l ann] -> Int
-    totalLength xs = sum $ rangeLength . resultQueryRange <$> xs
+    totalLength xs = sum $ rangeLength . resultFragmentRange <$> xs
