@@ -132,8 +132,7 @@ removeSubsumption' :: (Eq t, Eq ann) =>
 removeSubsumption' [] = []
 removeSubsumption' results' = maxSet [] results
   where
-    results = nubSimple $
-              sortOn (\r -> ( rangeStart $ resultQueryRange r
+    results = sortOn (\r -> ( rangeStart $ resultQueryRange r
                             , (-1) * (rangeLength $ resultQueryRange r)))
                      results'
     append x = (x:)
@@ -153,13 +152,6 @@ removeSubsumption' results' = maxSet [] results
       in if subsumedByNone
          then (True, append next active')
          else (False, active')
-
-
-nubSimple [] = []
-nubSimple (x:[]) = [x]
-nubSimple (x:y:ys) | x == y    = (nubSimple $ y:ys)
-                   | otherwise = x:(nubSimple $ y:ys)
-
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.
