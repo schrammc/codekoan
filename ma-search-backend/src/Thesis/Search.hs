@@ -119,7 +119,8 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
   $(logDebug) $ "Number of search results: " <>
-                (Text.pack . show . sum $ length <$> (force searchResults))
+                (Text.pack . show . sum $ length <$> (force searchResults)) <>
+                " in " <> (Text.pack . show $ M.size searchResults) <> "groups"
 
   return $ ResultSet $ (:[]) <$> searchResults
 
@@ -223,24 +224,32 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  initialMatches <- filterSumTotalLength minSumResultLength <$>
-                    fragmentsLongerThan minMatchLength <$>
-                    findMatches index levenshteinDistance txt minMatchLength
+  firstMatches <- findMatches index levenshteinDistance txt minMatchLength
 
   $(logDebug) $ "Initial alignment matches: "
+                  <> printNumberOfAlignmentMatches firstMatches
+                  <> " matches in " <> printNumberOfGroups firstMatches
+                  <> " groups"
+
+  let initialMatches = filterSumTotalLength minSumResultLength $
+                       fragmentsLongerThan minMatchLength $
+                       firstMatches
+
+
+  $(logDebug) $ "After length filtering there are: "
                   <> printNumberOfAlignmentMatches initialMatches
-                  <> " in " <> printNumberOfGroups initialMatches
+                  <> " matches in " <> printNumberOfGroups initialMatches
                   <> " groups"
 
   let afterFirstCoverage = answersWithCoverage coveragePercentage initialMatches
 
   $(logDebug) $ "After first coverage pass: "
                   <> printNumberOfAlignmentMatches afterFirstCoverage
-                  <> " in " <> printNumberOfGroups afterFirstCoverage
+                  <> " matches in " <> printNumberOfGroups afterFirstCoverage
                   <> " groups"
 
   let nonRedundantMatches = filterSumTotalLength minSumResultLength $
-                            removeSubsumptionInSet initialMatches
+                            removeSubsumptionInSet afterFirstCoverage
 
   $(logDebug) $ "Non redundant matches: "
                   <> printNumberOfAlignmentMatches nonRedundantMatches
