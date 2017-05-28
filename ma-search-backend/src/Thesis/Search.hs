@@ -223,8 +223,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  initialMatches <- answersWithCoverage coveragePercentage <$>
-                    filterSumTotalLength minSumResultLength <$>
+  initialMatches <- filterSumTotalLength minSumResultLength <$>
                     fragmentsLongerThan minMatchLength <$>
                     findMatches index levenshteinDistance txt minMatchLength
 
@@ -232,6 +231,14 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                   <> printNumberOfAlignmentMatches initialMatches
                   <> " in " <> printNumberOfGroups initialMatches
                   <> " groups"
+
+  let afterFirstCoverage = answersWithCoverage coveragePercentage initialMatches
+
+  $(logDebug) $ "After first coverage pass: "
+                  <> printNumberOfAlignmentMatches afterFirstCoverage
+                  <> " in " <> printNumberOfGroups afterFirstCoverage
+                  <> " groups"
+
   let nonRedundantMatches = filterSumTotalLength minSumResultLength $
                             removeSubsumptionInSet initialMatches
 
