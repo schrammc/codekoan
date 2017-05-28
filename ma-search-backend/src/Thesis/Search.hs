@@ -141,7 +141,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
         insMerge _ _ =
           error "Thesis.Search.findMatches.insMerge: impossible case"
 
-    searchFor (ngram, start, ts) =
+    searchFor (_, start, ts) =
       let tokenVector = ts
           result = search index n tokenVector minMatchLength
       in do
@@ -223,7 +223,8 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  initialMatches <- filterSumTotalLength minSumResultLength <$>
+  initialMatches <- answersWithCoverage coveragePercentage <$>
+                    filterSumTotalLength minSumResultLength <$>
                     fragmentsLongerThan minMatchLength <$>
                     findMatches index levenshteinDistance txt minMatchLength
 
@@ -232,8 +233,7 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
                   <> " in " <> printNumberOfGroups initialMatches
                   <> " groups"
   let nonRedundantMatches = filterSumTotalLength minSumResultLength $
-                            removeSubsumptionInSet $
-                            answersWithCoverage coveragePercentage initialMatches
+                            removeSubsumptionInSet initialMatches
 
   $(logDebug) $ "Non redundant matches: "
                   <> printNumberOfAlignmentMatches nonRedundantMatches
