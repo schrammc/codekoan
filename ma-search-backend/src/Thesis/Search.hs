@@ -122,7 +122,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
                 (Text.pack . show $ length relevantNGramTails)
 
   resultList `deepseq` $(logDebug) $ ("Result list length: " <>
-                                      (Text.pack . show $ length resultList))
+                                      (Text.pack . show . sum $ length <$> resultList))
 
   let searchResults = foldl' addToSet M.empty  resultList
 
