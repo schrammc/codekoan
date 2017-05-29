@@ -121,14 +121,16 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
 
-  $(logDebug) $ ("Result list length: " <>
-                 (Text.pack . show . sum $ length <$> resultList))
+  let n = sum $ length <$> resultList
+
+  n `seq` $(logDebug) $ ("Result list length: " <>
+                        (Text.pack . show $ n))
 
   let searchResults = buildMapDifferent $ concat resultList
 
-  $(logDebug) $ "Number of search results: " <>
-                (Text.pack . show . sum $ length <$> searchResults) <>
-                " in " <> (Text.pack . show $ M.size searchResults) <> "groups"
+  searchResults `seq` $(logDebug) $ "Number of search results: " <>
+                        (Text.pack . show . sum $ length <$> searchResults) <>
+                        " in " <> (Text.pack . show $ M.size searchResults) <> "groups"
 
   return $ ResultSet $ (:[]) <$> searchResults
 
