@@ -34,6 +34,7 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
+import Debug.Trace
 
 removeRepeats :: (Eq t) =>
                  Int
@@ -115,16 +116,16 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
 --                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
                                   (removeRepeats 2 ngramsWithTails)
-      resultList = searchFor <$> relevantNGramTails
+      resultList = filterMinLength . searchFor <$> relevantNGramTails
 
 
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
 
-  resultList `deepseq` $(logDebug) $ ("Result list length: " <>
-                                      (Text.pack . show . sum $ length <$> resultList))
+  $(logDebug) $ ("Result list length: " <>
+                 (Text.pack . show . sum $ length <$> resultList))
 
-  let searchResults = foldl' addToSet M.empty  resultList
+  let searchResults = buildMapDifferent $ concat resultList --foldl' addToSet M.empty  resultList
 
   searchResults `deepseq` $(logDebug) $ "Number of search results: " <>
                 (Text.pack . show . sum $ length <$> searchResults) <>
@@ -133,23 +134,27 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   return $ ResultSet $ (:[]) <$> searchResults
 
   where
+    buildMapDifferent matches  = M.fromList $ (\xs@(x:_) -> (resultMetaData x, xs)) <$>
+                                 (List.groupBy (\a b -> resultMetaData a == resultMetaData b) $
+                                  List.sortOn (resultMetaData) matches)
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)
-
-    addToSet mp matches = foldl addM mp matches
-      where
-        -- TODO: The range length check should NOT be necessary here!
-        addM mp match | (rangeLength $ resultQueryRange match) > minMatchLength =
-                          M.insertWith insMerge
-                                       (resultMetaData match)
-                                       [match]
-                                       mp
-                      | otherwise = mp
-        insMerge (x:[]) ys@(y:_) | subsumedProperSame x y = ys
-                                 | otherwise = x:ys
-        insMerge _ _ =
-          error "Thesis.Search.findMatches.insMerge: impossible case"
-
+    filterMinLength =
+      filter $ \m -> (rangeLength $ resultQueryRange m) > minMatchLength
+--    addToSet mp matches = foldl addM mp matches
+--      where
+--        -- TODO: The range length check should NOT be necessary here!
+--        addM mp match | (rangeLength $ resultQueryRange match) > minMatchLength =
+--                          M.insertWith insMerge
+--                                       (resultMetaData match)
+--                                       [match]
+--                                       mp
+--                      | otherwise = mp
+--        insMerge (x:[]) ys@(y:_) | subsumedProperSame x y = ys
+--                                 | otherwise = x:ys
+--        insMerge _ _ =
+--          error "Thesis.Search.findMatches.insMerge: impossible case"
+--
     searchFor (_, start, ts) =
       let tokenVector = ts
           result = search index n tokenVector minMatchLength
