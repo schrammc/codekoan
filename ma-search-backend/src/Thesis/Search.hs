@@ -118,16 +118,15 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
                                   (removeRepeats 2 ngramsWithTails)
       resultList = filterMinLength . searchFor <$> relevantNGramTails
 
-
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
 
   $(logDebug) $ ("Result list length: " <>
                  (Text.pack . show . sum $ length <$> resultList))
 
-  let searchResults = buildMapDifferent $ concat resultList --foldl' addToSet M.empty  resultList
+  let searchResults = buildMapDifferent $ concat resultList
 
-  searchResults `deepseq` $(logDebug) $ "Number of search results: " <>
+  $(logDebug) $ "Number of search results: " <>
                 (Text.pack . show . sum $ length <$> searchResults) <>
                 " in " <> (Text.pack . show $ M.size searchResults) <> "groups"
 
@@ -140,21 +139,8 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)
     filterMinLength =
-      filter $ \m -> (rangeLength $ resultQueryRange m) > minMatchLength
---    addToSet mp matches = foldl addM mp matches
---      where
---        -- TODO: The range length check should NOT be necessary here!
---        addM mp match | (rangeLength $ resultQueryRange match) > minMatchLength =
---                          M.insertWith insMerge
---                                       (resultMetaData match)
---                                       [match]
---                                       mp
---                      | otherwise = mp
---        insMerge (x:[]) ys@(y:_) | subsumedProperSame x y = ys
---                                 | otherwise = x:ys
---        insMerge _ _ =
---          error "Thesis.Search.findMatches.insMerge: impossible case"
---
+      filter $ \m -> (rangeLength $ resultQueryRange m) >= minMatchLength
+
     searchFor (_, start, ts) =
       let tokenVector = ts
           result = search index n tokenVector minMatchLength
