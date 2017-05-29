@@ -12,6 +12,7 @@ import           Control.DeepSeq
 import           Control.Monad.Catch
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
+import           Data.Foldable (foldl')
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
 import qualified Data.Map.Strict as M
@@ -114,12 +115,19 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
 --                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
                                   (removeRepeats 2 ngramsWithTails)
-      searchResults = foldl addToSet M.empty $ fmap searchFor relevantNGramTails
+      resultList = searchFor <$> relevantNGramTails
+
 
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
-  $(logDebug) $ "Number of search results: " <>
-                (Text.pack . show . sum $ length <$> (force searchResults)) <>
+
+  resultList `deepseq` $(logDebug) $ ("Result list length: " <>
+                                      (Text.pack . show $ length resultList))
+
+  let searchResults = foldl' addToSet M.empty  resultList
+
+  searchResults `deepseq` $(logDebug) $ "Number of search results: " <>
+                (Text.pack . show . sum $ length <$> searchResults) <>
                 " in " <> (Text.pack . show $ M.size searchResults) <> "groups"
 
   return $ ResultSet $ (:[]) <$> searchResults
