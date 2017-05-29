@@ -189,10 +189,11 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) = cur ++ do
     LevenPartial (nMatched, levenDist) ->
       let k = (V.length xs - nMatched)
       in if | nMatched == 0 -> []
-            | nMatched >  0 ->
+            | nMatched >  0 && d + nMatched >= minDepth ->
               let valuesWithDepth = (\(s, d) -> (s, d + k)) <$> trieLeavesDist t
                   valuesFiltered = filter ((> minDepth) . snd) valuesWithDepth
               in [( V.toList $ V.take nMatched xs, valuesFiltered, levenDist)]
+            | nMatched > 0 -> []
             | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                    "a negative amount of characters!"
   where
