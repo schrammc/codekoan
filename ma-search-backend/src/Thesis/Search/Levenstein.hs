@@ -221,12 +221,14 @@ walkThrough :: (Eq a) =>
             -> LevenState
             -> V.Vector a
             -> LevenResult
-walkThrough acceptScore = walkThrough' 0
+walkThrough acceptScore automaton state vector =
+  if V.null vector
+  then error "Levenshtein.walkthrough: empty vector!"
+  else walkThrough' 0 automaton state vector
   where
-    walkThrough' _ _   _  v | V.null v =
-      error "Levenshtein.walkthrough: empty vector!"
+    vectorLength = V.length vector
     walkThrough' !i !aut !st v =
-      if i == V.length v
+      if i == vectorLength
       then LevenDone st
       else
         let st' = stepL aut st (V.unsafeIndex v i)
