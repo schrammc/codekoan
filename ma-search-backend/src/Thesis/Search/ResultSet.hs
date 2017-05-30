@@ -19,6 +19,8 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , flattenSet
                                , buildSet
                                , removeSubsumptionInSet
+
+                               , removeSubsumption'
                                )where
 
 import           Data.List (groupBy, sortOn)
@@ -29,6 +31,7 @@ import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
 import           Control.DeepSeq
+import Debug.Trace
 
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l ann =
@@ -59,8 +62,8 @@ answersWithCoverage :: (Eq t, FragmentData ann)
                         -> ResultSet t l ann
                         -> ResultSet t l ann
 answersWithCoverage cov resultSet =
-  mapFragmentResults resultSet $ \_ -> \rs@(r:_) -> 
-     let n = fragDataTokenLength $ resultMetaData r
+  mapFragmentResults resultSet $ \ann -> \rs -> 
+     let n = fragDataTokenLength ann
          frags = resultFragmentRange <$> rs
      in if coveragePercentage n frags >= cov'
         then Just rs

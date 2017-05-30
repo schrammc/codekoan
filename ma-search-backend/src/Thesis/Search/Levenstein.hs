@@ -80,7 +80,7 @@ stepL LevensteinAutomaton{..} st@(LevenState{..}) x
           fromTop = case Seq.viewl rest of
            (i',v') :< _ | i' == i+1 -> min (v'+1)
            _                        -> id
-          val = fromTop $ fromLeft (v + cost)
+          val = fromTop $! fromLeft (v + cost)
           
       in if i < levenSize && val <= levenN
          then ((i+1),val) <| (goThroughLine (Just ((i+1),val)) rest)
@@ -164,15 +164,15 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur >< do
 lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
            -> Int -- ^ Minimum match length
-           -> Seq (Seq a, Seq (S.Set v, Int), Int)
-lookupAllSuff aut trie minMatchLength | trie == empty = Seq.empty
+           -> [(Seq a, Seq (S.Set v, Int), Int)]
+lookupAllSuff aut trie minMatchLength | trie == empty = []
                                       | otherwise = do
   (tks, values, score) <- lookupSuff acceptAllScoreL
                                      aut
                                      trie
                                      (startL aut)
                                      (0, minMatchLength)
-  return $ length tks `seq` (tks, values, score)
+  return $ Seq.length tks `seq` (tks, values, score)
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
@@ -182,38 +182,38 @@ lookupSuff :: (Ord a, Ord v)
            -> CompressedTrie a (S.Set v)
            -> LevenState
            -> (Int, Int) -- ^ (Depth, Minimal result depth)
-           -> Seq (Seq a, Seq (S.Set v, Int) , Int)
+           -> [(Seq a, Seq (S.Set v, Int) , Int)]
 lookupSuff acceptScore aut (CTrieLeaf v) st _ =
-  maybe Seq.empty
-        (\score -> Seq.singleton (Seq.empty, Seq.singleton (v, 0),score))
+  maybe []
+        (\score -> [(Seq.empty, Seq.singleton (v, 0),score)])
         (acceptScore aut st)
 lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
-  foldl' (><) cur (oneBranch <$> M.elems mp)
+  cur ++ (concatMap oneBranch (M.elems mp))
   where
-    oneBranch (xs, t) = 
-      case walkThrough acceptScore aut st xs of
+    oneBranch (label, node) = 
+      case walkThrough acceptScore aut st label of
         LevenDone st' -> {-# SCC levenDoneCase #-}
-          extend (fromV xs) <$> lookupSuff acceptScore
+          extend (fromV label) <$> lookupSuff acceptScore
                                               aut
-                                              t
+                                              node
                                               st'
-                                              (d + length xs, minDepth)
+                                              (d + length label, minDepth)
         LevenPartial (nMatched, levenDist) ->
-          let k = (V.length xs - nMatched)
-          in if | nMatched == 0 -> Seq.empty
+          let k = (V.length label - nMatched)
+          in if | nMatched == 0 -> []
                 | nMatched >  0 && d + nMatched >= minDepth ->
                   let valuesFiltered = do
-                        (s, d) <- trieLeavesDist t
+                        (s, d) <- trieLeavesDist node
                         let d' = d+k
                         if d' > minDepth
                           then return (s,d')
                           else Seq.empty
-                  in Seq.singleton ( Seq.fromFunction
-                                       nMatched
-                                       (V.unsafeIndex (V.take nMatched xs))
-                                   , valuesFiltered
-                                   , levenDist)
-                | nMatched > 0 -> Seq.empty
+                  in return ( Seq.fromFunction
+                              nMatched
+                              (V.unsafeIndex (V.take nMatched label))
+                            , valuesFiltered
+                            , levenDist)
+                | nMatched > 0 -> []
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
     fromV v = Seq.fromFunction (V.length v) (V.unsafeIndex v)
@@ -227,8 +227,10 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
                        trieLeavesDist nd
                      else Seq.empty
           in if Seq.null hits
-             then Seq.empty
-             else length hits `seq` Seq.singleton (Seq.empty, hits ,) <*> score
+             then []
+             else case score of
+               (Seq.viewl -> EmptyL) -> []
+               (Seq.viewl -> (s :< _)) -> [(Seq.empty, hits ,s)]
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial !(Int, Int) -- The tuple contains:
@@ -243,19 +245,20 @@ walkThrough :: (Eq a) =>
             -> LevenState
             -> V.Vector a
             -> LevenResult
-walkThrough acceptScore automaton state v =
+walkThrough acceptScore aut state v =
   if V.null v
   then error "Levenshtein.walkthrough: empty vector!"
-  else walkThrough' 0 automaton state
+  else walkThrough' (acceptScore aut state) 0 state
   where
     vectorLength = V.length v
-    walkThrough' !i !aut !st =
+    walkThrough' lastScore !i !st =
       if i == vectorLength
       then LevenDone st
       else
         let st' = stepL aut st (V.unsafeIndex v i)
-        in case acceptScore aut st' of
-          Just _ -> walkThrough' (i+1) aut st'
-          Nothing    -> case acceptScore aut st of
+            scoreMaybe = acceptScore aut st'
+        in case scoreMaybe of
+          Just _ -> walkThrough' scoreMaybe (i+1) st'
+          Nothing    -> case lastScore of
             Just x -> LevenPartial (i,x)
             Nothing -> error "Levenshtein.walkthrough: unexpected failure!"

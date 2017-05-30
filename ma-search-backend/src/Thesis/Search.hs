@@ -13,7 +13,7 @@ import           Control.DeepSeq
 import           Control.Monad.Catch
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
-import           Data.Foldable (foldl')
+import           Data.Foldable (foldl', toList)
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
 import qualified Data.Map.Strict as M
@@ -140,7 +140,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   where
     buildMap groups = foldl (M.unionWith (++)) M.empty (go M.empty <$> groups)
       where
-        go mp (Seq.viewl -> x :< xs) =
+        go mp (x:xs) =
           let mp' = M.insertWith (++) (resultMetaData x) [x] mp
           in go mp' xs
         go mp _ = mp
@@ -157,7 +157,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
            -- tokens that have been matched in the query doc!
            let queryRange = Range start (start + Seq.length foundTokens)
            case ngramWithRange (V.take (Seq.length foundTokens) ts) of
-             Nothing -> Seq.empty
+             Nothing -> []
              Just x -> return $! AlignmentMatch { resultTextRange = x
                                                 , resultMatchedTokens = foundTokens
                                                 , resultQueryRange = queryRange
@@ -186,15 +186,15 @@ search :: (Ord t, FragmentData ann) =>
        -> Int  -- ^ Levenshtein distance
        -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
-       -> Seq (Seq t, ann, Range t , Int)
+       -> [(Seq t, ann, Range t , Int)]
 search SearchIndex{..} n xs minMatchLength = do
   (tks, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
-  (mds, dist) <- results
-  md <- foldr (<|) Seq.empty  mds
+  (mds, dist) <- toList results
+  md <- foldr (:) [] mds
   let rg = buildRange md tks dist
   return $ Seq.length tks `seq` (tks, md, rg, levenD)
   where
-    aut = LevensteinAutomaton (V.length xs) n (token . (xs V.!))
+    aut = LevensteinAutomaton (V.length xs) n ({-# SCC autLookup #-}token . (V.unsafeIndex xs))
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
