@@ -12,11 +12,12 @@ import           Data.Foldable
 import qualified Data.Map.Strict as M
 import           Data.Maybe
 import           Data.Monoid ((<>))
-
+import           Data.Sequence (Seq, ViewL(..), ViewR(..), (<|), (|>), (><) )
+import qualified Data.Sequence as Seq
 import qualified Data.Vector as V
 import           Data.Vector.Binary ()
 
-import Control.DeepSeq
+import           Control.DeepSeq
 
 data CompressedTrie a v where
   CTrieNode :: (Ord a)
@@ -136,16 +137,16 @@ wordsInTrie' (CTrieNode mp v) =
   in maybe childResults (\v' -> ([],v'):childResults) v
 
 -- | Yield the values of this node and all it's children
-trieLeaves :: CompressedTrie a v -> [v]
+trieLeaves :: CompressedTrie a v -> Seq v
 trieLeaves t = fst <$> trieLeavesDist t
 
 -- | Yield the values of this node and it's children. With each value, this
 -- function also returns the number of symbols on the path from this node to the
 -- node containing a value.
-trieLeavesDist :: CompressedTrie a v -> [(v, Int)]
-trieLeavesDist (CTrieLeaf v) = [(v,0)]
-trieLeavesDist (CTrieNode mp v) = ((, 0) <$> toList v) ++ do
-  (_,(xs, nd)) <- M.toList mp
+trieLeavesDist :: CompressedTrie a v -> Seq (v, Int)
+trieLeavesDist (CTrieLeaf v) = Seq.singleton (v,0)
+trieLeavesDist (CTrieNode mp v) = ((, 0) <$> Seq.fromList (toList v)) >< do
+  (_,(xs, nd)) <- Seq.fromList $ M.toList mp
   let n = V.length xs
   (val, k) <- trieLeavesDist nd
   let count = k + n

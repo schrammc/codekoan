@@ -5,11 +5,11 @@ import Data.List (isSubsequenceOf)
 import Thesis.CodeAnalysis.Language (LanguageText)
 import Thesis.Data.Range
 import Control.DeepSeq
-
+import Data.Sequence (Seq)
 data AlignmentMatch t l ann =
   AlignmentMatch { resultTextRange :: !(Range (LanguageText l))
                    -- ^ The matched text range in the query document
-                 , resultMatchedTokens :: [t]
+                 , resultMatchedTokens :: Seq t
                  , resultQueryRange :: !(Range t)
                  , resultMetaData :: !ann
                    -- ^ Meta information about the matched answer fragment

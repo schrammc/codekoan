@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ViewPatterns #-}
 module Thesis.Search where
 
 import           Control.DeepSeq
@@ -35,6 +36,8 @@ import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
 import Debug.Trace
+import           Data.Sequence (Seq, (<|), ViewL (..))
+import qualified Data.Sequence as Seq
 
 removeRepeats :: (Eq t) =>
                  Int
@@ -116,7 +119,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
 --                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
                                   (removeRepeats 2 ngramsWithTails)
-      resultList = filterMinLength . searchFor <$> relevantNGramTails
+      resultList = searchFor <$> relevantNGramTails
 
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
@@ -126,7 +129,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   n `seq` $(logDebug) $ ("Result list length: " <>
                         (Text.pack . show $ n))
 
-  let searchResults = buildMapDifferent $ concat resultList
+  let searchResults = buildMap resultList
 
   searchResults `seq` $(logDebug) $ "Number of search results: " <>
                         (Text.pack . show . sum $ length <$> searchResults) <>
@@ -135,13 +138,15 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   return $ ResultSet $ (:[]) <$> searchResults
 
   where
-    buildMapDifferent matches  = M.fromList $ (\xs@(x:_) -> (resultMetaData x, xs)) <$>
-                                 (List.groupBy (\a b -> resultMetaData a == resultMetaData b) $
-                                  List.sortOn (resultMetaData) matches)
+    buildMap groups = foldl (M.unionWith (++)) M.empty (go M.empty <$> groups)
+      where
+        go mp (Seq.viewl -> x :< xs) =
+          let mp' = M.insertWith (++) (resultMetaData x) [x] mp
+          in go mp' xs
+        go mp _ = mp
+
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)
-    filterMinLength =
-      filter $ \m -> (rangeLength $ resultQueryRange m) >= minMatchLength
 
     searchFor (_, start, ts) =
       let tokenVector = ts
@@ -150,9 +155,9 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
            (foundTokens, metadata, range, score) <- result
            -- TODO: instead of length foundTokens we need the length of the
            -- tokens that have been matched in the query doc!
-           let queryRange = Range start (start + length foundTokens)
-           case ngramWithRange (V.take (length foundTokens) ts) of
-             Nothing -> []
+           let queryRange = Range start (start + Seq.length foundTokens)
+           case ngramWithRange (V.take (Seq.length foundTokens) ts) of
+             Nothing -> Seq.empty
              Just x -> return $! AlignmentMatch { resultTextRange = x
                                                 , resultMatchedTokens = foundTokens
                                                 , resultQueryRange = queryRange
@@ -181,23 +186,23 @@ search :: (Ord t, FragmentData ann) =>
        -> Int  -- ^ Levenshtein distance
        -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
-       -> [([t], ann, Range t , Int)]
+       -> Seq (Seq t, ann, Range t , Int)
 search SearchIndex{..} n xs minMatchLength = do
   (tks, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
   (mds, dist) <- results
-  md <- S.toList mds
+  md <- foldr (<|) Seq.empty  mds
   let rg = buildRange md tks dist
-  return $ length tks `seq` (tks, md, rg, levenD)
+  return $ Seq.length tks `seq` (tks, md, rg, levenD)
   where
     aut = LevensteinAutomaton (V.length xs) n (token . (xs V.!))
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
-buildRange :: FragmentData d => d -> [t] -> Int -> Range a
+buildRange :: FragmentData d => d -> Seq t -> Int -> Range a
 buildRange dat tks d =
   Range (fragDataTokenLength dat - (n + d)) (fragDataTokenLength dat - d)
   where
-    n = length tks
+    n = Seq.length tks
     
 
 -- | Perform a search based on a set of search settings.
