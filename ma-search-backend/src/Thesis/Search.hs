@@ -140,7 +140,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   where
     buildMap groups = foldl (M.unionWith (++)) M.empty (go M.empty <$> groups)
       where
-        go mp (x:xs) =
+        go mp (Seq.viewl -> x :< xs) =
           let mp' = M.insertWith (++) (resultMetaData x) [x] mp
           in go mp' xs
         go mp _ = mp
@@ -157,7 +157,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
            -- tokens that have been matched in the query doc!
            let queryRange = Range start (start + Seq.length foundTokens)
            case ngramWithRange (V.take (Seq.length foundTokens) ts) of
-             Nothing -> []
+             Nothing -> Seq.empty
              Just x -> return $! AlignmentMatch { resultTextRange = x
                                                 , resultMatchedTokens = foundTokens
                                                 , resultQueryRange = queryRange
@@ -186,11 +186,11 @@ search :: (Ord t, FragmentData ann) =>
        -> Int  -- ^ Levenshtein distance
        -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
-       -> [(Seq t, ann, Range t , Int)]
+       -> Seq (Seq t, ann, Range t , Int)
 search SearchIndex{..} n xs minMatchLength = do
   (tks, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
-  (mds, dist) <- toList results
-  md <- foldr (:) [] mds
+  (mds, dist) <- results
+  md <- foldr (<|) Seq.empty mds
   let rg = buildRange md tks dist
   return $ Seq.length tks `seq` (tks, md, rg, levenD)
   where

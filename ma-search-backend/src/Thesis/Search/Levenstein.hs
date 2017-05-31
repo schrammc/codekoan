@@ -46,7 +46,7 @@ vectorToLevensteinAutomaton n v =
                       }
 
 -- | A map from indices to values
-newtype LevenState = LevenState {stateList :: Seq (Int,Int)}
+newtype LevenState = LevenState {stateList :: [(Int,Int)]}
                    deriving (Show,Eq)
 
 -- | The start state of the given levenstein automaton
@@ -54,7 +54,7 @@ startL :: Eq a => LevensteinAutomaton a -> LevenState
 startL (LevensteinAutomaton{..}) = LevenState $ values
   where
     n = min levenSize levenN
-    values = Seq.fromList $ zip [0..n] [0..n]
+    values = zip [0..n] [0..n]
 
 -- | Step a Levenstein State once. Takes O(levenN) steps to perform once as
 -- there can only ever be 2*levenN + 1 fields in a state that have a value
@@ -62,50 +62,54 @@ startL (LevensteinAutomaton{..}) = LevenState $ values
 stepL :: (Eq a) => LevensteinAutomaton a -> LevenState -> a -> LevenState
 --stepL LevensteinAutomaton{..} (LevenState []) _ = LevenState []
 stepL LevensteinAutomaton{..} st@(LevenState{..}) x
-  | Seq.null stateList = st
+  | null stateList = st
   | otherwise = 
   LevenState $ goThroughLine initialElement stateList
   where
-    initialElement = case Seq.viewl stateList of
-      (i,v) :< _ | v < levenN -> Just (i, v+1)
-      _                       -> Nothing
+    initialElement = case stateList of
+      (i,v):_ | v < levenN -> Just (i, v+1)
+      _                    -> Nothing
 
-    goThroughLine :: Maybe (Int, Int) -> Seq (Int, Int) -> Seq (Int, Int)
-    goThroughLine l (Seq.viewl -> EmptyL) = Seq.empty
-    goThroughLine l (Seq.viewl -> (i,v) :< rest) = 
+    goThroughLine :: Maybe (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
+    goThroughLine l [] = []
+    goThroughLine l ((i,v): rest) = 
       let cost = if levenIndex i == x then 0 else 1
           fromLeft = case l of
             Just (_,v') -> min (v'+1)
             _           -> id
-          fromTop = case Seq.viewl rest of
-           (i',v') :< _ | i' == i+1 -> min (v'+1)
-           _                        -> id
+          fromTop = case rest of
+           (i',v'):_ | i' == i+1 -> min (v'+1)
+           _                     -> id
           val = fromTop $! fromLeft (v + cost)
           
       in if i < levenSize && val <= levenN
-         then ((i+1),val) <| (goThroughLine (Just ((i+1),val)) rest)
+         then ((i+1),val):(goThroughLine (Just ((i+1),val)) rest)
          else goThroughLine l rest
 
 -- | Predicate to determine if the given automaton state is accepting
 acceptL :: LevensteinAutomaton a -> LevenState -> Bool
 acceptL LevensteinAutomaton{..} LevenState{..} =
-  case Seq.viewr stateList of
-    EmptyR -> False
-    _ :> (i,_) -> i == levenSize
+  case stateList of
+    [] -> False
+    _:_ -> let (i, _) = last stateList in i == levenSize
+
 
 -- | Returns if the given levenstein state is an accepting state of the given
 -- automaton
 canAcceptL :: LevensteinAutomaton a -> LevenState -> Bool
-canAcceptL aut LevenState{..} = if Seq.null stateList
+canAcceptL aut LevenState{..} = if stateList == []
                                 then False
                                 else foldl1 min (snd <$> stateList) <= (levenN aut)
 
 -- | If the state is an accepting state, return the levenstein distance of the input
 acceptScoreL :: LevensteinAutomaton a -> LevenState -> Maybe Int
 acceptScoreL LevensteinAutomaton{..} LevenState{..} =
-  case Seq.viewr stateList of
-    _ :> (i,v) | i == levenSize -> Just v
-    _ -> Nothing
+  case stateList of
+    _:_ -> let (i,v) = last stateList
+           in if i == levenSize
+              then Just v
+              else Nothing
+    [] -> Nothing
 
 -- | If the state is a non - rejecting state return the minimum levenstein distance
 acceptAllScoreL :: LevensteinAutomaton a -> LevenState -> Maybe Int
@@ -164,8 +168,8 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur >< do
 lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
            -> Int -- ^ Minimum match length
-           -> [(Seq a, Seq (S.Set v, Int), Int)]
-lookupAllSuff aut trie minMatchLength | trie == empty = []
+           -> Seq (Seq a, Seq (S.Set v, Int), Int)
+lookupAllSuff aut trie minMatchLength | trie == empty = Seq.empty
                                       | otherwise = do
   (tks, values, score) <- lookupSuff acceptAllScoreL
                                      aut
@@ -182,13 +186,13 @@ lookupSuff :: (Ord a, Ord v)
            -> CompressedTrie a (S.Set v)
            -> LevenState
            -> (Int, Int) -- ^ (Depth, Minimal result depth)
-           -> [(Seq a, Seq (S.Set v, Int) , Int)]
+           -> Seq (Seq a, Seq (S.Set v, Int) , Int)
 lookupSuff acceptScore aut (CTrieLeaf v) st _ =
-  maybe []
-        (\score -> [(Seq.empty, Seq.singleton (v, 0),score)])
+  maybe Seq.empty
+        (\score -> Seq.singleton (Seq.empty, Seq.singleton (v, 0),score))
         (acceptScore aut st)
 lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
-  cur ++ (concatMap oneBranch (M.elems mp))
+  foldl (><) cur (oneBranch <$>M.elems mp)
   where
     oneBranch (label, node) = 
       case walkThrough acceptScore aut st label of
@@ -200,7 +204,7 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
                                               (d + length label, minDepth)
         LevenPartial (nMatched, levenDist) ->
           let k = (V.length label - nMatched)
-          in if | nMatched == 0 -> []
+          in if | nMatched == 0 -> Seq.empty
                 | nMatched >  0 && d + nMatched >= minDepth ->
                   let valuesFiltered = do
                         (s, d) <- trieLeavesDist node
@@ -213,7 +217,7 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
                               (V.unsafeIndex (V.take nMatched label))
                             , valuesFiltered
                             , levenDist)
-                | nMatched > 0 -> []
+                | nMatched > 0 -> Seq.empty
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
     fromV v = Seq.fromFunction (V.length v) (V.unsafeIndex v)
@@ -227,10 +231,10 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
                        trieLeavesDist nd
                      else Seq.empty
           in if Seq.null hits
-             then []
+             then Seq.empty
              else case score of
-               (Seq.viewl -> EmptyL) -> []
-               (Seq.viewl -> (s :< _)) -> [(Seq.empty, hits ,s)]
+               (Seq.viewl -> EmptyL) -> Seq.empty
+               (Seq.viewl -> (s :< _)) -> Seq.singleton (Seq.empty, hits ,s)
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial !(Int, Int) -- The tuple contains:

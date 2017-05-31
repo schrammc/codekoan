@@ -35,7 +35,8 @@ allNgramTails n dat | n <= 0 = []
 -- sequence, paired with the remainder of the sequence starting with the
 -- returned ngram.
 --
--- So for example this for the string "abcdef" and 2-grams one of the values returned by this function would be ("cd", 2, "cdef")
+-- So for example this for the string "abcdef" and 2-grams one of the values
+-- returned by this function would be ("cd", 2, "cdef")
 ngramTails :: Int -> V.Vector a -> [(V.Vector a, Int,  V.Vector a)]
 ngramTails n dat = ngr 0 dat
   where
