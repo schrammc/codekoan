@@ -140,9 +140,10 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   where
     buildMap groups = foldl' (\m group -> go m group) M.empty groups
       where
-        go mp xs =
-          foldl' (\m x -> M.insertWith (++) (resultMetaData x) [x] m) mp xs
-
+        go mp xs = foldl' f mp xs
+        f m x = M.alter (f' x) (resultMetaData x) m
+        f' k Nothing   = Just [k]
+        f' k (Just xs) = Just (k:xs)
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)
 
