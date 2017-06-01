@@ -63,8 +63,7 @@ stepL :: (Eq a) => LevensteinAutomaton a -> LevenState -> a -> LevenState
 --stepL LevensteinAutomaton{..} (LevenState []) _ = LevenState []
 stepL LevensteinAutomaton{..} st@(LevenState{..}) x
   | null stateList = st
-  | otherwise = 
-  LevenState $ goThroughLine initialElement stateList
+  | otherwise = LevenState $ goThroughLine initialElement stateList
   where
     initialElement = case stateList of
       (i,v):_ | v < levenN -> Just (i, v+1)
@@ -191,7 +190,7 @@ lookupSuff :: (Ord a, Ord v)
            -> Seq (Seq a, Seq (S.Set v, Int) , Int)
 lookupSuff acceptScore aut nd !st (d, minDepth) =
   case nd of
-    CTrieNode mp _ -> foldl (\xs br -> xs >< oneBranch br) cur (M.elems mp)
+    CTrieNode mp _ -> foldl' (\xs br -> xs >< oneBranch br) cur (M.elems mp)
     CTrieLeaf v    ->
       maybe Seq.empty
             (\score -> Seq.singleton (Seq.empty, Seq.singleton (v, 0),score))
