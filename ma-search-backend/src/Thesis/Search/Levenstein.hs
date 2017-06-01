@@ -33,7 +33,7 @@ import qualified Data.Sequence as Seq
 -- the levenSize is correct, otherwise the automaton will produce bad results.
 data LevensteinAutomaton a =
   LevensteinAutomaton { levenSize :: Int -- ^ Size of the input string
-                      , levenN :: Int    -- ^ Max number of tolerated errors
+                       , levenN :: Int    -- ^ Max number of tolerated errors
                       , levenIndex :: Int -> a -- ^ Indexing function for the
                                                -- given string
                       }
@@ -71,17 +71,19 @@ stepL LevensteinAutomaton{..} st@(LevenState{..}) x
       _                    -> Nothing
 
     goThroughLine :: Maybe (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
-    goThroughLine l [] = []
+    goThroughLine _ [] = []
     goThroughLine l ((i,v): rest) = 
       let cost = if levenIndex i == x then 0 else 1
-          fromLeft = case l of
-            Just (_,v') -> min (v'+1)
-            _           -> id
-          fromTop = case rest of
-           (i',v'):_ | i' == i+1 -> min (v'+1)
-           _                     -> id
-          val = fromTop $! fromLeft (v + cost)
-          
+          val = if levenN == 0
+                then (v + cost)
+                else let 
+                  fromLeft = case l of
+                    Just (_,v') -> min (v'+1)
+                    _           -> id
+                  fromTop = case rest of
+                    (i',v'):_ | i' == i+1 -> min (v'+1)
+                    _                     -> id
+                  in fromTop $! fromLeft (v + cost)
       in if i < levenSize && val <= levenN
          then ((i+1),val):(goThroughLine (Just ((i+1),val)) rest)
          else goThroughLine l rest
@@ -152,7 +154,7 @@ lookupWithL' :: (Ord a, Eq v)
 lookupWithL' acceptScore aut (CTrieLeaf v) st =
   maybe Seq.empty (\score -> Seq.singleton (Seq.empty,v,score)) (acceptScore aut st)
 lookupWithL' acceptScore aut (CTrieNode mp v) st = cur >< do
-  (_,(xs, t)) <- Seq.fromList $ M.toList mp
+  (_,(xs, _, t)) <- Seq.fromList $ M.toList mp
   newState <- case foldlM f st xs of
                 Just x  -> Seq.singleton x
                 Nothing -> Seq.empty
@@ -169,14 +171,14 @@ lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
            -> Int -- ^ Minimum match length
            -> Seq (Seq a, Seq (S.Set v, Int), Int)
-lookupAllSuff aut trie minMatchLength | trie == empty = Seq.empty
-                                      | otherwise = do
-  (tks, values, score) <- lookupSuff acceptAllScoreL
-                                     aut
-                                     trie
-                                     (startL aut)
-                                     (0, minMatchLength)
-  return $ Seq.length tks `seq` (tks, values, score)
+lookupAllSuff aut trie minMatchLength
+  | trie == empty = Seq.empty
+  | otherwise = do
+      lookupSuff acceptAllScoreL
+                 aut
+                 trie
+                 (startL aut)
+                 (0, minMatchLength)
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
@@ -187,21 +189,22 @@ lookupSuff :: (Ord a, Ord v)
            -> LevenState
            -> (Int, Int) -- ^ (Depth, Minimal result depth)
            -> Seq (Seq a, Seq (S.Set v, Int) , Int)
-lookupSuff acceptScore aut (CTrieLeaf v) st _ =
-  maybe Seq.empty
-        (\score -> Seq.singleton (Seq.empty, Seq.singleton (v, 0),score))
-        (acceptScore aut st)
-lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
-  foldl (><) cur (oneBranch <$>M.elems mp)
+lookupSuff acceptScore aut nd !st (d, minDepth) =
+  case nd of
+    CTrieNode mp _ -> foldl (\xs br -> xs >< oneBranch br) cur (M.elems mp)
+    CTrieLeaf v    ->
+      maybe Seq.empty
+            (\score -> Seq.singleton (Seq.empty, Seq.singleton (v, 0),score))
+            (acceptScore aut st)
   where
-    oneBranch (label, node) = 
-      case walkThrough acceptScore aut st label of
-        LevenDone st' -> {-# SCC levenDoneCase #-}
+    oneBranch (label, labelLength, node) = 
+      case walkThrough acceptScore aut st label labelLength of
+        LevenDone st' ->
           extend (fromV label) <$> lookupSuff acceptScore
                                               aut
                                               node
                                               st'
-                                              (d + length label, minDepth)
+                                              (d + labelLength, minDepth)
         LevenPartial (nMatched, levenDist) ->
           let k = (V.length label - nMatched)
           in if | nMatched == 0 -> Seq.empty
@@ -209,9 +212,7 @@ lookupSuff acceptScore aut nd@(CTrieNode mp _) !st (d, minDepth) =
                   let valuesFiltered = do
                         (s, d) <- trieLeavesDist node
                         let d' = d+k
-                        if d' > minDepth
-                          then return (s,d')
-                          else Seq.empty
+                        if d' > minDepth then return (s,d') else Seq.empty
                   in return ( Seq.fromFunction
                               nMatched
                               (V.unsafeIndex (V.take nMatched label))
@@ -248,13 +249,11 @@ walkThrough :: (Eq a) =>
             -> LevensteinAutomaton a
             -> LevenState
             -> V.Vector a
+            -> Int
             -> LevenResult
-walkThrough acceptScore aut state v =
-  if V.null v
-  then error "Levenshtein.walkthrough: empty vector!"
-  else walkThrough' (acceptScore aut state) 0 state
+walkThrough acceptScore aut state v vectorLength =
+  walkThrough' (acceptScore aut state) 0 state
   where
-    vectorLength = V.length v
     walkThrough' lastScore !i !st =
       if i == vectorLength
       then LevenDone st

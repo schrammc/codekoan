@@ -138,12 +138,10 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
   return $ ResultSet $ (:[]) <$> searchResults
 
   where
-    buildMap groups = foldl (M.unionWith (++)) M.empty (go M.empty <$> groups)
+    buildMap groups = foldl' (\m group -> go m group) M.empty groups
       where
-        go mp (Seq.viewl -> x :< xs) =
-          let mp' = M.insertWith (++) (resultMetaData x) [x] mp
-          in go mp' xs
-        go mp _ = mp
+        go mp xs =
+          foldl' (\m x -> M.insertWith (++) (resultMetaData x) [x] m) mp xs
 
     maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)

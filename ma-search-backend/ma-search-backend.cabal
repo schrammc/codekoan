@@ -69,6 +69,7 @@ library
 
                      , Thesis.SearchException
 
+                     , Thesis.Util.Benchmark.Subsumption
                      , Thesis.Util.ConduitUtils
                      , Thesis.Util.LoggingUtils
                      , Thesis.Util.MonadUtils
@@ -89,6 +90,7 @@ library
                      , exceptions >= 0.8.2.1
                      , fast-logger >= 2.4.6
                      , filepath >= 1.4.0.0
+                     , fingertree >= 0.1
                      , hashable >= 1.2.4.0
                      , html-conduit >= 1.2
                      , http-conduit >= 2.1.10
@@ -97,6 +99,7 @@ library
                      , parallel >= 3.2
                      , postgresql-simple >= 0.5.2
                      , resourcet >= 1.1.7.4
+                     , random >= 1.1
                      , split >= 0.2.3.1
                      , text >= 1.2.2.1
                      , time >= 1.5.0.1

@@ -21,7 +21,7 @@ import           Control.DeepSeq
 
 data CompressedTrie a v where
   CTrieNode :: (Ord a)
-               => !(M.Map a (V.Vector a, CompressedTrie a v))
+               => !(M.Map a (V.Vector a, Int, CompressedTrie a v))
                -- Structural information of the trie
             -> !(Maybe v)
                -- The annotation of a completed word
@@ -47,7 +47,7 @@ linearTrie' !vec !v | V.null vec = CTrieNode M.empty (Just v)
                     | otherwise  = CTrieNode mp Nothing
   where
     x = V.head vec
-    mp = vec `seq` M.singleton x $! (vec, CTrieLeaf v)
+    mp = vec `seq` M.singleton x $! (vec, V.length vec, CTrieLeaf v)
 
 -- | Merge two tries with a merging function if two values are at the end of the
 -- same path
@@ -62,20 +62,25 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieLeaf v'   )  =
 mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
   CTrieNode (M.unionWith merge mp mp') (fOr f v v')
   where
-    merge (va, ta) (vb, tb) | va == vb = (va, mergeTriesWith f ta tb)
-                            | otherwise =
+    thrd (_, _, x) = x
+    merge (va, la, ta) (vb, lb, tb) | va == vb = (va, la, mergeTriesWith f ta tb)
+                                  | otherwise =
       let (common, ra, rb) = pref va vb
           nd | ra == V.empty =
-            let new = CTrieNode (M.singleton (V.head rb) (rb, tb)) (g ta)
-                other = snd $ fromJust $ M.lookup (V.head common) mp
+            let new =
+                  CTrieNode (M.singleton (V.head rb) (rb, V.length rb, tb)) (g ta)
+                other = thrd $ fromJust $ M.lookup (V.head common) mp
             in mergeTriesWith f new other
              | rb == V.empty =
-            let new = CTrieNode (M.singleton (V.head ra) (ra, ta)) (g tb)
-                other = snd $ fromJust $ M.lookup (V.head common) mp'
+            let new =
+                  CTrieNode (M.singleton (V.head ra) (ra, V.length ra, ta)) (g tb)
+                other = thrd $ fromJust $ M.lookup (V.head common) mp'
             in mergeTriesWith f new other
-             | otherwise = CTrieNode (M.fromList $ [(V.head ra, (ra,ta))
-                                                   ,(V.head rb, (rb,tb))]) Nothing
-      in nd `seq` (common, nd)
+             | otherwise =
+                    CTrieNode (M.fromList $ [(V.head ra, (ra, V.length ra, ta))
+                                            ,(V.head rb, (rb, V.length rb, tb))])
+                              Nothing
+      in nd `seq` (common, V.length common, nd)
     pref va vb = let commons  = V.takeWhile (\(a,b) -> a == b) (V.zip va vb)
                      common   = fst $ V.unzip commons
                      n        = length common
@@ -131,7 +136,7 @@ wordsInTrie' :: CompressedTrie a v -> [([a],v)]
 wordsInTrie' (CTrieLeaf v) = [([],v)]
 wordsInTrie' (CTrieNode mp v) =
   let childResults = do
-        (_, (vec,t)) <- M.toList mp
+        (_, (vec, _,t)) <- M.toList mp
         (xs, v) <- wordsInTrie' t
         [(V.toList vec <> xs, v)]
   in maybe childResults (\v' -> ([],v'):childResults) v
@@ -145,12 +150,14 @@ trieLeaves t = fst <$> trieLeavesDist t
 -- node containing a value.
 trieLeavesDist :: CompressedTrie a v -> Seq (v, Int)
 trieLeavesDist (CTrieLeaf v) = Seq.singleton (v,0)
-trieLeavesDist (CTrieNode mp v) = ((, 0) <$> Seq.fromList (toList v)) >< do
-  (_,(xs, nd)) <- Seq.fromList $ M.toList mp
-  let n = V.length xs
-  (val, k) <- trieLeavesDist nd
-  let count = k + n
-  count `seq` return (val, count)
+trieLeavesDist (CTrieNode mp v) = foldl' f current mp
+  where
+    f xs (_, n, nd) = do
+      let perBranch (val, k) = (val, k + n)
+      xs >< (perBranch <$> trieLeavesDist nd)
+    current = case v of
+                Nothing -> Seq.empty
+                Just x  -> Seq.singleton (x,0)
 
 -- | A helper function. Applies the given function to both values if both are
 -- defined. If only one of the values is defined, we return it. Nothing if no
