@@ -145,16 +145,17 @@ wordsInTrie' (CTrieNode mp v) =
 trieLeaves :: CompressedTrie a v -> Seq v
 trieLeaves t = fst <$> trieLeavesDist t
 
+trieLeavesDist :: CompressedTrie a v -> Seq (v, Int)
+trieLeavesDist = trieLeavesDist' 0
+
 -- | Yield the values of this node and it's children. With each value, this
 -- function also returns the number of symbols on the path from this node to the
 -- node containing a value.
-trieLeavesDist :: CompressedTrie a v -> Seq (v, Int)
-trieLeavesDist (CTrieLeaf v) = Seq.singleton (v,0)
-trieLeavesDist (CTrieNode mp v) = foldl' f current mp
+trieLeavesDist' :: Int -> CompressedTrie a v -> Seq (v, Int)
+trieLeavesDist' n (CTrieLeaf v) = Seq.singleton (v,n)
+trieLeavesDist' n (CTrieNode mp v) = foldl' f current mp
   where
-    f xs (_, n, nd) = do
-      let perBranch (val, k) = (val, k + n)
-      xs >< (perBranch <$> trieLeavesDist nd)
+    f xs (_, labelLength, nd) = xs >< (trieLeavesDist' (n + labelLength) nd)
     current = case v of
                 Nothing -> Seq.empty
                 Just x  -> Seq.singleton (x,0)
