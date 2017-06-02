@@ -282,8 +282,9 @@ walkThroughZero aut (LevenState ((pos,val):[])) v vectorLength =
     walkThroughZero' !i =
       if i == vectorLength
       then LevenDone (LevenState [(pos+vectorLength, val)])
-      else if V.unsafeIndex v i == levenIndex aut (pos+i)
-           then walkThroughZero' (i+1)
-           else LevenPartial (i, 0)
+      else let j = pos + i
+           in if j < levenSize aut && V.unsafeIndex v i == levenIndex aut j
+              then walkThroughZero' (i+1)
+              else LevenPartial (i, 0)
 walkThroughZero _ _ _ _ =
   error "Levenshtein.walkThroughZero: unexpected case (dist /= 0)"
