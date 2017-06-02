@@ -237,7 +237,7 @@ lookupSuff acceptScore aut nd !st (d, minDepth) matchedSoFar =
              then Seq.empty
              else case score of
                (Seq.viewl -> EmptyL) -> Seq.empty
-               (Seq.viewl -> (s :< _)) -> Seq.singleton (Seq.empty, hits ,s)
+               (Seq.viewl -> (s :< _)) -> Seq.singleton (matchedSoFar, hits ,s)
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial !(Int, Int) -- The tuple contains:
