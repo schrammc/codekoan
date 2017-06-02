@@ -73,16 +73,13 @@ stepL LevensteinAutomaton{..} st@(LevenState{..}) x
     goThroughLine _ [] = []
     goThroughLine l ((i,v): rest) = 
       let cost = if levenIndex i == x then 0 else 1
-          val = if levenN == 0
-                then (v + cost)
-                else let 
-                  fromLeft = case l of
-                    Just (_,v') -> min (v'+1)
-                    _           -> id
-                  fromTop = case rest of
-                    (i',v'):_ | i' == i+1 -> min (v'+1)
-                    _                     -> id
-                  in fromTop $! fromLeft (v + cost)
+          val = let fromLeft = case l of
+                      Just (_,v') -> min (v'+1)
+                      _           -> id
+                    fromTop = case rest of
+                      (i',v'):_ | i' == i+1 -> min (v'+1)
+                      _                     -> id
+                    in fromTop $! fromLeft (v + cost)
       in if i < levenSize && val <= levenN
          then ((i+1),val):(goThroughLine (Just ((i+1),val)) rest)
          else goThroughLine l rest
@@ -196,8 +193,11 @@ lookupSuff acceptScore aut nd !st (d, minDepth) =
             (\score -> Seq.singleton (Seq.empty, Seq.singleton (v, 0),score))
             (acceptScore aut st)
   where
-    oneBranch (label, labelLength, node) = 
-      case walkThrough acceptScore aut st label labelLength of
+    oneBranch (label, labelLength, node) =
+      let walkResult = if levenN aut == 0
+                       then walkThroughZero aut st label labelLength
+                       else walkThrough acceptScore aut st label labelLength
+      in case walkResult of
         LevenDone st' ->
           extend (fromV label) <$> lookupSuff acceptScore
                                               aut
@@ -264,3 +264,26 @@ walkThrough acceptScore aut state v vectorLength =
           Nothing    -> case lastScore of
             Just x -> LevenPartial (i,x)
             Nothing -> error "Levenshtein.walkthrough: unexpected failure!"
+
+-- An optimized version of 'walkThrough' for levenshtein distance 0.
+--
+-- ** This function has no defined behaviour for levenshtein distances /= 0 and
+-- will likely call 'error'. It may also return incorrect results in special
+-- cases. **
+walkThroughZero :: (Eq a) =>
+                   LevensteinAutomaton a
+                -> LevenState
+                -> V.Vector a
+                -> Int
+                -> LevenResult
+walkThroughZero aut (LevenState ((pos,val):[])) v vectorLength =
+  walkThroughZero' 0
+  where
+    walkThroughZero' !i =
+      if i == vectorLength
+      then LevenDone (LevenState [(pos+vectorLength, val)])
+      else if V.unsafeIndex v i == levenIndex aut (pos+i)
+           then walkThroughZero' (i+1)
+           else LevenPartial (i, 0)
+walkThroughZero _ _ _ _ =
+  error "Levenshtein.walkThroughZero: unexpected case (dist /= 0)"
