@@ -151,14 +151,13 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
       let tokenVector = ts
           result = search index n tokenVector minMatchLength
       in do
-           (foundTokens, metadata, range, score) <- result
+           (metadata, range, score) <- result
            -- TODO: instead of length foundTokens we need the length of the
            -- tokens that have been matched in the query doc!
-           let queryRange = Range start (start + Seq.length foundTokens)
-           case ngramWithRange (V.take (Seq.length foundTokens) ts) of
+           let queryRange = Range start (start + rangeLength range)
+           case ngramWithRange (V.take (rangeLength range) ts) of
              Nothing -> Seq.empty
              Just x -> return $! AlignmentMatch { resultTextRange = x
-                                                , resultMatchedTokens = foundTokens
                                                 , resultQueryRange = queryRange
                                                 , resultMetaData = metadata
                                                 , resultFragmentRange = range
@@ -185,23 +184,22 @@ search :: (Ord t, FragmentData ann) =>
        -> Int  -- ^ Levenshtein distance
        -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
-       -> Seq (Seq t, ann, Range t , Int)
+       -> Seq (ann, Range t , Int)
 search SearchIndex{..} n xs minMatchLength = do
-  (tks, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
+  (matchedLength, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
   (mds, dist) <- results
   md <- foldr (<|) Seq.empty mds
-  let rg = buildRange md tks dist
-  return $ Seq.length tks `seq` (tks, md, rg, levenD)
+  let rg = buildRange md matchedLength dist
+  return $ (md, rg, levenD)
   where
     aut = LevensteinAutomaton (V.length xs) n ({-# SCC autLookup #-}token . (V.unsafeIndex xs))
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
-buildRange :: FragmentData d => d -> Seq t -> Int -> Range a
-buildRange dat tks d =
+buildRange :: FragmentData d => d -> Int -> Int -> Range a
+buildRange dat n d =
   Range (fragDataTokenLength dat - (n + d)) (fragDataTokenLength dat - d)
   where
-    n = Seq.length tks
     
 
 -- | Perform a search based on a set of search settings.

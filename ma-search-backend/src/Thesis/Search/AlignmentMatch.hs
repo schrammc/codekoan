@@ -9,7 +9,6 @@ import Data.Sequence (Seq)
 data AlignmentMatch t l ann =
   AlignmentMatch { resultTextRange :: !(Range (LanguageText l))
                    -- ^ The matched text range in the query document
-                 , resultMatchedTokens :: Seq t
                  , resultQueryRange :: !(Range t)
                  , resultMetaData :: !ann
                    -- ^ Meta information about the matched answer fragment
@@ -22,7 +21,6 @@ data AlignmentMatch t l ann =
 
 instance (NFData t, NFData ann) => NFData (AlignmentMatch t l ann) where
   rnf am = resultTextRange am `deepseq`
-           resultMatchedTokens am `deepseq`
            resultQueryRange am `deepseq`
            resultMetaData am `deepseq`
            resultFragmentRange am `deepseq`

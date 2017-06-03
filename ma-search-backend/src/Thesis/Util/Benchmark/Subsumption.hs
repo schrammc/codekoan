@@ -6,15 +6,23 @@ import System.Random
 import Thesis.Data.Range
 import Thesis.Search.AlignmentMatch
 import qualified Data.Sequence as Seq
-generateAlignmentMatches :: MonadIO m => Int -> m [AlignmentMatch Char () ()]
-generateAlignmentMatches n = replicateM n generateAlignmentMatch
 
-generateAlignmentMatch :: MonadIO m => m (AlignmentMatch Char () ())
-generateAlignmentMatch = do
+buildChunks _ [] = []
+buildChunks n xs = let a = take n xs
+                       b = drop n xs
+                   in (Seq.fromList a):(buildChunks n b)
+
+generateAlignmentMatches :: MonadIO m => Int -> m [AlignmentMatch Char () Int]
+generateAlignmentMatches n = replicateM n $ liftIO $ do
+  x <- randomRIO (0, 1000)
+  generateAlignmentMatch x
+
+generateAlignmentMatch :: MonadIO m => t -> m (AlignmentMatch Char () t)
+generateAlignmentMatch x = do
   tr <- randomRange $ Range 0 2000
   queryRange <- randomRange $ Range 0 2000
   fragRange <- randomRange $ Range 0 2000
-  return $ AlignmentMatch tr Seq.empty queryRange () fragRange 0
+  return $ AlignmentMatch tr queryRange x fragRange 0
 
 randomRange :: MonadIO m => Range a  -> m (Range a)
 randomRange (Range a b) = do

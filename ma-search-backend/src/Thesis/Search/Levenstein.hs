@@ -166,7 +166,7 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur >< do
 lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
            -> Int -- ^ Minimum match length
-           -> Seq (Seq a, Seq (S.Set v, Int), Int)
+           -> Seq (Int, Seq (S.Set v, Int), Int)
 lookupAllSuff aut trie minMatchLength
   | trie == empty = Seq.empty
   | otherwise = do
@@ -175,7 +175,6 @@ lookupAllSuff aut trie minMatchLength
                  trie
                  (startL aut)
                  (0, minMatchLength)
-                 (Seq.empty)
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
@@ -185,14 +184,13 @@ lookupSuff :: (Ord a, Ord v)
            -> CompressedTrie a (S.Set v)
            -> LevenState
            -> (Int, Int) -- ^ (Depth, Minimal result depth)
-           -> Seq a
-           -> Seq (Seq a, Seq (S.Set v, Int) , Int)
-lookupSuff acceptScore aut nd !st (d, minDepth) matchedSoFar =
+           -> Seq (Int, Seq (S.Set v, Int) , Int)
+lookupSuff acceptScore aut nd !st (d, minDepth) =
   case nd of
     CTrieNode mp _ -> foldl' (\xs br -> xs >< oneBranch br) cur (M.elems mp)
     CTrieLeaf v    ->
       maybe Seq.empty
-            (\score -> Seq.singleton (matchedSoFar, Seq.singleton (v, 0),score))
+            (\score -> Seq.singleton (d, Seq.singleton (v, 0),score))
             (acceptScore aut st)
   where
     oneBranch (label, labelLength, node) =
@@ -206,7 +204,6 @@ lookupSuff acceptScore aut nd !st (d, minDepth) matchedSoFar =
                      node
                      st'
                      (d + labelLength, minDepth)
-                     (matchedSoFar >< fromV label)
         LevenPartial (nMatched, levenDist) ->
           let k = (V.length label - nMatched)
           in if | nMatched == 0 -> Seq.empty
@@ -215,16 +212,12 @@ lookupSuff acceptScore aut nd !st (d, minDepth) matchedSoFar =
                         (s, d) <- trieLeavesDist node
                         let d' = d+k
                         if d' > minDepth then return (s,d') else Seq.empty
-                      partialMatch = Seq.fromFunction
-                                       nMatched
-                                       (V.unsafeIndex (V.take nMatched label))
-                  in return ( matchedSoFar >< partialMatch
+                  in return ( d + nMatched
                             , valuesFiltered
                             , levenDist)
                 | nMatched > 0 -> Seq.empty
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
-    fromV v = Seq.fromFunction (V.length v) (V.unsafeIndex v)
     cur = let score = case acceptScore aut st of
                         Just s  -> Seq.singleton s
                         Nothing -> Seq.empty
@@ -237,7 +230,7 @@ lookupSuff acceptScore aut nd !st (d, minDepth) matchedSoFar =
              then Seq.empty
              else case score of
                (Seq.viewl -> EmptyL) -> Seq.empty
-               (Seq.viewl -> (s :< _)) -> Seq.singleton (matchedSoFar, hits ,s)
+               (Seq.viewl -> (s :< _)) -> Seq.singleton (d, hits ,s)
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial !(Int, Int) -- The tuple contains:
