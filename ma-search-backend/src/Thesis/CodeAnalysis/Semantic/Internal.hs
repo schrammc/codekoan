@@ -11,29 +11,30 @@
 module Thesis.CodeAnalysis.Semantic.Internal where
 
 
-import Data.Text (Text)
+import           Data.Text (Text)
 import qualified Data.Text as Text
 
 
-import Control.Monad.Logger
+import           Control.Monad.Logger
 
-import Thesis.Data.Range
-import Thesis.CodeAnalysis.Language
-import Thesis.CodeAnalysis.Semantic.IdentifierSplitter
-import Thesis.Search.AlignmentMatch
-import Thesis.Search.ResultSet
-import Thesis.SearchException
-import Control.Monad.Trans.Class
-import Control.Monad.Catch
-import Control.Monad.Trans.Maybe
-import Thesis.Util.MonadUtils
+import           Thesis.Data.Range
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Semantic.IdentifierSplitter
+import           Thesis.Search.AlignmentMatch
+import           Thesis.Search.ResultSet
+import           Thesis.SearchException
+import           Control.Monad.Trans.Class
+import           Control.Monad.Catch
+import           Control.Monad.Trans.Maybe
+import           Thesis.Util.MonadUtils
 
-import Data.Maybe
+import           Data.Maybe
 
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as M
+import           Data.Hashable (Hashable)
 
-import Control.Monad
-import Debug.Trace
+import           Control.Monad
+import           Debug.Trace
 
 
 import qualified Data.Vector as V
@@ -52,7 +53,8 @@ data SemanticAnalyzer m a =
 -- value.
 --
 -- This will return 'Nothing' if a fragment can't be found in the dictionary
-resultsWithSimilarity :: (MonadLogger m, MonadThrow m, Ord ann) =>
+resultsWithSimilarity :: (MonadLogger m, MonadThrow m
+                         , Hashable ann, Eq ann) =>
                          Language t l
                          -- ^ We always work in relation to a given language
                          -- with fixed tokens
@@ -72,6 +74,7 @@ resultsWithSimilarity lang
                       queryDoc
                       set
                       thresh = do
+  -- TODO: Optimization use mapMaybeWithKey here.
   let resultSetList  = M.toList $ resultSetMap set
   lst <- catMaybeTs $ (flip fmap) resultSetList $ \(ann, groups) -> do
     tv <- getTokenV ann

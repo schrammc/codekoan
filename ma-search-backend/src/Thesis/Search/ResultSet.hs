@@ -23,24 +23,26 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , removeSubsumption'
                                )where
 
+import           Control.DeepSeq
+import qualified Data.HashMap.Strict as M
+import           Data.Hashable
 import           Data.List (groupBy, sortOn)
 import           Data.Maybe (catMaybes)
-import qualified Data.Map.Strict as M
-
+import           Debug.Trace
 import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
-import           Control.DeepSeq
-import Debug.Trace
 
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l ann =
-  ResultSet {resultSetMap :: M.Map ann [[AlignmentMatch t l ann]]}
+  ResultSet {resultSetMap :: M.HashMap ann [[AlignmentMatch t l ann]]}
   deriving (Show, NFData)
 
 -- | This function makes sure, that for each answer there is at least one
 -- fragment, that contains at least one search results.
-filterEmptyResults :: (Ord ann) => ResultSet t l ann -> ResultSet t l ann
+filterEmptyResults :: (Eq ann, Hashable ann) =>
+                      ResultSet t l ann
+                   -> ResultSet t l ann
 filterEmptyResults ResultSet{..} = ResultSet . M.fromList $ do
   (ann, results) <- M.toList resultSetMap
 
@@ -114,7 +116,9 @@ mapSplitFragmentResults ResultSet{..} f = ResultSet $
       rs  -> Just rs
 
 -- | Build a result set from a list of search results.
-buildResultSet :: (Eq t, Ord ann) => [AlignmentMatch t l ann] -> ResultSet t l ann
+buildResultSet :: (Eq t, Hashable ann, Ord ann) =>
+                  [AlignmentMatch t l ann]
+               -> ResultSet t l ann
 buildResultSet [] = ResultSet M.empty
 buildResultSet results =
   ResultSet $ M.map (\x -> [x]) $ foldl combine M.empty results
@@ -184,7 +188,9 @@ flattenSet ResultSet{..} = do
 -- @
 -- (buildSet . flattenSet) s == s
 -- @
-buildSet :: Ord ann => [(ann, [AlignmentMatch t l ann])] -> ResultSet t l ann
+buildSet :: (Eq ann, Hashable ann) =>
+            [(ann, [AlignmentMatch t l ann])]
+         -> ResultSet t l ann
 buildSet lst = ResultSet $ M.fromList fragGroups
   where
     fragGroups = mergeGroup <$> (groupBy (\(ann, _) (ann', _) -> ann == ann') lst)

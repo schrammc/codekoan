@@ -16,7 +16,7 @@ import           Control.Monad.Trans.Maybe
 import           Data.Foldable (foldl', toList)
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
-import qualified Data.Map.Strict as M
+import qualified Data.HashMap.Strict as M
 import           Data.Monoid ((<>))
 import qualified Data.Set as S
 import qualified Data.Text as Text

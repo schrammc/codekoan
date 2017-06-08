@@ -72,7 +72,8 @@ module Thesis.CodeAnalysis.Semantic.Blocks where
 import           Control.Monad
 import           Control.Monad.Trans.Maybe
 
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as M
+import Data.Hashable (Hashable)
 import qualified Data.Vector as V
 
 import           Thesis.CodeAnalysis.Language
@@ -134,7 +135,7 @@ blockAnalysis blockData results = cliques accordanceGraph
 
 -- | Build a result set where each result only contains maximal groups
 -- of alignment matches that are in accordace.
-resultSetBlockAnalysis :: (Monad m, Ord ann) =>
+resultSetBlockAnalysis :: (Monad m, Hashable ann, Eq ann) =>
                           (ann -> MaybeT m (TokenVector t l, LanguageText l))
                           -- ^ Access to source code of fragments
                        -> Language t l

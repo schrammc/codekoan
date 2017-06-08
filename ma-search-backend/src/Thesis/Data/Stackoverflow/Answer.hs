@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 module Thesis.Data.Stackoverflow.Answer where
 
 import Control.DeepSeq
@@ -8,7 +9,8 @@ import Control.DeepSeq
 import Data.Aeson
 import Data.Binary
 import Data.Text
-
+import GHC.Generics (Generic)
+import Data.Hashable
 import Data.Maybe (fromMaybe)
 
 
@@ -33,7 +35,7 @@ instance FromJSON Answer where
 
 
 newtype AnswerId = AnswerId {answerIdInt :: Int}
-                 deriving (Show, Eq, Ord)
+                 deriving (Show, Eq, Ord, Generic, Hashable)
 
 instance Binary AnswerId where
   put AnswerId{..} = put answerIdInt
@@ -50,7 +52,7 @@ parseAnswer idInt body= do
 data AnswerFragmentId = AnswerFragmentId { fragmentAnswerId :: !AnswerId
                                          , fragmentId :: !Int
                                          }
-                        deriving (Show, Eq, Ord)
+                        deriving (Show, Eq, Ord, Generic, Hashable)
 
 instance NFData AnswerFragmentId where
   rnf AnswerFragmentId{..} = ()
@@ -59,7 +61,7 @@ data AnswerFragmentMetaData =
   AnswerFragmentMetaData { fragmentMetaId :: AnswerFragmentId
                          , fragmentMetaSize :: !Int
                          }
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic, Hashable)
 
 instance NFData AnswerFragmentMetaData where
   rnf AnswerFragmentMetaData{..} = deepseq fragmentMetaId ()
