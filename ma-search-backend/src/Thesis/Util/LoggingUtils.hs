@@ -19,8 +19,11 @@ runOutstreamLogging  = (`runLoggingT` writeOutput)
       let handle = getHandle level
       formatted <- formatStr location source level str
       let formattedLogStr = (fromLogStr formatted)
-      time <- getCurrentTime >>= utcToLocalZonedTime
-      formattedLogStr `seq` BS.hPutStrLn handle $ (BS.pack $ show time) <> " -- " <> formattedLogStr 
+
+      -- Determine timestamp only after log string has been completely evaluated
+      time <- formattedLogStr `seq` getCurrentTime >>= utcToLocalZonedTime
+      BS.hPutStrLn handle $ (BS.pack $ show time) <> " -- " <> formattedLogStr
+
       hFlush handle
 
     getHandle LevelError = stdout
