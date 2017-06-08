@@ -152,13 +152,13 @@ trieLeavesDist = trieLeavesDist' 0
 -- function also returns the number of symbols on the path from this node to the
 -- node containing a value.
 trieLeavesDist' :: Int -> CompressedTrie a v -> Seq (v, Int)
-trieLeavesDist' n (CTrieLeaf v) = Seq.singleton (v,n)
-trieLeavesDist' n (CTrieNode mp v) = foldl' f current mp
+trieLeavesDist' !n (CTrieLeaf v) = Seq.singleton (v,n)
+trieLeavesDist' !n (CTrieNode mp v) = foldl' f current mp
   where
     f xs (_, labelLength, nd) = xs >< (trieLeavesDist' (n + labelLength) nd)
     current = case v of
                 Nothing -> Seq.empty
-                Just x  -> Seq.singleton (x,0)
+                Just x  -> Seq.singleton (x,n)
 
 -- | A helper function. Applies the given function to both values if both are
 -- defined. If only one of the values is defined, we return it. Nothing if no
