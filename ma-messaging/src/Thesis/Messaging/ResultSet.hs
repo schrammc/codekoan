@@ -11,7 +11,7 @@ import           Control.Monad
 import           Control.Monad.Trans.Maybe
 import           Data.Aeson
 import           Data.Foldable (toList)
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as M
 import           Data.Maybe (catMaybes, fromMaybe)
 import           Data.Text (Text)
 import qualified Data.Text as Text
@@ -74,14 +74,14 @@ resultSetToMsg clusterSize lang replyTo ResultSet{..} getTokenV queryText = do
   let list = getMessageList fragMap
   return $!! ResultSetMsg lang replyTo list clusterSize 1 queryText
   where
-    fragmentTexts :: (Monad m ) => m (M.Map fd (TokenVector t l, LanguageText l))
+    fragmentTexts :: (Monad m ) => m (M.HashMap fd (TokenVector t l, LanguageText l))
     fragmentTexts =  M.fromList . catMaybes <$> (
       forM (M.toList resultSetMap) $ \(ann, _) -> runMaybeT $ do
           (tokenV, txt) <- getTokenV ann
           return (ann, (tokenV, txt))
       )
 
-    getMessageList :: (M.Map fd (TokenVector t l, LanguageText l)) -> [ResultMsg]
+    getMessageList :: (M.HashMap fd (TokenVector t l, LanguageText l)) -> [ResultMsg]
     getMessageList fragmentTextMap = do
       (ann, matchGroups) <- M.toList resultSetMap
       group <- matchGroups
