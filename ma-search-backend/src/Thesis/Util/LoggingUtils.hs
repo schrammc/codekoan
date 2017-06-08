@@ -18,7 +18,9 @@ runOutstreamLogging  = (`runLoggingT` writeOutput)
     writeOutput location source level str = do
       let handle = getHandle level
       formatted <- formatStr location source level str
-      BS.hPutStrLn handle (fromLogStr formatted)
+      let formattedLogStr = (fromLogStr formatted)
+      time <- getCurrentTime >>= utcToLocalZonedTime
+      formattedLogStr `seq` BS.hPutStrLn handle $ (BS.pack $ show time) <> " -- " <> formattedLogStr 
       hFlush handle
 
     getHandle LevelError = stdout
@@ -27,10 +29,9 @@ runOutstreamLogging  = (`runLoggingT` writeOutput)
 
 
     formatStr location _ level str = do
-      time <- getCurrentTime >>= utcToLocalZonedTime
       tId <- (dropWhile (not . isDigit)) . show  <$> myThreadId
       let threadIdString = "[" <> (toLogStr tId) <> "]"
-      return $ (toLogStr $ show time) <> " -- " <> threadIdString
+      return $ threadIdString
                <> formatLevel level
                <> " :: " <> str <> " <<Source: "
                <> (toLogStr $ loc_package location) <> "/"
