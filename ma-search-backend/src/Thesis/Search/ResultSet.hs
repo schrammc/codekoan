@@ -28,7 +28,6 @@ import qualified Data.HashMap.Strict as M
 import           Data.Hashable
 import           Data.List (groupBy, sortOn)
 import           Data.Maybe (catMaybes)
-import           Debug.Trace
 import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
@@ -43,13 +42,13 @@ newtype ResultSet t l ann =
 filterEmptyResults :: (Eq ann, Hashable ann) =>
                       ResultSet t l ann
                    -> ResultSet t l ann
-filterEmptyResults ResultSet{..} = ResultSet . M.fromList $ do
-  (ann, results) <- M.toList resultSetMap
-
-  let nonemptySearchResults = filter (not . null) results
-  if not $ null nonemptySearchResults
-     then return (ann, nonemptySearchResults)
-     else []
+filterEmptyResults ResultSet{..} = ResultSet $ M.mapMaybe f resultSetMap
+  where
+    f results = 
+      let nonemptySearchResults = filter (not . null) results
+      in if not $ null nonemptySearchResults
+         then Just nonemptySearchResults
+         else Nothing
 
 listOfResults :: ResultSet t l ann -> [AlignmentMatch t l ann]
 listOfResults (ResultSet mp) = do
