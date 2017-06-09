@@ -67,6 +67,7 @@
 -- @
 --
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
 module Thesis.CodeAnalysis.Semantic.Blocks where
 
 import           Control.Monad
@@ -85,7 +86,7 @@ import           Thesis.Search.ResultSet
 import           Thesis.Util.VectorView
 
 normalizeV :: Foldable f => f a -> Int -> Int
-normalizeV vector k = max 0 $ min k (length vector - 1)
+normalizeV vector !k = max 0 $! min k (length vector - 1)
 
 -- | Analyze the block accordance of two alignment matches
 blockAccordance :: BlockData t
@@ -99,16 +100,16 @@ blockAccordance BlockData{..} resA resB =
 --  && blockStringEquality
 
   where
-    queryDist = queryRelation (rangeStart $ resultQueryRange resA)
-                              (rangeStart $ resultQueryRange resB)
-    fragmentDist = fragmentRelation (rangeStart $ resultFragmentRange resA)
-                                    (rangeStart $ resultFragmentRange resB)
+    queryDist = queryRelation (rangeStart $! resultQueryRange resA)
+                              (rangeStart $! resultQueryRange resB)
+    fragmentDist = fragmentRelation (rangeStart $! resultFragmentRange resA)
+                                    (rangeStart $! resultFragmentRange resB)
 --    blockStringEquality = (queryBlockString $ resultQueryRange resA) ==
 --                          (queryBlockString $ resultQueryRange resB)
-    noQueryOverlap = not $ overlap (resultQueryRange resA)
-                                   (resultQueryRange resB)
-    noFragOverlap  = not $ overlap (resultFragmentRange resA)
-                                   (resultFragmentRange resB)
+    noQueryOverlap = not $! overlap (resultQueryRange resA)
+                                    (resultQueryRange resB)
+    noFragOverlap  = not $! overlap (resultFragmentRange resA)
+                                    (resultFragmentRange resB)
 
 -- | Build groups of alignment matches from the original set.
 --

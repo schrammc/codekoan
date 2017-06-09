@@ -11,6 +11,7 @@
 
 {-# LANGUAGE MultiWayIf#-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
 module Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
        ( standardBlockData
        , flatBlockData
@@ -44,8 +45,8 @@ standardBlockData :: (Eq t) =>
                 -> VectorView t
                 -- ^ The tokens of the processed and tokenized pattern-code
                 -> BlockData t
-standardBlockData indent unindent queryTokens = \fragmentTokens ->
-  BlockData { queryRelation    =
+standardBlockData indent unindent queryTokens fragmentTokens =
+  BlockData { queryRelation =
                  blockRelationWithPreData indent unindent queryTokens
             , fragmentRelation = blockRelation indent unindent fragmentTokens
             , queryBlockString    =
@@ -74,7 +75,8 @@ blockString indent unindent tks = do
      | token == unindent -> return BlockEnd
      | otherwise -> []
 
-data RelationTracker = RelationTracker {maxDown :: !Int, current :: !Int}
+data RelationTracker = RelationTracker {maxDown :: {-# UNPACK #-} !Int
+                                       , current :: {-# UNPACK #-} !Int}
 
 startTracker = RelationTracker 0 0
 
@@ -88,19 +90,20 @@ preData unindent indent v = filter (isIndentT . snd) $ zip [0 ..] (toList v)
     isIndentT t = unindent == t || indent == t
 
 blockRelationWithPreData :: (Eq t) => t -> t -> VectorView t -> Int -> Int -> BlockRelation
-blockRelationWithPreData unindent indent tks = \a b ->
-  let 
-    relevantRegion =
-      snd <$> (takeWhile ((< y) . fst) $ dropWhile ((< x) . fst) pd)
-    x = normalizeV tks $ min a b
-    y = normalizeV tks $ max a b
-  in 
-  blockRelationBasic unindent indent relevantRegion x y
+blockRelationWithPreData unindent indent tks = f
   where
     pd = preData unindent indent tks
+    f !a !b =
+      let 
+        relevantRegion =
+          snd <$> (takeWhile ((< y) . fst) $ dropWhile ((< x) . fst) pd)
+        x = normalizeV tks $ min a b
+        y = normalizeV tks $ max a b
+      in 
+       blockRelationBasic unindent indent relevantRegion x y
 
 blockRelation :: (Eq t) => t -> t -> VectorView t -> Int -> Int -> BlockRelation
-blockRelation indent unindent tks a b =
+blockRelation indent unindent tks !a !b =
   blockRelationBasic indent unindent relevantRegion x y
   where
     relevantRegion = unsafeSliceView x (y-x) tks
@@ -117,17 +120,17 @@ blockRelationBasic :: (Foldable f, Eq t) =>
                    -> Int
                    -> Int
                    -> BlockRelation
-blockRelationBasic indent unindent tks a b
+blockRelationBasic indent unindent tks !a !b
   | length tks == 0 = inSameBlock
   | a == b = inSameBlock
-  | otherwise = trackerToRelation $ foldl' f startTracker tks
+  | otherwise = trackerToRelation $! foldl' f startTracker tks
   where
 --    relevantRegion = unsafeSliceView x (y-x) tks
     f = updateTracker indent unindent
 
 
 updateTracker :: Eq t => t -> t -> RelationTracker -> t -> RelationTracker
-updateTracker indent unindent tr@RelationTracker{..} t =
+updateTracker indent unindent !tr@RelationTracker{..} !t =
   if | t == indent   -> tr{current = current + 1}
      | t == unindent ->
        if current == maxDown

@@ -48,5 +48,5 @@ fromVector :: V.Vector a -> VectorView a
 fromVector v = VectorView id v
 
 unsafeSliceView :: Int -> Int -> VectorView a -> VectorView a
-unsafeSliceView a b (VectorView mapper v) =
+unsafeSliceView !a !b (VectorView mapper v) =
   VectorView mapper $ V.unsafeSlice a b v
