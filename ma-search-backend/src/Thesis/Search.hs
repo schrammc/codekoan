@@ -35,6 +35,7 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
+import           Data.Sequence (Seq, (<|))
 import qualified Data.Sequence as Seq
 
 removeRepeats :: (Eq t) =>
