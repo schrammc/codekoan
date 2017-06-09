@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Thesis.Search.AlignmentMatch where
 
 import Data.List (isSubsequenceOf)
@@ -6,15 +7,16 @@ import Thesis.CodeAnalysis.Language (LanguageText)
 import Thesis.Data.Range
 import Control.DeepSeq
 import Data.Sequence (Seq)
+
 data AlignmentMatch t l ann =
-  AlignmentMatch { resultTextRange :: !(Range (LanguageText l))
+  AlignmentMatch { resultTextRange :: {-# UNPACK #-} !(Range (LanguageText l))
                    -- ^ The matched text range in the query document
-                 , resultQueryRange :: !(Range t)
-                 , resultMetaData :: !ann
+                 , resultQueryRange :: {-# UNPACK #-} !(Range t)
+                 , resultMetaData :: {-# UNPACK #-} !ann
                    -- ^ Meta information about the matched answer fragment
-                 , resultFragmentRange :: !(Range t)
+                 , resultFragmentRange :: {-# UNPACK #-} !(Range t)
                    -- ^ The range of matched tokens in the answer fragment
-                 , resultLevenScore :: !Int
+                 , resultLevenScore :: {-# UNPACK #-} !Int
                    -- ^ Levenshtein distance of the search match
                  }
   deriving (Eq, Show)
@@ -27,7 +29,7 @@ instance (NFData t, NFData ann) => NFData (AlignmentMatch t l ann) where
            resultLevenScore am `deepseq` ()
 
 -- | Same as 'subsumedBy' assuming a and b are matched to the same resultMeta ann
-subsumedProperSame a b = textRangeSubsumption && fragmentSubsumption && proper
+subsumedProperSame !a !b = textRangeSubsumption && fragmentSubsumption && proper
   where
     proper = resultLevenScore a >= resultLevenScore b
     fragmentSubsumption = isSubRangeOf (resultFragmentRange a)
@@ -43,7 +45,7 @@ subsumedBy :: (Eq t, Eq ann) =>
               AlignmentMatch t l ann
            -> AlignmentMatch t l ann
            -> Bool
-subsumedBy a b = sameFragment &&
+subsumedBy !a !b = sameFragment &&
                  fragmentSubsumption &&
                  textRangeSubsumption -- &&
 --                 tokenSubsumption
@@ -60,5 +62,5 @@ subsumedByProper :: (Eq t, Eq ann) =>
                     AlignmentMatch t l ann
                  -> AlignmentMatch t l ann
                  -> Bool
-subsumedByProper a b =
+subsumedByProper !a !b =
   resultLevenScore a >= resultLevenScore b && subsumedBy a b

@@ -17,10 +17,10 @@ import Data.Maybe (fromMaybe)
 import           Text.XML.Stream.Parse
 import           Thesis.Data.Stackoverflow.XML.Helpers
 
-data Answer = Answer { answerId :: !AnswerId
+data Answer = Answer { answerId :: {-# UNPACK #-} !AnswerId
                      , answerBody :: !Text
                      , answerRating :: !Integer
-                     , answerParent :: !Int
+                     , answerParent :: {-# UNPACK #-}!Int
                      }
             deriving (Show, Eq)
 
@@ -47,19 +47,20 @@ parseAnswer :: Int -> Text -> AttrParser Answer
 parseAnswer idInt body= do
   score  <- readAttribute "Score"
   parent <- readAttribute "ParentId"
-  return $ Answer (AnswerId idInt) body score parent
+  return $! Answer (AnswerId idInt) body score parent
 
-data AnswerFragmentId = AnswerFragmentId { fragmentAnswerId :: !AnswerId
-                                         , fragmentId :: !Int
-                                         }
+data AnswerFragmentId =
+  AnswerFragmentId { fragmentAnswerId :: {-# UNPACK #-} !AnswerId
+                   , fragmentId :: {-# UNPACK #-} !Int
+                   }
                         deriving (Show, Eq, Ord, Generic, Hashable)
 
 instance NFData AnswerFragmentId where
   rnf AnswerFragmentId{..} = ()
 
 data AnswerFragmentMetaData =
-  AnswerFragmentMetaData { fragmentMetaId :: AnswerFragmentId
-                         , fragmentMetaSize :: !Int
+  AnswerFragmentMetaData { fragmentMetaId :: {-# UNPACK #-} !AnswerFragmentId
+                         , fragmentMetaSize :: {-# UNPACK #-} !Int
                          }
   deriving (Show, Eq, Ord, Generic, Hashable)
 

@@ -6,7 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE BangPatterns#-}
 module Thesis.Search where
 
 import           Control.DeepSeq
@@ -35,8 +35,6 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
-import Debug.Trace
-import           Data.Sequence (Seq, (<|), ViewL (..))
 import qualified Data.Sequence as Seq
 
 removeRepeats :: (Eq t) =>
@@ -177,7 +175,7 @@ ngramWithRange xs | V.null xs = Nothing
                   | otherwise =
                     let start = rangeStart . coveredRange $ V.head xs
                         end   = rangeEnd . coveredRange $ V.last xs
-                    in Just $ Range start end
+                    in Just $! Range start end
 
 search :: (Ord t, FragmentData ann) =>
           SearchIndex t l ann
@@ -197,7 +195,7 @@ search SearchIndex{..} n xs minMatchLength = do
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
 buildRange :: FragmentData d => d -> Int -> Int -> Range a
-buildRange dat n d =
+buildRange !dat !n !d =
   Range (fragDataTokenLength dat - (n + d)) (fragDataTokenLength dat - d)
   where
     

@@ -6,6 +6,7 @@
 -- covers.
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE BangPatterns #-}
 module Thesis.Data.Range
         ( -- * Ranges
           Range(..)
@@ -56,8 +57,8 @@ import Control.DeepSeq
 
 -- | An integer range with a phantom type @a@, that allows us to specify, /what/
 -- the range pertains to. So e.g. a range in a @[a]@ would be a @'Range' a@.
-data Range a = Range { rangeStart :: !Int
-                     , rangeEnd :: !Int
+data Range a = Range { rangeStart :: {-# UNPACK #-} !Int
+                     , rangeEnd :: {-# UNPACK #-} !Int
                      }
            deriving (Eq, Ord, Show, Generic, ToJSON, FromJSON, NFData)
 
@@ -109,7 +110,7 @@ rangeSplits rangeList =
     (starts, stops) = unzip $ (\(Range a b) -> (a,b)) <$> rangeList
     pointsList = nub $ sort $ starts ++ stops
     result _ [] = []
-    result x (p:ps) = (Range x p):(result p ps)
+    result !x (p:ps) = (Range x p):(result p ps)
 
 
 -- | Given a set of ranges and a length of the string that the ranges are drawn
