@@ -178,7 +178,7 @@ ngramWithRange xs | V.null xs = Nothing
                         end   = rangeEnd . coveredRange $ V.last xs
                     in Just $! Range start end
 
-search :: (Ord t, FragmentData ann) =>
+search :: (Hashable t, Eq t, FragmentData ann) =>
           SearchIndex t l ann
        -> Int  -- ^ Levenshtein distance
        -> V.Vector (TokenWithRange t l)

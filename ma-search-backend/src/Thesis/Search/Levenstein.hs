@@ -15,16 +15,17 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Search.Levenstein where
 
-import Thesis.Search.CompressedTrie
+import           Thesis.Search.CompressedTrie
 
-import qualified Data.Map.Strict as M
-import Data.Foldable
-import qualified Data.Set as S
-
-import Data.Monoid ((<>))
-import qualified Data.Vector as V
-import Data.Sequence (Seq, ViewL(..), ViewR(..), (<|), (|>), (><) )
+import           Data.Foldable
+import qualified Data.HashMap.Strict as M
+import           Data.Hashable (Hashable)
+import           Data.Monoid ((<>))
+import           Data.Sequence (Seq, ViewL(..), ViewR(..), (<|), (|>), (><) )
 import qualified Data.Sequence as Seq
+import qualified Data.Set as S
+import qualified Data.Vector as V
+
 --------------------------------------------------------------------------------
 --
 -- Implementation of efficient Levenstein Automata
@@ -119,7 +120,7 @@ acceptAllScoreL LevensteinAutomaton{..} LevenState{..} =
 
 -- | Find all words accepted by the given levenstein automaton in the trie. The
 -- number for each word is the word's levenstein distance to the given word.
-lookupL :: (Ord a, Eq v) => LevensteinAutomaton a
+lookupL :: (Hashable a, Eq a, Eq v) => LevensteinAutomaton a
         -> CompressedTrie a v
         -> Seq (Seq a, v,Int)
 lookupL aut t | t == empty = Seq.empty
@@ -134,14 +135,14 @@ lookupL aut t | t == empty = Seq.empty
 --
 -- In this function the levenstein automaton is transformed, so that all
 -- non-rejecting states are accepting.
-lookupAllL :: (Ord a, Eq v) => LevensteinAutomaton a
+lookupAllL :: (Hashable a, Eq a, Eq v) => LevensteinAutomaton a
            -> CompressedTrie a v
            -> Seq (Seq a, v,Int)
 lookupAllL aut t | t == empty = Seq.empty
                  | otherwise = lookupWithL' acceptAllScoreL aut t (startL aut)
 
 -- | Helper function for 'lookupL'
-lookupWithL' :: (Ord a, Eq v)
+lookupWithL' :: (Hashable a, Eq a, Eq v)
                 => (LevensteinAutomaton a -> LevenState -> Maybe Int)
              ->  LevensteinAutomaton a
              -> CompressedTrie a v
@@ -163,7 +164,7 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur >< do
            Just x  -> Seq.singleton x
            Nothing -> Seq.empty
 
-lookupAllSuff :: (Ord a, Ord v) => LevensteinAutomaton a
+lookupAllSuff :: (Hashable a, Eq a, Eq v) => LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
            -> Int -- ^ Minimum match length
            -> Seq (Int, Seq (S.Set v, Int), Int)
@@ -178,7 +179,7 @@ lookupAllSuff aut trie minMatchLength
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
-lookupSuff :: (Ord a, Ord v)
+lookupSuff :: (Hashable a, Eq a, Eq v)
               => (LevensteinAutomaton a -> LevenState -> Maybe Int)
            -> LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
@@ -239,7 +240,7 @@ data LevenResult = LevenDone !LevenState
                                             --   * The levenshtein score of the
                                             --      automaton
 
-walkThrough :: (Eq a) =>
+walkThrough :: (Hashable a, Eq a) =>
                (LevensteinAutomaton a -> LevenState -> Maybe Int)
             -> LevensteinAutomaton a
             -> LevenState
@@ -266,7 +267,7 @@ walkThrough acceptScore aut state v vectorLength =
 -- ** This function has no defined behaviour for levenshtein distances /= 0 and
 -- will likely call 'error'. It may also return incorrect results in special
 -- cases. **
-walkThroughZero :: (Eq a) =>
+walkThroughZero :: (Hashable a, Eq a) =>
                    LevensteinAutomaton a
                 -> LevenState
                 -> V.Vector a

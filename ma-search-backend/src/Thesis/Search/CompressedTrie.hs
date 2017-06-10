@@ -9,19 +9,19 @@ import           Control.Applicative ((<|>))
 
 import           Data.Foldable
 
-import qualified Data.Map.Strict as M
+import qualified Data.HashMap.Strict as M
 import           Data.Maybe
 import           Data.Monoid ((<>))
 import           Data.Sequence (Seq, ViewL(..), ViewR(..), (<|), (|>), (><) )
 import qualified Data.Sequence as Seq
 import qualified Data.Vector as V
 import           Data.Vector.Binary ()
-
+import           Data.Hashable
 import           Control.DeepSeq
 
 data CompressedTrie a v where
-  CTrieNode :: (Ord a)
-               => !(M.Map a (V.Vector a, Int, CompressedTrie a v))
+  CTrieNode :: (Eq a, Hashable a)
+               => !(M.HashMap a (V.Vector a, Int, CompressedTrie a v))
                -- Structural information of the trie
             -> !(Maybe v)
                -- The annotation of a completed word
@@ -30,19 +30,19 @@ data CompressedTrie a v where
 
 deriving instance (Show a, Show v) => Show (CompressedTrie a v)
 
-deriving instance (Ord a, Eq v) => Eq (CompressedTrie a v)
+deriving instance (Hashable a, Eq a, Eq v) => Eq (CompressedTrie a v)
 
 instance (NFData a, NFData v) => NFData (CompressedTrie a v) where
    rnf (CTrieLeaf v) = deepseq v ()
    rnf (CTrieNode mp v) = deepseq mp $ deepseq v ()
 
-empty :: (Ord a) => CompressedTrie a v
+empty :: (Eq a, Hashable a) => CompressedTrie a v
 empty = CTrieNode M.empty Nothing
 
-linearTrie :: (Foldable f, Ord a) => f a -> v -> CompressedTrie a v
+linearTrie :: (Foldable f, Eq a, Hashable a) => f a -> v -> CompressedTrie a v
 linearTrie !xs !v = linearTrie' (V.fromList $ toList xs) v
 
-linearTrie' :: (Ord a) => V.Vector a -> v -> CompressedTrie a v
+linearTrie' :: (Eq a, Hashable a) => V.Vector a -> v -> CompressedTrie a v
 linearTrie' !vec !v | V.null vec = CTrieNode M.empty (Just v)
                     | otherwise  = CTrieNode mp Nothing
   where
@@ -95,7 +95,7 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
 -- Beware, that this implementation does not yet use a linear time suffix tree
 -- construction algorithm like ukkonens and there is considerable room for
 -- improvement in performance here!
-buildSuffixTrie :: (Ord a, Eq v)
+buildSuffixTrie :: (Hashable a, Eq a, Eq v)
                    => Maybe Int -- ^ The minimum length of indexed suffixes
                 -> V.Vector a -- ^ The word to index
                 -> v   -- ^ An annotation, that will be used for all indexed
@@ -113,7 +113,7 @@ vtails v = do
   let n = (V.length v) - start
   return $ V.slice start n v
 
-buildTrieWith :: (Foldable f, Ord a, Eq v)
+buildTrieWith :: (Foldable f, Hashable a, Eq a, Eq v)
                  => (v -> v -> v)
               -> f (V.Vector a,v)
               -> CompressedTrie a v
@@ -122,7 +122,7 @@ buildTrieWith f xs = foldl' merge empty xs
     merge t (ys, v) = mergeTriesWith f (linearTrie' ys v) t
 
 -- | Only uses the last value in the given sequence in case of conflict
-buildTrie :: (Foldable f, Ord a, Eq v) => f (V.Vector a,v)
+buildTrie :: (Foldable f, Hashable a, Eq a, Eq v) => f (V.Vector a,v)
           -> CompressedTrie a v
 buildTrie = buildTrieWith const
 
