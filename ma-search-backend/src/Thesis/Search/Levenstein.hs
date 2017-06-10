@@ -34,7 +34,7 @@ import qualified Data.Vector as V
 -- the levenSize is correct, otherwise the automaton will produce bad results.
 data LevensteinAutomaton a =
   LevensteinAutomaton { levenSize :: Int -- ^ Size of the input string
-                       , levenN :: Int    -- ^ Max number of tolerated errors
+                      , levenN :: Int    -- ^ Max number of tolerated errors
                       , levenIndex :: Int -> a -- ^ Indexing function for the
                                                -- given string
                       }
@@ -188,7 +188,19 @@ lookupSuff :: (Hashable a, Eq a, Eq v)
            -> Seq (Int, Seq (S.Set v, Int) , Int)
 lookupSuff acceptScore aut nd !st (d, minDepth) =
   case nd of
-    CTrieNode mp _ -> foldl' (\xs br -> xs >< oneBranch br) cur (M.elems mp)
+    CTrieNode mp _
+      | levenN aut == 0 -> case stateList st of
+        [] -> Seq.empty
+        ((i,_):[]) | i < levenSize aut ->
+                     let k = levenIndex aut i
+                     in case M.lookup k mp of
+                       Nothing -> cur
+                       Just br -> cur >< oneBranch br
+                  | i == levenSize aut -> cur
+                  | otherwise ->
+                     error "Levenshtein.lookupSuff impossible case (i > levenSize)"
+        _  -> error "Levenshtein.lookupSuff impossible case (length stateList > 1)"
+      | otherwise -> foldl' (\xs br -> xs >< oneBranch br) cur (M.elems mp)
     CTrieLeaf v    ->
       maybe Seq.empty
             (\score -> Seq.singleton (d, Seq.singleton (v, 0),score))
