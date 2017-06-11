@@ -57,7 +57,7 @@ standardBlockData indent unindent queryTokens fragmentTokens =
             }
   where
     queryPD = preData unindent indent queryTokens
-    fragmentPD = preData unindent indent queryTokens
+    fragmentPD = preData unindent indent fragmentTokens
 
 blockStringInRegion :: (Eq t) =>
                        t
