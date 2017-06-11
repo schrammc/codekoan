@@ -28,7 +28,8 @@ data BlockDelim = BlockStart
 
 -- | The minimal number of blocks that you have to go down and up again, to get
 -- from one point to another in a piece of code. This always pertains to going from the first to the second point (in order of occurrence).
-data BlockRelation = BlockRelation {up :: Int, down :: Int}
+data BlockRelation = BlockRelation { up   :: {-# UNPACK #-} !Int
+                                   , down :: {-# UNPACK #-} !Int}
                    deriving (Show, Eq)
 
 -- | @BlockRelation 0 0@

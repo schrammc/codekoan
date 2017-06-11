@@ -47,13 +47,17 @@ standardBlockData :: (Eq t) =>
                 -> BlockData t
 standardBlockData indent unindent queryTokens fragmentTokens =
   BlockData { queryRelation =
-                 blockRelationWithPreData indent unindent queryTokens
-            , fragmentRelation = blockRelation indent unindent fragmentTokens
+                 blockRelationWithPreData queryPD indent unindent queryTokens
+            , fragmentRelation =
+                blockRelationWithPreData fragmentPD indent unindent fragmentTokens
             , queryBlockString    =
                   blockStringInRegion indent unindent queryTokens
             , fragmentBlockString =
                   blockStringInRegion indent unindent fragmentTokens
             }
+  where
+    queryPD = preData unindent indent queryTokens
+    fragmentPD = preData unindent indent queryTokens
 
 blockStringInRegion :: (Eq t) =>
                        t
@@ -84,23 +88,23 @@ trackerToRelation :: RelationTracker -> BlockRelation
 trackerToRelation RelationTracker{..} =
   BlockRelation {down = abs maxDown, up = current - maxDown}
 
+-- | Generate a pre-processed form of relevant qurey-tokens 
 preData :: (Eq t) => t -> t -> VectorView t -> [(Int ,t)]
-preData unindent indent v = filter (isIndentT . snd) $ zip [0 ..] (toList v)
+preData unindent indent v =
+  let pd = filter (isIndentT . snd) $ zip [0 ..] (toList v)
+  in length pd `seq` pd
   where
     isIndentT t = unindent == t || indent == t
 
-blockRelationWithPreData :: (Eq t) => t -> t -> VectorView t -> Int -> Int -> BlockRelation
-blockRelationWithPreData unindent indent tks = f
-  where
-    pd = preData unindent indent tks
-    f !a !b =
-      let 
-        relevantRegion =
-          snd <$> (takeWhile ((< y) . fst) $ dropWhile ((< x) . fst) pd)
-        x = normalizeV tks $ min a b
-        y = normalizeV tks $ max a b
-      in 
-       blockRelationBasic unindent indent relevantRegion x y
+blockRelationWithPreData :: (Eq t) => [(Int, t)] -> t -> t -> VectorView t -> Int -> Int -> BlockRelation
+blockRelationWithPreData pd unindent indent tks !a !b =
+  let 
+    relevantRegion =
+      snd <$> (takeWhile ((< y) . fst) $ dropWhile ((< x) . fst) pd)
+    x = normalizeV tks $ min a b
+    y = normalizeV tks $ max a b
+  in 
+   blockRelationBasic unindent indent relevantRegion x y
 
 blockRelation :: (Eq t) => t -> t -> VectorView t -> Int -> Int -> BlockRelation
 blockRelation indent unindent tks !a !b =
