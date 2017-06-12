@@ -146,16 +146,16 @@ resultSetBlockAnalysis :: (Monad m, Hashable ann, Eq ann) =>
                        -> ResultSet t l ann
                        -- ^ The result set that is to be analyzed
                        -> MaybeT m (ResultSet t l ann)
-resultSetBlockAnalysis getTokenV lang queryTokens ResultSet{..} = do
-  -- Loop over all stackoverflow answers in the map
-  updatedLst <- forM (M.toList resultSetMap) $ \(ann, groups) -> do
-    -- Get the full tokens of the answer fragment and use them to do
-    -- block analysis on each group of answer fragments.
-    (fragTks,_)  <- getTokenV ann
-    let fragTokens = token <$$$> fragTks
-        blockData = buildBlockData fragTokens
-        analyzedGroups = concat $ blockAnalysis blockData <$> groups
-    return (ann, analyzedGroups)
-  return $ ResultSet (M.fromList updatedLst)
+resultSetBlockAnalysis getTokenV lang queryTokens ResultSet{..} =
+  fmap ResultSet $
+    -- Loop over all stackoverflow answers in the map
+    ((flip M.traverseWithKey) resultSetMap) $ \ann groups -> do
+      -- Get the full tokens of the answer fragment and use them to do
+      -- block analysis on each group of answer fragments.
+      (fragTks,_)  <- getTokenV ann
+      let fragTokens = token <$$$> fragTks
+          blockData = buildBlockData fragTokens
+          analyzedGroups = concat $ blockAnalysis blockData <$> groups
+      return analyzedGroups
   where
     buildBlockData fragTokens = languageGenBlockData lang queryTokens fragTokens
