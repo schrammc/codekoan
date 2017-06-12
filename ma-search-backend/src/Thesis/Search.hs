@@ -13,11 +13,13 @@ import           Control.DeepSeq
 import           Control.Monad.Catch
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
-import           Data.Foldable (foldl', toList)
+import           Data.Foldable (foldl')
+import qualified Data.HashMap.Strict as M
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
-import qualified Data.HashMap.Strict as M
 import           Data.Monoid ((<>))
+import           Data.Sequence (Seq, (<|))
+import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Text as Text
 import qualified Data.Vector as V
@@ -35,8 +37,6 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
-import           Data.Sequence (Seq, (<|))
-import qualified Data.Sequence as Seq
 
 removeRepeats :: (Eq t) =>
                  Int
@@ -166,8 +166,7 @@ findMatches index@(SearchIndex{..}) n t minMatchLength = do
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
 mergePositionRanges :: Range a -> Range a -> Range a
-mergePositionRanges (Range start _) (Range _ end) =
-                        Range start end
+mergePositionRanges (Range start _) (Range _ end) = Range start end
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
@@ -227,11 +226,6 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
   $(logDebug) "Levenshtein - search..."
 
   firstMatches <- findMatches index levenshteinDistance txt minMatchLength
-
-  $(logDebug) $ "Initial alignment matches: "
-                  <> printNumberOfAlignmentMatches firstMatches
-                  <> " matches in " <> printNumberOfGroups firstMatches
-                  <> " groups"
 
   let initialMatches = filterSumTotalLength minSumResultLength $
                        fragmentsLongerThan minMatchLength $
