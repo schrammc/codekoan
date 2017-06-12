@@ -23,16 +23,17 @@ buildTokenVector res =
   let (_, tokens) = mapAccumL f 0 res
   in V.fromList $ mapMaybe (\(r, t) -> TokenWithRange r <$> t) tokens
   where
-    f n (k,t) = (n+k, (Range n (n+k), t))
+    f n (k,t) = let x = n+k in x `seq` (x, (Range n x, t))
 
 type TokenVector t l = V.Vector (TokenWithRange t l)
 
 
 -- | Token combined with the range in a piece of language text, that it covers.
-data TokenWithRange t l = TokenWithRange { coveredRange :: Range (LanguageText l)
-                                         , token :: t
-                                         }
-                        deriving (Show, Eq)
+data TokenWithRange t l =
+  TokenWithRange { coveredRange :: {-# UNPACK #-}!(Range (LanguageText l))
+                 , token :: {-# UNPACK #-} !t
+                 }
+  deriving (Show, Eq)
 
 -- | A type for the text representation fo program code in a langauge.
 --
