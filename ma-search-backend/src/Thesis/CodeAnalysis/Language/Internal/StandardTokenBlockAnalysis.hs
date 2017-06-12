@@ -79,7 +79,7 @@ blockString indent unindent tks = do
      | token == unindent -> return BlockEnd
      | otherwise -> []
 
-data RelationTracker = RelationTracker {maxDown :: {-# UNPACK #-} !Int
+data RelationTracker = RelationTracker { maxDown :: {-# UNPACK #-} !Int
                                        , current :: {-# UNPACK #-} !Int}
 
 startTracker = RelationTracker 0 0
