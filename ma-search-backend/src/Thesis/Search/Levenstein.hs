@@ -33,10 +33,12 @@ import qualified Data.Vector as V
 -- | A levenstein automaton for any indexable data structure. Take care, that
 -- the levenSize is correct, otherwise the automaton will produce bad results.
 data LevensteinAutomaton a =
-  LevensteinAutomaton { levenSize :: Int -- ^ Size of the input string
-                      , levenN :: Int    -- ^ Max number of tolerated errors
-                      , levenIndex :: Int -> a -- ^ Indexing function for the
-                                               -- given string
+  LevensteinAutomaton { levenSize :: {-#UNPACK#-} !Int
+                        -- ^ Size of the input string
+                      , levenN :: {-# UNPACK #-}! Int
+                        -- ^ Max number of tolerated errors
+                      , levenIndex :: !(Int -> a)
+                        -- ^ Indexing function for the Cgiven string
                       }
 
 vectorToLevensteinAutomaton :: Int -> V.Vector a -> LevensteinAutomaton a
@@ -113,7 +115,7 @@ acceptScoreL LevensteinAutomaton{..} LevenState{..} =
 -- | If the state is a non - rejecting state return the minimum levenstein distance
 acceptAllScoreL :: LevensteinAutomaton a -> LevenState -> Maybe Int
 acceptAllScoreL LevensteinAutomaton{..} LevenState{..} =
-  let x = snd $ minimumBy (\(_,a) (_,b) -> compare a b) stateList
+  let !x = snd $! minimumBy (\(_,a) (_,b) -> compare a b) stateList
   in if null stateList || x > levenN
      then Nothing
      else Just x
@@ -165,10 +167,10 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur >< do
            Nothing -> Seq.empty
 
 lookupAllSuff :: (Hashable a, Eq a, Eq v) => LevensteinAutomaton a
-           -> CompressedTrie a (S.Set v)
-           -> Int -- ^ Minimum match length
-           -> Seq (Int, Seq (S.Set v, Int), Int)
-lookupAllSuff aut trie minMatchLength
+              -> CompressedTrie a (S.Set v)
+              -> Int -- ^ Minimum match length
+              -> Seq (Int, Seq (S.Set v, Int), Int)
+lookupAllSuff aut trie !minMatchLength
   | trie == empty = Seq.empty
   | otherwise = do
       lookupSuff acceptAllScoreL
@@ -186,13 +188,13 @@ lookupSuff :: (Hashable a, Eq a, Eq v)
            -> LevenState
            -> (Int, Int) -- ^ (Depth, Minimal result depth)
            -> Seq (Int, Seq (S.Set v, Int) , Int)
-lookupSuff acceptScore aut nd !st (d, minDepth) =
+lookupSuff acceptScore aut nd !st (!d, minDepth) =
   case nd of
     CTrieNode mp _
       | levenN aut == 0 -> case stateList st of
         [] -> Seq.empty
         ((i,_):[]) | i < levenSize aut ->
-                     let k = levenIndex aut i
+                     let !k = levenIndex aut i
                      in case M.lookup k mp of
                        Nothing -> cur
                        Just br -> cur >< oneBranch br
@@ -207,9 +209,9 @@ lookupSuff acceptScore aut nd !st (d, minDepth) =
             (acceptScore aut st)
   where
     oneBranch (label, labelLength, node) =
-      let walkResult = if levenN aut == 0
-                       then walkThroughZero aut st label labelLength
-                       else walkThrough acceptScore aut st label labelLength
+      let !walkResult = if levenN aut == 0
+                        then walkThroughZero aut st label labelLength
+                        else walkThrough acceptScore aut st label labelLength
       in case walkResult of
         LevenDone st' ->
           lookupSuff acceptScore
@@ -218,23 +220,24 @@ lookupSuff acceptScore aut nd !st (d, minDepth) =
                      st'
                      (d + labelLength, minDepth)
         LevenPartial (nMatched, levenDist) ->
-          let k = (V.length label - nMatched)
+          let !k = (V.length label - nMatched)
           in if | nMatched == 0 -> Seq.empty
                 | nMatched >  0 && d + nMatched >= minDepth ->
-                  let valuesFiltered = do
+                  let !valuesFiltered = do
                         (s, d) <- trieLeavesDist node
-                        let d' = d+k
+                        let !d' = d+k
                         if d' > minDepth then return (s,d') else Seq.empty
-                  in return ( d + nMatched
+                      !resultDepth = d + nMatched
+                  in return ( resultDepth
                             , valuesFiltered
                             , levenDist)
                 | nMatched > 0 -> Seq.empty
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
-    cur = let score = case acceptScore aut st of
+    cur = let !score = case acceptScore aut st of
                         Just s  -> Seq.singleton s
                         Nothing -> Seq.empty
-              hits = if d > minDepth
+              !hits = if d > minDepth
                      then do
                        _ <- score -- Do nothing if we fail to calculate the score
                        trieLeavesDist nd
@@ -246,11 +249,12 @@ lookupSuff acceptScore aut nd !st (d, minDepth) =
                (Seq.viewl -> (s :< _)) -> Seq.singleton (d, hits ,s)
 
 data LevenResult = LevenDone !LevenState
-                 | LevenPartial !(Int, Int) -- The tuple contains:
-                                            --   * The number of matched tokens
-                                            --
-                                            --   * The levenshtein score of the
-                                            --      automaton
+                 | LevenPartial {-# UNPACK #-} !(Int, Int)
+                   -- The tuple contains:
+                   --   * The number of matched tokens
+                   --
+                   --   * The levenshtein score of the
+                   --      automaton
 
 walkThrough :: (Hashable a, Eq a) =>
                (LevensteinAutomaton a -> LevenState -> Maybe Int)
@@ -259,7 +263,7 @@ walkThrough :: (Hashable a, Eq a) =>
             -> V.Vector a
             -> Int
             -> LevenResult
-walkThrough acceptScore aut state v vectorLength =
+walkThrough acceptScore aut state v !vectorLength =
   walkThrough' (acceptScore aut state) 0 state
   where
     walkThrough' lastScore !i !st =
@@ -271,7 +275,7 @@ walkThrough acceptScore aut state v vectorLength =
         in case scoreMaybe of
           Just _ -> walkThrough' scoreMaybe (i+1) st'
           Nothing    -> case lastScore of
-            Just x -> LevenPartial (i,x)
+            Just x -> x `seq` LevenPartial (i,x)
             Nothing -> error "Levenshtein.walkthrough: unexpected failure!"
 
 -- An optimized version of 'walkThrough' for levenshtein distance 0.
@@ -285,13 +289,14 @@ walkThroughZero :: (Hashable a, Eq a) =>
                 -> V.Vector a
                 -> Int
                 -> LevenResult
-walkThroughZero aut (LevenState ((pos,val):[])) v vectorLength =
+walkThroughZero aut (LevenState ((pos,val):[])) v !vectorLength =
   walkThroughZero' 0
   where
     walkThroughZero' !i =
       if i == vectorLength
-      then LevenDone (LevenState [(pos+vectorLength, val)])
-      else let j = pos + i
+      then let !pos' = pos+vectorLength
+           in LevenDone (LevenState [(pos', val)])
+      else let !j = pos + i
            in if j < levenSize aut && V.unsafeIndex v i == levenIndex aut j
               then walkThroughZero' (i+1)
               else LevenPartial (i, 0)

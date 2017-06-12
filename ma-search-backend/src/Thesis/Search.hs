@@ -197,8 +197,6 @@ search SearchIndex{..} n xs minMatchLength = do
 buildRange :: FragmentData d => d -> Int -> Int -> Range a
 buildRange !dat !n !d =
   Range (fragDataTokenLength dat - (n + d)) (fragDataTokenLength dat - d)
-  where
-    
 
 -- | Perform a search based on a set of search settings.
 --
