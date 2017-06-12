@@ -188,9 +188,9 @@ search SearchIndex{..} n xs minMatchLength = do
   (mds, dist) <- results
   md <- foldr (<|) Seq.empty mds
   let rg = buildRange md matchedLength dist
-  return $ (md, rg, levenD)
+  rg `seq` return $ (md, rg, levenD)
   where
-    aut = LevensteinAutomaton (V.length xs) n ({-# SCC autLookup #-}token . (V.unsafeIndex xs))
+    aut = LevensteinAutomaton (V.length xs) n (token . (V.unsafeIndex xs))
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.

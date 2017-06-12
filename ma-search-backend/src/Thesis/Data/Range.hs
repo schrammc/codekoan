@@ -116,7 +116,7 @@ rangeSplits rangeList =
 -- | Given a set of ranges and a length of the string that the ranges are drawn
 -- from return the fraction of positions that are covered by at least one range.
 coveragePercentage :: Int -> [Range a] -> Double
-coveragePercentage n ranges =
+coveragePercentage !n ranges =
   (fromIntegral . sum $ rangeLength <$> rangeCover ranges) / (fromIntegral n)
 
 -- | Merge two ranges. If the two ranges overlap or border each other, return a

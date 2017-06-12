@@ -30,8 +30,8 @@ type TokenVector t l = V.Vector (TokenWithRange t l)
 
 -- | Token combined with the range in a piece of language text, that it covers.
 data TokenWithRange t l =
-  TokenWithRange { coveredRange :: {-# UNPACK #-}!(Range (LanguageText l))
-                 , token :: {-# UNPACK #-} !t
+  TokenWithRange { coveredRange :: !(Range (LanguageText l))
+                 , token :: !t
                  }
   deriving (Show, Eq)
 
