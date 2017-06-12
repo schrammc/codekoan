@@ -24,6 +24,7 @@ import qualified Data.ByteString.Lazy as BSL
 import           Data.Maybe (fromJust, fromMaybe)
 import           Data.Monoid ((<>))
 import           Data.Text (Text, pack, unpack)
+import           Data.Time.Clock
 import qualified Network.AMQP as AMQP
 import           Network.HTTP.Simple
 import           Thesis.CodeAnalysis.Language
@@ -141,6 +142,7 @@ appLoop foundation@(Application{..}) replyChan channel = do
       handle (\(SemanticException m) -> do
                $(logError) "SemanticException during search!"
                liftIO $ sendExceptionMsg queryId m) $ do
+        startTime <- liftIO $ getCurrentTime
         searchResult <- race (waitAndTimeout timeoutMinutes) 
                              (performSearch appIndex
                                             appLanguage
@@ -148,6 +150,10 @@ appLoop foundation@(Application{..}) replyChan channel = do
                                             querySettings
                                             langText
                                             remoteAnalyzer)
+        endTime <- liftIO $ getCurrentTime
+
+        $(logInfo) $ "Request for " <> (pack $ show queryId) <> " took " <>
+                     (pack . show $ diffUTCTime startTime endTime)
       
         case searchResult of
           -- Log an error if we can't find a search result in the index for the
