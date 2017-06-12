@@ -70,20 +70,32 @@ answerFragments :: (Monad m, MonadLogger m) =>
                 -> Language t l
                 -> AnswerId
                 -> MaybeT m (V.Vector (TokenVector t l, LanguageText l))
-answerFragments DataDictionary{..} lang@Language{..} aId = do
+answerFragments dict@DataDictionary{..} lang@Language{..} aId = do
+  txts <- answerFragmentTexts dict lang aId
+  V.fromList <$> mapM (processFrag lang aId) txts
+
+processFrag lang aId (fragId, txt) =
+  case processAndTokenize lang txt of
+    Nothing -> do
+      $(logWarn) $ "Failed to parse answer " <>
+                    (pack . show $ answerIdInt aId) <> " fragment " <>
+                    (pack . show $ fragId)
+      return (V.empty, txt)
+    Just v  -> return (v, txt)
+
+-- | Get token vectors and normalized 'LanguageText' of all fragments of an
+-- answer from the dictionary. This will return 'Nothing' if no answer for the
+-- given id could be found.
+answerFragmentTexts :: (Monad m, MonadLogger m) =>
+                   DataDictionary m
+                -> Language t l
+                -> AnswerId
+                -> MaybeT m [(Int, LanguageText l)]
+answerFragmentTexts DataDictionary{..} lang@Language{..} aId = do
   Answer{..} <- getAnswer aId
   let codeFragments = LanguageText <$> readCodeFromHTMLPost answerBody
-  V.fromList <$> mapM process (Prelude.zip [0..] codeFragments)
-  where
-    process (fragId, txt) =
-      case processAndTokenize lang txt of
-        Nothing -> do
-          $(logWarn) $ "Failed to parse answer " <>
-                        (pack . show $ answerIdInt aId) <> " fragment " <>
-                        (pack . show $ fragId)
-          return (V.empty, txt)
-        Just v  -> return (v, txt)
-      
+  return $ (Prelude.zip [0..] codeFragments)
+
 
 getAnswerFragment :: (Monad m, MonadLogger m) =>
                      DataDictionary m
@@ -91,5 +103,8 @@ getAnswerFragment :: (Monad m, MonadLogger m) =>
                   -> AnswerFragmentId
                   -> MaybeT m (TokenVector t l, LanguageText l)
 getAnswerFragment dict lang AnswerFragmentId{..} = do
-  v <- answerFragments dict lang fragmentAnswerId
-  MaybeT . return $ v !? fragmentId
+  txts <- answerFragmentTexts dict lang fragmentAnswerId
+  case Prelude.drop fragmentId txts of
+    (_, txt):_ -> processFrag lang fragmentAnswerId (fragmentId, txt)
+    [] -> MaybeT $ return Nothing
+--  MaybeT . return $ processFrag lang (fragmentAnswerId) txts !? V.fromList fragmentAnswerId
