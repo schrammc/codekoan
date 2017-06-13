@@ -112,7 +112,7 @@ findMatches :: (NFData t, MonadLogger m, Ord t, Hashable t, FragmentData ann)
                -> LanguageText l -- ^ The submitted code to be searched
                -> Int            -- ^ The minimal match length
                -> MaybeT m (ResultSet t l ann)
-findMatches index@(SearchIndex{..}) n t minMatchLength = do
+findMatches index@(SearchIndex{..}) !n !t !minMatchLength = do
   tokens <- MaybeT $ return maybeTokens
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
@@ -183,7 +183,7 @@ search :: (Hashable t, Eq t, FragmentData ann) =>
        -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
        -> Seq (ann, Range t , Int)
-search SearchIndex{..} n xs minMatchLength = do
+search SearchIndex{..} !n xs !minMatchLength = do
   (matchedLength, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
   (mds, dist) <- results
   md <- foldr (<|) Seq.empty mds

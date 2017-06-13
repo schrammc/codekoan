@@ -177,7 +177,8 @@ lookupAllSuff aut trie !minMatchLength
                  aut
                  trie
                  (startL aut)
-                 (0, minMatchLength)
+                 0
+                 minMatchLength
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
@@ -186,9 +187,12 @@ lookupSuff :: (Hashable a, Eq a, Eq v)
            -> LevensteinAutomaton a
            -> CompressedTrie a (S.Set v)
            -> LevenState
-           -> (Int, Int) -- ^ (Depth, Minimal result depth)
+           -> Int
+           -- ^ Depth
+           -> Int
+           -- ^ Minimal result depth
            -> Seq (Int, Seq (S.Set v, Int) , Int)
-lookupSuff acceptScore aut nd !st (!d, minDepth) =
+lookupSuff acceptScore aut nd !st !d !minDepth =
   case nd of
     CTrieNode mp curVal
       | levenN aut == 0 -> case stateList st of
@@ -229,9 +233,10 @@ lookupSuff acceptScore aut nd !st (!d, minDepth) =
                      aut
                      node
                      st'
-                     (d + labelLength, minDepth)
+                     (d + labelLength)
+                     minDepth
         LevenPartial (nMatched, levenDist) ->
-          let !k = (V.length label - nMatched)
+          let !k = V.length label - nMatched
           in if | nMatched == 0 -> Seq.empty
                 | nMatched >  0 && d + nMatched >= minDepth ->
                   let !valuesFiltered = do

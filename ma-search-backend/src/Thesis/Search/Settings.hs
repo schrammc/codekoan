@@ -7,8 +7,8 @@ import GHC.Generics (Generic)
 import Data.Aeson
 
 data SearchSettings =
-  SearchSettings { minMatchLength :: Int
-                 , levenshteinDistance :: Int
+  SearchSettings { minMatchLength :: !Int
+                 , levenshteinDistance :: !Int
                  , coveragePercentage :: Double
                  , blockFiltering :: Bool
                  , semanticThreshold :: Maybe Double

@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns #-}
 module Thesis.Search.ResultSet ( ResultSet(..)
                                , listOfResults
                                , buildResultSet
@@ -78,7 +79,7 @@ fragmentsLongerThan :: (Eq t)
                        => Int -- ^ Minimum length of an answer fragment
                        -> ResultSet t l ann
                        -> ResultSet t l ann
-fragmentsLongerThan n resultSet =
+fragmentsLongerThan !n resultSet =
   mapFragmentResults resultSet $ \_ -> \results -> 
     case filter (\r -> rangeLength (resultFragmentRange r) >= n) results of
       [] -> Nothing
