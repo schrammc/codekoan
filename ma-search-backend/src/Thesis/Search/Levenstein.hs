@@ -21,7 +21,7 @@ import           Data.Foldable
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable (Hashable)
 import           Data.Monoid ((<>))
-import           Data.Sequence (Seq, ViewL(..), ViewR(..), (<|), (|>), (><) )
+import           Data.Sequence (Seq, ViewL(..), (><) )
 import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Vector as V
@@ -190,19 +190,30 @@ lookupSuff :: (Hashable a, Eq a, Eq v)
            -> Seq (Int, Seq (S.Set v, Int) , Int)
 lookupSuff acceptScore aut nd !st (!d, minDepth) =
   case nd of
-    CTrieNode mp _
+    CTrieNode mp curVal
       | levenN aut == 0 -> case stateList st of
         [] -> Seq.empty
         ((i,_):[]) | i < levenSize aut ->
                      let !k = levenIndex aut i
                      in case M.lookup k mp of
-                       Nothing -> cur
-                       Just br -> cur >< oneBranch br
-                  | i == levenSize aut -> cur
+                       Nothing -> cur nd
+                       Just br ->
+                         cur (CTrieNode (M.delete k mp) curVal) >< oneBranch br
+                  | i == levenSize aut -> cur nd
                   | otherwise ->
                      error "Levenshtein.lookupSuff impossible case (i > levenSize)"
         _  -> error "Levenshtein.lookupSuff impossible case (length stateList > 1)"
-      | otherwise -> foldl' (\xs br -> xs >< oneBranch br) cur (M.elems mp)
+      | otherwise ->
+        let mp' = M.mapMaybe f mp
+            f br = let rs = oneBranch br
+                   in if Seq.null rs
+                      then Nothing
+                      else Just $! rs
+            results = mconcat $ M.elems mp'
+            -- Nodes for which we have no results
+            otherNodes = snd <$> filter (\(k,_) -> k `M.member` mp') (M.toList mp)
+            curValues = mconcat $ (\(_, _, nd') -> cur nd') <$> otherNodes
+        in curValues >< results
     CTrieLeaf v    ->
       maybe Seq.empty
             (\score -> Seq.singleton (d, Seq.singleton (v, 0),score))
@@ -234,14 +245,15 @@ lookupSuff acceptScore aut nd !st (!d, minDepth) =
                 | nMatched > 0 -> Seq.empty
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
-    cur = let !score = case acceptScore aut st of
+    cur node =
+          let !score = case acceptScore aut st of
                         Just s  -> Seq.singleton s
                         Nothing -> Seq.empty
               !hits = if d > minDepth
-                     then do
-                       _ <- score -- Do nothing if we fail to calculate the score
-                       trieLeavesDist nd
-                     else Seq.empty
+                      then do
+                        _ <- score -- Do nothing if we fail to calculate the score
+                        trieLeavesDist node
+                      else Seq.empty
           in if Seq.null hits
              then Seq.empty
              else case score of

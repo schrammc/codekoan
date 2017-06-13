@@ -12,7 +12,7 @@ import           Data.Foldable
 import qualified Data.HashMap.Strict as M
 import           Data.Maybe
 import           Data.Monoid ((<>))
-import           Data.Sequence (Seq, ViewL(..), ViewR(..), (<|), (|>), (><) )
+import           Data.Sequence (Seq, (><))
 import qualified Data.Sequence as Seq
 import qualified Data.Vector as V
 import           Data.Vector.Binary ()
@@ -64,7 +64,7 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
   where
     thrd (_, _, x) = x
     merge (va, la, ta) (vb, lb, tb) | va == vb = (va, la, mergeTriesWith f ta tb)
-                                  | otherwise =
+                                    | otherwise =
       let (common, ra, rb) = pref va vb
           nd | ra == V.empty =
             let new =
