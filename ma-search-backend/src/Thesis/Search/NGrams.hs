@@ -1,3 +1,10 @@
+-- |
+-- Description: Module for string NGrams and related functions
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Search.NGrams where
 

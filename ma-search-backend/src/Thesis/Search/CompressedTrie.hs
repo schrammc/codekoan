@@ -1,3 +1,11 @@
+-- |
+-- Description: Compressed tries with vectors as edge labels
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
+-- Compressed tries with vectors as edge labels
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE BangPatterns #-}

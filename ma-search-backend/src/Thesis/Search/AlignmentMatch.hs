@@ -1,12 +1,19 @@
+-- |
+-- Description: Code similarity in alignment matches
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
+-- Alignment matches are the basic "unit of similarity" upon which large parts
+-- of the search pipeline operate.
+--
 {-# LANGUAGE BangPatterns #-}
 module Thesis.Search.AlignmentMatch where
-
-import Data.List (isSubsequenceOf)
 
 import Thesis.CodeAnalysis.Language (LanguageText)
 import Thesis.Data.Range
 import Control.DeepSeq
-import Data.Sequence (Seq)
 
 data AlignmentMatch t l ann =
   AlignmentMatch { resultTextRange :: {-# UNPACK #-} !(Range (LanguageText l))

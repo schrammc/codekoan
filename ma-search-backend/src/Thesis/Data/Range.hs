@@ -1,6 +1,9 @@
 -- |
--- Copyright: Christof Schramm 2016
+-- Description: Clustering of patterns
+-- Maintainer: Christof Schramm
 -- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
 --
 -- Integer ranges with a phantom type to specify, what data the range actually
 -- covers.

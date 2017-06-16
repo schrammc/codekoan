@@ -1,3 +1,10 @@
+-- |
+-- Description: A typeclass for code fragment descriptors
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}

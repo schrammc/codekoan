@@ -1,7 +1,12 @@
--- | This module provides functionality to store posts from an XML data dump of
--- Stackoverflow posts in a PostgreSQL database.
+-- |
+-- Description: Functions for persisting SO data in a postgres db
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
 --
--- Author: Christof Schramm
+-- This module provides functionality to store posts from an XML data dump of
+-- Stackoverflow posts in a PostgreSQL database.
 --
 
 {-# LANGUAGE OverloadedStrings #-}

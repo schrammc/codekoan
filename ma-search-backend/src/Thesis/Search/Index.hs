@@ -1,6 +1,9 @@
 -- |
 -- Description: Search indices for arbitrary languages
 -- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
 --
 --This module contains code for search indices over arbitrary languages
 

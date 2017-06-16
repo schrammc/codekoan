@@ -1,3 +1,10 @@
+-- |
+-- Description: Data structures for stack overflow questions
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.Data.Stackoverflow.Question where
 

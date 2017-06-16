@@ -1,3 +1,12 @@
+-- |
+-- Description: Search Pipeline Configuration Data Structure
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
+-- Search pipeline configuration data structure with json instances.
+
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 module Thesis.Search.Settings where

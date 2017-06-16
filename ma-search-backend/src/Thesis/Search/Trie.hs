@@ -1,11 +1,14 @@
-{-# LANGUAGE StandaloneDeriving, GADTs #-}
-{-# LANGUAGE ScopedTypeVariables #-}
---------------------------------------------------------------------------------
 -- |
+-- Description: A simple trie data structure
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
 --
 -- This module defines a non compressed trie over any instance of 'Ord', where
 -- the trie's leaves map to given values.
---
+{-# LANGUAGE StandaloneDeriving, GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Thesis.Search.Trie where
 
 import Data.Binary

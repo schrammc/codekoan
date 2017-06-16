@@ -2,6 +2,7 @@
 -- Maintainer : Christof Schramm
 -- Description: An efficient implementation of Levenshtein automata
 -- Stability  : Experimental
+-- Copyright: (c) Christof Schramm, 2016, 2017
 -- License    : All rights reserved
 --
 -- This module contains an implementation of levenshtein automata and an

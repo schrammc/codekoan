@@ -1,3 +1,10 @@
+-- |
+-- Description: Conduit sources for stackoverflow db
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.Data.Stackoverflow.Dump.Source.Postgres where

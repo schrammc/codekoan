@@ -1,6 +1,9 @@
 -- |
--- Author: Christof Schramm 2016
+-- Description: Postgres SO data dictionary
+-- Maintainer: Christof Schramm
 -- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
 --
 -- A 'DataDictionary' implementation using a PostgresSQL backend
 {-# LANGUAGE RecordWildCards#-}

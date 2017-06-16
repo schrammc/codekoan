@@ -1,6 +1,13 @@
+-- |
+-- Description: Clustering of patterns
+-- Maintainer: Christof Schramm
+-- License: All rights reserved
+-- Copyright: (c) Christof Schramm, 2016, 2017
+-- Stability: Experimental
+--
+-- This module provides a conduit source of 'StackoverflowPost's from a
+-- Stackoverflow XML dump
 {-# LANGUAGE GADTs #-}
--- | This module provides a conduit source of 'StackoverflowPost's from
--- a Stackoverflow XML dump
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Data.Stackoverflow.Dump where
