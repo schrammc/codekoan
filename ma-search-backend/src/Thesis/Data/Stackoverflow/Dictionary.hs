@@ -74,6 +74,11 @@ answerFragments dict@DataDictionary{..} lang@Language{..} aId = do
   txts <- answerFragmentTexts dict lang aId
   V.fromList <$> mapM (processFrag lang aId) txts
 
+processFrag :: (Show a, MonadLogger m) =>
+               Language t l
+            -> AnswerId
+            -> (a, LanguageText l)
+            -> m (V.Vector (TokenWithRange t l), LanguageText l)
 processFrag lang aId (fragId, txt) =
   case processAndTokenize lang txt of
     Nothing -> do
