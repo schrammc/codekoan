@@ -38,14 +38,14 @@ import           Thesis.Search.NGrams
 import           Thesis.Util.ConduitUtils
 
 data SearchIndex t l ann where
-  SearchIndex :: (Ord t, Eq t, Ord ann) =>
+  SearchIndex :: (Hashable t, Eq t, Ord ann) =>
                  { indexLanguage :: !(Language t l)
                  , indexTrie :: !(CompressedTrie t (S.Set ann))
                  , indexBF :: !(BloomFilter [t])
                  , indexNGramSize :: !Int
                  } -> SearchIndex t l ann
 
-buildIndexFromAnswers ::( Eq t, Ord t, Hashable t
+buildIndexFromAnswers ::( Eq t, Hashable t
                         , MonadIO m, MonadLogger m) =>
                         Language t l
                       -> Source m (Answer)
@@ -64,7 +64,7 @@ buildIndexFromAnswers lang src ngramSize =
                                     , LanguageText code))
                    =$= CL.concat
 
-buildTestIndex :: ( Eq t, Ord t, Hashable t
+buildTestIndex :: ( Eq t, Hashable t
                   , MonadIO m, MonadLogger m, Foldable f) =>
                   Language t l
                -> f (LanguageText l)
@@ -79,7 +79,7 @@ buildTestIndex lang txts ngramSize =
     xs = zip ((,) <$> [0..]) $ toList txts
 
 -- | Build an index for any given programming language implementation.
-buildIndex :: ( Eq t, Ord t, Hashable t
+buildIndex :: ( Eq t, Hashable t
               , MonadIO m, MonadLogger m, FragmentData d) =>
               Language t l
            -> Source m (Int -> d, LanguageText l)
