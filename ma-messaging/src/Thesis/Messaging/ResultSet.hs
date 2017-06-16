@@ -91,12 +91,13 @@ resultSetToMsg clusterSize lang replyTo ResultSet{..} getTokenV queryText = do
           missingFragText = "<<FRAGMENT TEXT NOT FOUND!>>"
           msgGroup = alignmentMatchToMsg (tokenV, fragText) <$> group
           sourceString = printFragData ann
-      return $ ResultMsg (Text.pack sourceString) msgGroup fragText
+      return $ ResultMsg (Text.pack sourceString) msgGroup fragText Nothing
 
 data ResultMsg =
   ResultMsg { resultSource :: Text
             , resultAlignmentMatches :: [AlignmentMatchMsg]
             , resultFragmentText :: Text
+            , resultCluster :: Maybe Int
             }
   deriving (Show, Eq, Generic, FromJSON, ToJSON, NFData)
 
