@@ -55,6 +55,8 @@ library
                      , Thesis.Data.Stackoverflow.Dump.Source.Postgres
                      , Thesis.Data.Text.PositionRange
 
+                     , Thesis.PatternClustering
+
                      , Thesis.Search
                      , Thesis.Search.AlignmentMatch
                      , Thesis.Search.FragmentData
