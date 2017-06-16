@@ -24,3 +24,13 @@ data SearchSettings =
                  , minSumResultLength :: Int
                  }
   deriving (Show, Eq, Generic, ToJSON, FromJSON)
+
+-- | Default settings for high similarity
+highSimilarityDef :: SearchSettings
+highSimilarityDef = SearchSettings { minMatchLength = 15
+                                   , levenshteinDistance = 0
+                                   , coveragePercentage = 0.8
+                                   , blockFiltering = True
+                                   , semanticThreshold = Just 0.6
+                                   , minSumResultLength = 30
+                                   }
