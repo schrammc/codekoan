@@ -38,6 +38,24 @@ import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
 
+-- | This function serves to solve a possible case of combinatorial explosion in
+-- search. The problem is the following:
+--
+-- Assuming there is a repeat in the query document like:
+--
+-- @
+-- 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, ...
+-- @
+--
+-- and there is a pattern that contains a similar repeat.
+--
+-- Search will then find all occurrences of the first part of the query-repeat
+-- in the pattern - repeat. And all the identical parts of the tail of the query
+-- repeat and the tail of that etc.
+--
+-- This number can blow up and therefore this function caps the number of times
+-- that an identical n-gram is searched for.
+--
 removeRepeats :: (Eq t) =>
                  Int
               -> [(V.Vector (TokenWithRange t l), Int,b)]
@@ -74,39 +92,9 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
      | otherwise = takeRepeats lastRec rst
 
 
--- | This function serves to solve a possible case of combinatorial explosion in
--- search. The problem is the following:
---
--- Assuming there is a repeat in the query document like:
---
--- @
--- 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, 0xa39, ...
--- @
---
--- and there is a pattern that contains a similar repeat.
---
--- Search will then find all occurrences of the first part of the query-repeat
--- in the pattern - repeat. And all the identical parts of the tail of the query
--- repeat and the tail of that etc.
---
--- This number can blow up and therefore this function caps the number of times
--- that an identical n-gram is searched for.
---
-reduceRepeats :: (Ord t) =>
-                 [([TokenWithRange t l], Int, [TokenWithRange t l])]
-              -> [([TokenWithRange t l], Int, [TokenWithRange t l])]
-reduceRepeats xs =
-  let groupedByTokens = List.groupBy tokenEq (List.sortOn getTokens xs)
-  in traceShow ("GROUPS: ", length groupedByTokens) $ do
-    group <- groupedByTokens
-    if length group > 10
-      then take 10 group
-      else group
-  where
-    tokenEq a b = getTokens a == getTokens b
-    getTokens (ts, _, _) = token <$> ts
 
-findMatches :: (NFData t, MonadLogger m, Ord t, Hashable t, FragmentData ann)
+
+findMatches :: (NFData t, MonadLogger m, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
                -> LanguageText l -- ^ The submitted code to be searched
@@ -201,13 +189,12 @@ buildRange !dat !n !d =
 -- | Perform a search based on a set of search settings.
 --
 -- Can throw a 'SemanticException' if something goes wrong in semantic processing.
-performSearch :: ( NFData t
+performSearch :: ( Eq t
+                 , NFData t
                  , Hashable t
-                 , Ord t
                  , Monad m
                  , MonadThrow m
                  , MonadLogger m
-                 , Ord ann
                  , FragmentData ann) =>
                  SearchIndex t l ann
               -> Language t l
