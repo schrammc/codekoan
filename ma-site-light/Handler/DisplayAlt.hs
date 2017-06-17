@@ -4,6 +4,7 @@ import Control.Monad.Logger
 
 import           Data.Char (isDigit)
 import           Control.Monad.Trans.Maybe
+import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Helper
 import           Import
@@ -251,6 +252,8 @@ textInRangeNice range text =
         (nr, line) <- txtLines
         return $ nr <> line
   in txt'
+
+
 
 fillTo :: Int -> Text -> Text
 fillTo n t | Text.length t >= n = t <> ":"
