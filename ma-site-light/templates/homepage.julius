@@ -93,18 +93,20 @@ function genSearchSettings(language){
     var searchType = getSearchType();
     switch(searchType){
     case "High Similarity":
-	return({ minMatchLength: 15
+	return({ minMatchLength: 20
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.8
 	       , blockFiltering: true
 	       , semanticThreshold: 0.6
+               , minSumResultLength : 40
 	       });
     case "Medium Similarity":
-	return({ minMatchLength: 15
+	return({ minMatchLength: 10
 	       , levenshteinDistance: 0
 	       , coveragePercentage: 0.7
 	       , blockFiltering: true
 	       , semanticThreshold: 0.3
+               , minSumResultLength : 30
 	       });
     case "Low Similarity": {
 	blockF = language != 'python';
@@ -113,6 +115,7 @@ function genSearchSettings(language){
                    , coveragePercentage: 0.5
                    , blockFiltering: true
                    , semanticThreshold: null
+                   , minSumResultLength : 20
                    };
 	return settings;
     }

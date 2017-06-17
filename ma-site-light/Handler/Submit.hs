@@ -198,6 +198,7 @@ submitCodeForm extra = do
                                     <*> ((/ 100.0) <$> percVal)
                                     <*> blocksVal
                                     <*> pure idFilter
+                                    <*> pure 0
                                     
       queryVal = (,,) <$> (unTextarea <$> codeVal) <*> langVal <*> searchConfig
       widget = do
