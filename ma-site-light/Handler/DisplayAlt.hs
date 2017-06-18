@@ -35,11 +35,12 @@ import           Thesis.Util.LoggingUtils
 
 getDisplayAltR :: Int -> Handler Html
 getDisplayAltR qInt = do
-  App{..} <- getYesod
+  app@App{..} <- getYesod
   reply <- waitForReply appSettings queryId
   case reply of
-    Right resultSet -> 
+    Right resultSet' -> 
       defaultLayout $ do
+        resultSet <- assignClusters app resultSet'
         setTitle "CodeK\333an"
         $(widgetFile "display")
     Left errorMsg -> do
