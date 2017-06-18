@@ -99,6 +99,7 @@ library
                  , ma-messaging                  >= 0.1.0.0
                  , ma-language-java              >= 0.1.0.0
                  , ma-language-python            >= 0.1.0.0
+                 , ma-language-haskell           >= 0.1.0.0
                  , transformers                  >= 0.4.2.0
                  , network-uri                   >= 2.6    && < 3
 

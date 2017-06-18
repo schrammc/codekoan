@@ -60,6 +60,7 @@ data AppSettings = AppSettings
 
     , appSubmitURL              :: String
     , appReplyCacheURL          :: String
+    , appSemanticURL            :: String
     }
 
 instance FromJSON AppSettings where
@@ -86,6 +87,7 @@ instance FromJSON AppSettings where
         appAnalytics              <- o .:? "analytics"
         appSubmitURL              <- o .: "rmq-injector-url"
         appReplyCacheURL          <- o .: "reply-cache-url"
+        appSemanticURL            <- o .: "semantic-url"
 
         when (not . isURI $ appSubmitURL    ) $ fail "rmq-injector-url is not a valid URL!"
         when (not . isURI $ appReplyCacheURL) $ fail "reply-cache-url is not a valid URL!"

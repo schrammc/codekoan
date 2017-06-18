@@ -31,3 +31,4 @@ postgres-connect-info:
 
 rmq-injector-url: "http://damar.pms.ifi.lmu.de:6368/submit"
 reply-cache-url: "http://damar.pms.ifi.lmu.de:6367/get/"
+semantic-url: "http://localhost:6366/submit"

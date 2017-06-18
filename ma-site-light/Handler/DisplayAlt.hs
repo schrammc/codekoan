@@ -1,23 +1,37 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Handler.DisplayAlt where
 
-import Control.Monad.Logger
+import           Control.Monad.Logger
 
-import           Data.Char (isDigit)
 import           Control.Monad.Trans.Maybe
+import           Data.Char (isDigit)
+import qualified Data.Map as M
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Helper
 import           Import
+import           Network.HTTP.Simple
 import           Prelude (read)
 import qualified Prelude as Prelude
+import           Settings
+import           Text.Julius (RawJS (..))
+import           Thesis.CodeAnalysis.Language (Language, LanguageText(..))
+import           Thesis.CodeAnalysis.Language.Haskell (haskell)
+import           Thesis.CodeAnalysis.Language.Java (java)
+import           Thesis.CodeAnalysis.Language.Python (python)
+import           Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
 import           Thesis.Data.Range
 import           Thesis.Data.Stackoverflow.Answer
-import           Thesis.Data.Stackoverflow.Question
 import           Thesis.Data.Stackoverflow.Dictionary as Dict
+import           Thesis.Data.Stackoverflow.Question
 import           Thesis.Messaging.Query
 import           Thesis.Messaging.ResultSet
-import Text.Julius (RawJS (..))
-import Thesis.Util.LoggingUtils
+import           Thesis.Messaging.SemanticQuery
+import           Thesis.PatternClustering
+import           Thesis.Search.FragmentData
+import           Thesis.Search.Settings (highSimilarityDef)
+import           Thesis.Util.LoggingUtils
 
 getDisplayAltR :: Int -> Handler Html
 getDisplayAltR qInt = do
@@ -259,3 +273,54 @@ fillTo :: Int -> Text -> Text
 fillTo n t | Text.length t >= n = t <> ":"
            | otherwise =
                (Text.pack $ take (n - (Text.length t)) (repeat ' ')) <> t <> ":"
+
+
+assignClusters :: forall m . (MonadIO m, MonadThrow m, MonadLogger m) => App -> ResultSetMsg -> m ResultSetMsg
+assignClusters app res = do
+  cs <- case resultSetLanguage res of
+    "java" -> withLanguage java
+    "python" -> withLanguage python
+    "haskell" -> withLanguage haskell
+    _ -> return []
+  let clusterNs = clusterNumbers cs
+      clusteredList = assignC clusterNs <$> resultSetResultList res
+  return $ res{resultSetResultList = clusteredList}
+  where
+    withLanguage :: (NFData t, Hashable t, Eq t) =>  Language t l -> m [[AnswerFragmentId]]
+    withLanguage lang =
+      clusterPatterns lang
+                      AnswerFragmentMetaData
+                      remoteAnalyzer
+                      highSimilarityDef
+                      (( \ (a, b) -> (a, LanguageText b)) <$> patterns)
+    remoteAnalyzer = buildMonadicAnalyzer getSimilarity
+    getSimilarity a b = do
+      let submitR = setRequestMethod "POST" $
+                    setRequestBodyJSON (SemanticQuery a b) $ 
+                            parseRequest_ (appSemanticURL $ appSettings app)
+      resp <- httpJSON submitR
+      return $ getResponseBody resp
+    patterns = M.toList . M.fromList $ do
+      resultMsg <- resultSetResultList res
+      let fragId = readFragId (resultSource resultMsg)
+      return (fragId, resultFragmentText resultMsg)
+
+readFragId :: Text.Text -> AnswerFragmentId
+readFragId resultSource =
+  let (aIdTxt, rest) = Text.span isDigit resultSource
+      aIdInt = read $ Text.unpack aIdTxt
+      fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
+  in AnswerFragmentId (AnswerId aIdInt) fragIdInt
+
+assignC :: M.Map AnswerFragmentId Int -> ResultMsg -> ResultMsg
+assignC mp res = res{resultCluster = M.lookup (readFragId $ resultSource res) mp}
+
+clusterNumbers :: [[AnswerFragmentId]] -> M.Map AnswerFragmentId Int
+clusterNumbers cs = M.fromList $ do
+  (n, cluster) <- zip [0..] cs
+  x <- cluster
+  return (x,n)
+
+writeFragId AnswerFragmentId{..} =
+  (show $ answerIdInt fragmentAnswerId) ++ " (" ++ (show $ fragmentId) ++ ")"
+
