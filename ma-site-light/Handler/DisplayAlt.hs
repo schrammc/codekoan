@@ -186,7 +186,9 @@ resultGroupW gr@(ResultGroup ranges msgs queryText) = do
                 <b><a target="_blank" href=#{link}>#{questionTitle parentQuestion}</a>
                 <br>
                 <br>
-
+                Cluster: #{show resultCluster}
+                <br>
+                <br>
                 <div .well>
                   <pre>
                     #{resultFragmentText}|]
