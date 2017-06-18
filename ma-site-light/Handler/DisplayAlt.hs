@@ -312,7 +312,7 @@ readFragId :: Text.Text -> AnswerFragmentId
 readFragId resultSource =
   let (aIdTxt, rest) = Text.span isDigit resultSource
       aIdInt = read $ Text.unpack aIdTxt
-      fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
+      fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.dropWhile (not.isDigit) rest :: Int
   in AnswerFragmentId (AnswerId aIdInt) fragIdInt
 
 assignC :: M.Map AnswerFragmentId Int -> ResultMsg -> ResultMsg
