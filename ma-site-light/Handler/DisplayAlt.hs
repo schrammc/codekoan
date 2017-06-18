@@ -252,7 +252,7 @@ singleResultW ResultSetMsg{..} ResultMsg{..} = do
 
     (aIdTxt, rest) = Text.span isDigit resultSource
     aIdInt = read $ Text.unpack aIdTxt
-    fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.tail rest :: Int
+    fragIdInt = read $ Text.unpack $ Text.takeWhile isDigit $ Text.dropWhile (not.isDigit) rest :: Int
     aId = AnswerId aIdInt
 
 textInRangeNice :: Range Text -> Text -> Text
