@@ -61,17 +61,16 @@ clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
   return $ getMaximalCliques (doublyLinked linkMap) (M.keys linkMap)
   where
     patternMap = foldl (\mp (ann, txt) ->
-                           let tks = processAndTokenize lang txt
-                               i = toFragData ann (length tks)
-                           in M.insert i (tks, txt) mp)
+                           case processAndTokenize lang txt of
+                             Nothing -> mp
+                             Just tks -> M.insert ann (tks, txt) mp)
                        M.empty
                        patterns
-    lookupPattern ann = case M.lookup ann patternMap of
-                          Just (Just tks, txt) -> return (tks, txt)
+    lookupPattern ann = case M.lookup (getFragmentId ann) patternMap of
+                          Just (tks, txt) -> return (tks, txt)
                           _ -> MaybeT $ return Nothing
     source = CL.sourceList $ (\(ann, t) -> (toFragData ann, t)) <$> toList patterns
     doublyLinked linkMap a b = linked linkMap a b && linked linkMap b a
     linked linkMap a b = case M.lookup a linkMap of
       Just s -> S.member b s
       Nothing -> error "Impossible case (pattern clustering)"
-    
