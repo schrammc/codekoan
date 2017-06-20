@@ -33,7 +33,7 @@ library
                      , transformers >= 0.4.2
                      , vector >= 0.11
   default-language:    Haskell2010
-  ghc-options: -O2 -optc-O3
+  ghc-options: -W -O2 -optc-O3 -fspecialise-aggressively -fexpose-all-unfoldings
 
 test-suite ma-language-python-test
   type:                exitcode-stdio-1.0
