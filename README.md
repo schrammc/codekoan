@@ -1,4 +1,11 @@
-# Code Pattern Search Engine Implementation in Haskell
+# The Codekoan search engine
+
+## Overview
+
+## Installation instructions
+
+The Codekoan search engine is easy to set up. Please see the [installation instructions](doc/install.md)
+
 ## System Components Communication
 * StackOverflow Persistency: PostgreSQL DB on damar (PMS On-Premises) Port 5432, this port should be accessible from MWN to PMS DMZ
 
