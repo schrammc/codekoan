@@ -60,7 +60,7 @@ the exchange `queries-java` to `queries` using the routing key `java`.
 
 You then need to make a decision about your cluster size for each
 language. Assuming you want to use a cluster of four worker processes for `java`
-you need to create four queues `queries-java-[1..n]` that are bound to the
+you need to create four queues `queries-java-[1..4]` that are bound to the
 `queries-java` exchange.
 
 **Response collection**
@@ -70,4 +70,22 @@ is bound to a queue named `replies`.
 
 ## Set up PostgreSQL
 
+Codekoan currently uses the [PostgreSQL](https://www.postgresql.org/) database,
+which needs to be set up on your system.
 
+The data to index is contained in
+the
+[Stack Overflow data dump](https://archive.org/details/stackexchange). Specifically
+you will need the xml file in the `stackoverflow.com-Posts` archive.
+
+To index this data into the database in a Format, that Codekoan can understand,
+use the `ma-postgres-indexer` binary like this:
+
+```
+stack exec ma-postgres-indexer <dump-xml-file>
+                               <postgres host>
+							   <postgres port>
+							   <postgres user>
+							   <postgres password>
+							   <postgres database>
+```
