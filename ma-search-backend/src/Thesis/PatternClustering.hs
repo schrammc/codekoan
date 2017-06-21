@@ -55,8 +55,9 @@ clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
                                      semanticAnalyzer
     case resultSetMaybe of
       Nothing -> return (ann, [])
-      Just resultSet -> return (ann, fmap getFragmentId $
-                                       M.keys $ resultSetMap resultSet)
+      Just resultSet ->
+        let results = fmap getFragmentId $ M.keys $ resultSetMap resultSet
+        in length results `seq` return (ann, results)
   let linkMap = M.fromList $ (\(a,ls) -> (a, S.fromList ls)) <$> links
   return $ getMaximalCliques (doublyLinked linkMap) (M.keys linkMap)
   where
