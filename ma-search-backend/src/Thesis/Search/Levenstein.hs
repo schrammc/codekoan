@@ -171,7 +171,7 @@ lookupAllSuff :: (Hashable a, Eq a, Eq v) => LevensteinAutomaton a
               -> CompressedTrie a (S.Set v)
               -> Int -- ^ Minimum match length
               -> Seq (Int, Seq (S.Set v, Int), Int)
-lookupAllSuff aut trie !minMatchLength
+lookupAllSuff !aut trie !minMatchLength
   | trie == empty = Seq.empty
   | otherwise = do
       lookupSuff acceptAllScoreL
@@ -193,7 +193,7 @@ lookupSuff :: (Hashable a, Eq a, Eq v)
            -> Int
            -- ^ Minimal result depth
            -> Seq (Int, Seq (S.Set v, Int) , Int)
-lookupSuff acceptScore aut nd !st !d !minDepth =
+lookupSuff acceptScore !aut nd !st !d !minDepth =
   case nd of
     CTrieNode mp curVal
       | levenN aut == 0 -> case stateList st of

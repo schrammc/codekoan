@@ -102,11 +102,10 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
 findMatches :: (NFData t, MonadLogger m, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
-               -> LanguageText l -- ^ The submitted code to be searched
+               -> TokenVector t l -- ^ The submitted code to be searched
                -> Int            -- ^ The minimal match length
                -> MaybeT m (ResultSet t l ann)
-findMatches index@(SearchIndex{..}) !n !t !minMatchLength = do
-  tokens <- MaybeT $ return maybeTokens
+findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
   let ngramsWithTails = allNgramTails indexNGramSize tokens
       relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
 --                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
@@ -136,7 +135,6 @@ findMatches index@(SearchIndex{..}) !n !t !minMatchLength = do
         f m x = M.alter (f' x) (resultMetaData x) m
         f' k Nothing   = Just [k]
         f' k (Just xs) = Just (k:xs)
-    maybeTokens = processAndTokenize indexLanguage t
     ngramRelevant tks = indexBF =?: (token <$> tks)
 
     searchFor (_, start, ts) =
@@ -166,8 +164,8 @@ mergePositionRanges (Range start _) (Range _ end) = Range start end
 ngramWithRange :: V.Vector (TokenWithRange t l) -> Maybe (Range (LanguageText l))
 ngramWithRange xs | V.null xs = Nothing
                   | otherwise =
-                    let start = rangeStart . coveredRange $ V.head xs
-                        end   = rangeEnd . coveredRange $ V.last xs
+                    let !start = rangeStart . coveredRange $ V.head xs
+                        !end   = rangeEnd . coveredRange $ V.last xs
                     in Just $! Range start end
 
 search :: (Hashable t, Eq t, FragmentData ann) =>
@@ -183,13 +181,33 @@ search SearchIndex{..} !n xs !minMatchLength = do
   let rg = buildRange md matchedLength dist
   rg `seq` return $ (md, rg, levenD)
   where
-    aut = LevensteinAutomaton (V.length xs) n (token . (V.unsafeIndex xs))
+    !aut = LevensteinAutomaton (V.length xs) n (token . (V.unsafeIndex xs))
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
 buildRange :: FragmentData d => d -> Int -> Int -> Range a
 buildRange !dat !n !d =
   Range (fragDataTokenLength dat - (n + d)) (fragDataTokenLength dat - d)
+
+tokenizeAndPerformSearch :: ( Eq t
+                            , NFData t
+                            , Hashable t
+                            , Monad m
+                            , MonadThrow m
+                            , MonadLogger m
+                            , FragmentData ann) =>
+                            SearchIndex t l ann
+                         -> Language t l
+                         --              -> DataDictionary m
+                         -> (ann -> MaybeT m (TokenVector t l, LanguageText l))
+                         -> SearchSettings
+                         -> LanguageText l
+                         -> SemanticAnalyzer m a
+                         -> m (Maybe (ResultSet t l ann))
+tokenizeAndPerformSearch index lang dict settings txt analyzer =
+  case processAndTokenize lang txt of
+    Nothing -> return Nothing
+    Just tks -> performSearch index lang dict settings (txt, tks) analyzer
 
 -- | Perform a search based on a set of search settings.
 --
@@ -206,16 +224,16 @@ performSearch :: ( Eq t
 --              -> DataDictionary m
               -> (ann -> MaybeT m (TokenVector t l, LanguageText l))
               -> SearchSettings
-              -> LanguageText l
+              -> (LanguageText l, TokenVector t l)
               -> SemanticAnalyzer m a
               -> m (Maybe (ResultSet t l ann))
-performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $ do
+performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyzer = runMaybeT $ do
   $(logDebug) "Running search pipeline..."
   $(logDebug) $ "Ngram-size: " <> (Text.pack . show $ indexNGramSize index)
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  firstMatches <- findMatches index levenshteinDistance txt minMatchLength
+  firstMatches <- findMatches index levenshteinDistance queryTokens minMatchLength
 
   let initialMatches = filterSumTotalLength minSumResultLength $
                        fragmentsLongerThan minMatchLength $
@@ -246,8 +264,6 @@ performSearch index lang dict conf@SearchSettings{..} txt analyzer = runMaybeT $
 
   $(logDebug) $ "Groups after coverage / length: "
                 <> printNumberOfGroups coverageAnalyzed
-
-  queryTokens <- MaybeT . return $ getQueryTokens
 
   $(logDebug) "Proceeding with semantic analysis"
   blockFiltered <- if blockFiltering

@@ -47,17 +47,18 @@ clusterPatterns :: ( Eq t, Hashable t, NFData t
 clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
   index <- buildIndex lang source 10
   links <- forM (toList patterns) $ \(ann, txt) -> do
+    let Just (tks, _) = M.lookup ann patternMap
     resultSetMaybe  <- performSearch index
                                      lang
                                      lookupPattern
                                      settings
-                                     txt
+                                     (txt, tks)
                                      semanticAnalyzer
     case resultSetMaybe of
       Nothing -> return (ann, [])
       Just resultSet ->
         let results = fmap getFragmentId $ M.keys $ resultSetMap resultSet
-        in length results `seq` return (ann, results)
+        in length results `seq` return (ann, take 2 results)
   let linkMap = M.fromList $ (\(a,ls) -> (a, S.fromList ls)) <$> links
   return $ getMaximalCliques (doublyLinked linkMap) (M.keys linkMap)
   where

@@ -144,12 +144,12 @@ appLoop foundation@(Application{..}) replyChan channel = do
                liftIO $ sendExceptionMsg queryId m) $ do
         startTime <- liftIO $ getCurrentTime
         searchResult <- race (waitAndTimeout timeoutMinutes) 
-                             (performSearch appIndex
-                                            appLanguage
-                                            getTokenV
-                                            querySettings
-                                            langText
-                                            remoteAnalyzer)
+                             (tokenizeAndPerformSearch appIndex
+                                                       appLanguage
+                                                       getTokenV
+                                                       querySettings
+                                                       langText
+                                                       remoteAnalyzer)
         endTime <- liftIO $ getCurrentTime
 
         $(logInfo) $ "Request for " <> (pack $ show queryId) <> " took " <>
