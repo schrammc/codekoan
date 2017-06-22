@@ -74,12 +74,12 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
     merge (va, la, ta) (vb, lb, tb) | va == vb = (va, la, mergeTriesWith f ta tb)
                                     | otherwise =
       let (common, ra, rb) = pref va vb
-          nd | ra == V.empty =
+          nd | V.null ra =
             let new =
                   CTrieNode (M.singleton (V.head rb) (rb, V.length rb, tb)) (g ta)
                 other = thrd $ fromJust $ M.lookup (V.head common) mp
             in mergeTriesWith f new other
-             | rb == V.empty =
+             | V.null rb =
             let new =
                   CTrieNode (M.singleton (V.head ra) (ra, V.length ra, ta)) (g tb)
                 other = thrd $ fromJust $ M.lookup (V.head common) mp'
@@ -89,13 +89,21 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
                                             ,(V.head rb, (rb, V.length rb, tb))])
                               Nothing
       in nd `seq` (common, V.length common, nd)
-    pref va vb = let commons  = V.takeWhile (\(a,b) -> a == b) (V.zip va vb)
-                     common   = fst $ V.unzip commons
+    pref va vb = let common   = largestCommonPrefix va vb
                      n        = length common
                      (ra, rb) = (V.drop n va, V.drop n vb)
                  in common `seq` ra `seq` rb `seq` (common, ra, rb)
     g (CTrieLeaf x)  = Just x
     g (CTrieNode _ x) = x
+
+largestCommonPrefix :: (Eq a) => V.Vector a -> V.Vector a  -> V.Vector a
+largestCommonPrefix !va !vb | V.null va || V.null vb = V.empty
+                            | otherwise = V.unsafeSlice 0 (go 0) va
+  where
+    minLength = min (V.length va) (V.length vb)
+    go !i | i == minLength = i
+          | V.unsafeIndex va i == V.unsafeIndex vb i = go (i+1)
+          | otherwise = i
 
 -- | Build a suffix trie for a word. All leaves of the suffix trie will be
 -- labelled with the given value.
@@ -119,7 +127,7 @@ vtails :: V.Vector a -> [V.Vector a]
 vtails v = do
   start <- [0 .. V.length v]
   let n = (V.length v) - start
-  return $ V.slice start n v
+  return $ V.unsafeSlice start n v
 
 buildTrieWith :: (Foldable f, Hashable a, Eq a, Eq v)
                  => (v -> v -> v)
