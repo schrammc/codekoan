@@ -310,12 +310,13 @@ walkThroughZero :: (Hashable a, Eq a) =>
 walkThroughZero aut (LevenState ((pos,val):[])) v !vectorLength =
   walkThroughZero' 0
   where
+    !autLevenSize = levenSize aut
     walkThroughZero' !i =
       if i == vectorLength
       then let !pos' = pos+vectorLength
            in LevenDone (LevenState [(pos', val)])
       else let !j = pos + i
-           in if j < levenSize aut && V.unsafeIndex v i == levenIndex aut j
+           in if j < autLevenSize && V.unsafeIndex v i == levenIndex aut j
               then walkThroughZero' (i+1)
               else LevenPartial (i, 0)
 walkThroughZero _ _ _ _ =
