@@ -18,7 +18,7 @@ import           Control.DeepSeq
 import           Control.Monad.Catch
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
-import           Data.Foldable (foldl')
+import           Data.Foldable (foldl', toList)
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
@@ -96,9 +96,6 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
          (ngram',start', x):(takeRepeats start' rst)
      | otherwise = takeRepeats lastRec rst
 
-
-
-
 findMatches :: (NFData t, MonadLogger m, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
@@ -133,20 +130,20 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
       where
         go mp xs = foldl' f mp xs
         f m x = M.alter (f' x) (resultMetaData x) m
-        f' k Nothing   = Just [k]
-        f' k (Just xs) = Just (k:xs)
+        f' !k Nothing   = Just [k]
+        f' !k (Just xs) = Just (k:xs)
     ngramRelevant tks = indexBF =?: (token <$> tks)
 
-    searchFor (_, start, ts) =
-      let tokenVector = ts
-          result = search index n tokenVector minMatchLength
+    searchFor (_, start, tokenVector) =
+      let !result = search index n tokenVector minMatchLength
       in do
-           (metadata, range, score) <- result
+           (metadata, range, score) <- toList result
            -- TODO: instead of length foundTokens we need the length of the
            -- tokens that have been matched in the query doc!
-           let queryRange = Range start (start + rangeLength range)
-           case ngramWithRange (V.take (rangeLength range) ts) of
-             Nothing -> Seq.empty
+           let !rlength = rangeLength range
+               !queryRange = Range start (start + rlength)
+           case ngramWithRange rlength (V.unsafeTake rlength tokenVector) of
+             Nothing -> []
              Just x -> return $! AlignmentMatch { resultTextRange = x
                                                 , resultQueryRange = queryRange
                                                 , resultMetaData = metadata
@@ -157,16 +154,19 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
 mergePositionRanges :: Range a -> Range a -> Range a
-mergePositionRanges (Range start _) (Range _ end) = Range start end
+mergePositionRanges !(Range start _) !(Range _ end) = Range start end
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
-ngramWithRange :: V.Vector (TokenWithRange t l) -> Maybe (Range (LanguageText l))
-ngramWithRange xs | V.null xs = Nothing
-                  | otherwise =
-                    let !start = rangeStart . coveredRange $ V.head xs
-                        !end   = rangeEnd . coveredRange $ V.last xs
-                    in Just $! Range start end
+ngramWithRange :: Int
+                  -- ^ Length of the given vector (slight performance gain)
+               -> V.Vector (TokenWithRange t l)
+               -> Maybe (Range (LanguageText l))
+ngramWithRange !n !xs
+  | n <= 0 = Nothing
+  | otherwise =
+    Just $! Range (rangeStart . coveredRange $ V.unsafeHead xs)
+                  (rangeEnd . coveredRange $ V.unsafeIndex xs (n - 1))
 
 search :: (Hashable t, Eq t, FragmentData ann) =>
           SearchIndex t l ann
@@ -174,7 +174,7 @@ search :: (Hashable t, Eq t, FragmentData ann) =>
        -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
        -> Seq (ann, Range t , Int)
-search SearchIndex{..} !n xs !minMatchLength = do
+search SearchIndex{..} !n !xs !minMatchLength = do
   (matchedLength, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
   (mds, dist) <- results
   md <- foldr (<|) Seq.empty mds
