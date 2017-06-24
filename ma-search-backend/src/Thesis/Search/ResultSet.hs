@@ -72,8 +72,8 @@ answersWithCoverage :: (Eq t, FragmentData ann)
                         -> ResultSet t l ann
 answersWithCoverage cov resultSet =
   mapFragmentResults resultSet $ \ann -> \rs -> 
-     let n = fragDataTokenLength ann
-         frags = resultFragmentRange <$> rs
+     let !n = fragDataTokenLength ann
+         !frags = resultFragmentRange <$> rs
      in if coveragePercentage n frags >= cov'
         then Just rs
         else Nothing
@@ -136,7 +136,7 @@ buildResultSet results =
 
 -- | Ensure that a result set is maximal with respect to subsumption, i.e. that
 -- no alignment match for a pattern subsumes another.
-removeSubsumptionInSet:: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
+removeSubsumptionInSet :: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l ann
 removeSubsumptionInSet ResultSet{..}  =
   ResultSet $  fmap (\rs -> removeSubsumption' <$> rs) resultSetMap
 
@@ -149,7 +149,6 @@ removeSubsumption' results' = maxSet [] results
     results = sortOn (\r -> ( rangeStart $ resultQueryRange r
                             , (-1) * (rangeLength $ resultQueryRange r)))
                      results'
-    append x = (x:)
     maxSet _      []        = []
     maxSet active (next:xs) =
       let (subsumedByNone, active') = adjustActive active next
@@ -164,7 +163,7 @@ removeSubsumption' results' = maxSet [] results
           subsumedByNone = null $
                            filter (subsumedProperSame next) active'
       in if subsumedByNone
-         then (True, append next active')
+         then (True, next:active')
          else (False, active')
 
 -- | Get the number of answers for which this result set contains alignment
