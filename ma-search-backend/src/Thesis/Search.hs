@@ -142,14 +142,14 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
            -- tokens that have been matched in the query doc!
            let !rlength = rangeLength range
                !queryRange = Range start (start + rlength)
-           case ngramWithRange rlength (V.unsafeTake rlength tokenVector) of
-             Nothing -> []
-             Just x -> return $! AlignmentMatch { resultTextRange = x
-                                                , resultQueryRange = queryRange
-                                                , resultMetaData = metadata
-                                                , resultFragmentRange = range
-                                                , resultLevenScore = score
-                                                }
+           return $! AlignmentMatch
+                      { resultTextRange =
+                          ngramWithRange rlength (V.unsafeTake rlength tokenVector)
+                      , resultQueryRange = queryRange
+                      , resultMetaData = metadata
+                      , resultFragmentRange = range
+                      , resultLevenScore = score
+                      }
 
 -- | A range starting at the start of the first range and ending at the end of
 -- the second range
@@ -161,12 +161,10 @@ mergePositionRanges !(Range start _) !(Range _ end) = Range start end
 ngramWithRange :: Int
                   -- ^ Length of the given vector (slight performance gain)
                -> V.Vector (TokenWithRange t l)
-               -> Maybe (Range (LanguageText l))
-ngramWithRange !n !xs
-  | n <= 0 = Nothing
-  | otherwise =
-    Just $! Range (rangeStart . coveredRange $ V.unsafeHead xs)
-                  (rangeEnd . coveredRange $ V.unsafeIndex xs (n - 1))
+               -> Range (LanguageText l)
+ngramWithRange !n !xs =
+      Range (rangeStart . coveredRange $ V.unsafeHead xs)
+            (rangeEnd . coveredRange $ V.unsafeIndex xs (n - 1))
 
 search :: (Hashable t, Eq t, FragmentData ann) =>
           SearchIndex t l ann

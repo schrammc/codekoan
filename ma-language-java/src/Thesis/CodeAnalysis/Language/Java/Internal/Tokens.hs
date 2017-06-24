@@ -12,7 +12,7 @@ module Thesis.CodeAnalysis.Language.Java.Internal.Tokens where
 
 import Control.DeepSeq
 import Data.Binary (Binary)
-import Data.Hashable (Hashable)
+import Data.Hashable (Hashable, hashWithSalt)
 import GHC.Generics (Generic)
 
 data Token = TokenLT
@@ -56,8 +56,9 @@ data Token = TokenLT
            | TokenLabel
            | TokenReturn
            | TokenBooleanValue
-           deriving (Show,Eq, Ord, Generic, NFData)
+           deriving (Show,Eq, Ord, Generic, NFData, Enum)
 
-instance Hashable Token
+instance Hashable Token where
+  hashWithSalt n tok = hashWithSalt n (fromEnum tok)
 
 instance Binary Token

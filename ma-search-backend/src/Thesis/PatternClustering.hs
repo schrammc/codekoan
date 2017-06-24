@@ -59,9 +59,9 @@ clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
     case resultSetMaybe of
       Nothing -> return (ann, ann, [])
       Just resultSet -> {-# SCC theculprit #-}
-        let results = fmap getFragmentId $
+        let results =  fmap getFragmentId $
                        M.keys $ resultSetMap resultSet
-        in return (ann, ann, results)
+        in results `seql` return (ann, ann, results)
   return $ flattenSCC <$> stronglyConnComp links
   where
     patternMap = foldl' (\mp (ann, !txt) ->
@@ -74,3 +74,5 @@ clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
                           Just (tks, txt) -> return (tks, txt)
                           _ -> MaybeT $ return Nothing
     source = CL.sourceList $ (\(ann, t) -> (toFragData ann, t)) <$> toList patterns
+    seql [] v = v
+    seql (x:xs) v = seq x (seql xs v)
