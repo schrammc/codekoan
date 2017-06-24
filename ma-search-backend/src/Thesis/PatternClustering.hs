@@ -5,6 +5,8 @@
 -- Copyright: (c) Christof Schramm, 2016, 2017
 -- Stability: Experimental
 --
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
 module Thesis.PatternClustering where
 
 import           Control.DeepSeq
@@ -13,11 +15,10 @@ import           Control.Monad.Catch (MonadThrow)
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
-import           Data.Algorithm.MaximalCliques
 import qualified Data.Conduit.List as CL
+import           Data.Foldable (foldl')
 import           Data.Foldable (toList)
 import qualified Data.HashMap.Strict as M
-import qualified Data.HashSet as S
 import           Data.Hashable (Hashable)
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic.Internal
@@ -26,6 +27,7 @@ import           Thesis.Search.FragmentData
 import           Thesis.Search.Index
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
+import           Data.Graph
 
 -- | Build clusters of a set of patterns. These clusters are cliques in a graph
 -- of fragment ids. Two fragments in this graph are connected if each is similar
@@ -35,7 +37,7 @@ import           Thesis.Search.Settings
 -- language. Then each pattern is run against the index and the results
 -- collected to build the graph mentioned above.
 clusterPatterns :: ( Eq t, Hashable t, NFData t
-                   , Eq ann, Hashable ann, FragmentData ann
+                   , Eq ann, Hashable ann, FragmentData ann, Ord (FragmentId ann)
                    , MonadIO m, MonadLogger m, MonadThrow m
                    , Foldable f) =>
                    Language t l
@@ -55,24 +57,20 @@ clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
                                      (txt, tks)
                                      semanticAnalyzer
     case resultSetMaybe of
-      Nothing -> return (ann, [])
-      Just resultSet ->
-        let results = fmap getFragmentId $ M.keys $ resultSetMap resultSet
-        in length results `seq` return (ann, take 2 results)
-  let linkMap = M.fromList $ (\(a,ls) -> (a, S.fromList ls)) <$> links
-  return $ getMaximalCliques (doublyLinked linkMap) (M.keys linkMap)
+      Nothing -> return (ann, ann, [])
+      Just resultSet -> {-# SCC theculprit #-}
+        let results = fmap getFragmentId $
+                       M.keys $ resultSetMap resultSet
+        in return (ann, ann, results)
+  return $ flattenSCC <$> stronglyConnComp links
   where
-    patternMap = foldl (\mp (ann, txt) ->
+    patternMap = foldl' (\mp (ann, !txt) ->
                            case processAndTokenize lang txt of
                              Nothing -> mp
-                             Just tks -> M.insert ann (tks, txt) mp)
+                             Just !tks -> M.insert ann (tks, txt) mp)
                        M.empty
                        patterns
     lookupPattern ann = case M.lookup (getFragmentId ann) patternMap of
                           Just (tks, txt) -> return (tks, txt)
                           _ -> MaybeT $ return Nothing
     source = CL.sourceList $ (\(ann, t) -> (toFragData ann, t)) <$> toList patterns
-    doublyLinked linkMap a b = linked linkMap a b && linked linkMap b a
-    linked linkMap a b = case M.lookup a linkMap of
-      Just s -> S.member b s
-      Nothing -> error "Impossible case (pattern clustering)"
