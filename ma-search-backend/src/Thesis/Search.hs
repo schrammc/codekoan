@@ -18,7 +18,7 @@ import           Control.DeepSeq
 import           Control.Monad.Catch
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
-import           Data.Foldable (foldl', toList)
+import           Data.Foldable (toList)
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
@@ -28,7 +28,6 @@ import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Text as Text
 import qualified Data.Vector as V
-import           Debug.Trace
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.CodeAnalysis.Semantic.Blocks
@@ -112,12 +111,7 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
 
-  let n = sum $ length <$> resultList
-
-  n `seq` $(logDebug) $ ("Result list length: " <>
-                        (Text.pack . show $ n))
-
-  let searchResults = buildMap resultList
+  let searchResults = buildMap' resultList
 
   searchResults `seq` $(logDebug) $ "Number of search results: " <>
                         (Text.pack . show . sum $ length <$> searchResults) <>
@@ -126,12 +120,9 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
   return $ ResultSet $ (:[]) <$> searchResults
 
   where
-    buildMap groups = foldl' (\m group -> go m group) M.empty groups
-      where
-        go mp xs = foldl' f mp xs
-        f m x = M.alter (f' x) (resultMetaData x) m
-        f' !k Nothing   = Just [k]
-        f' !k (Just xs) = Just (k:xs)
+    buildMap' groups =
+      M.fromListWith (++) ((\x -> (resultMetaData x, [x])) <$> concat groups)
+
     ngramRelevant tks = indexBF =?: (token <$> tks)
 
     searchFor (_, start, tokenVector) =
@@ -141,20 +132,14 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
            -- TODO: instead of length foundTokens we need the length of the
            -- tokens that have been matched in the query doc!
            let !rlength = rangeLength range
-               !queryRange = Range start (start + rlength)
            return $! AlignmentMatch
                       { resultTextRange =
                           ngramWithRange rlength (V.unsafeTake rlength tokenVector)
-                      , resultQueryRange = queryRange
+                      , resultQueryRange = Range start (start + rlength)
                       , resultMetaData = metadata
                       , resultFragmentRange = range
                       , resultLevenScore = score
                       }
-
--- | A range starting at the start of the first range and ending at the end of
--- the second range
-mergePositionRanges :: Range a -> Range a -> Range a
-mergePositionRanges !(Range start _) !(Range _ end) = Range start end
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
@@ -165,6 +150,7 @@ ngramWithRange :: Int
 ngramWithRange !n !xs =
       Range (rangeStart . coveredRange $ V.unsafeHead xs)
             (rangeEnd . coveredRange $ V.unsafeIndex xs (n - 1))
+{-# INLINE ngramWithRange #-}
 
 search :: (Hashable t, Eq t, FragmentData ann) =>
           SearchIndex t l ann
@@ -185,7 +171,9 @@ search SearchIndex{..} !n !xs !minMatchLength = do
 -- return the range of covered tokens in the answer fragments.
 buildRange :: FragmentData d => d -> Int -> Int -> Range a
 buildRange !dat !n !d =
-  Range (fragDataTokenLength dat - (n + d)) (fragDataTokenLength dat - d)
+  let !tokenLength = fragDataTokenLength dat
+  in Range (tokenLength - (n + d)) (tokenLength - d)
+{-# INLINE buildRange #-}
 
 tokenizeAndPerformSearch :: ( Eq t
                             , NFData t
