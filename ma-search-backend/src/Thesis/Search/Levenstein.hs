@@ -236,7 +236,7 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                      st'
                      (d + labelLength)
                      minDepth
-        LevenPartial (nMatched, levenDist) ->
+        LevenPartial !nMatched !levenDist ->
           let !k = V.length label - nMatched
           in if | nMatched == 0 -> Seq.empty
                 | nMatched >  0 && d + nMatched >= minDepth ->
@@ -267,7 +267,7 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                (Seq.viewl -> (s :< _)) -> Seq.singleton (d, hits ,s)
 
 data LevenResult = LevenDone !LevenState
-                 | LevenPartial {-# UNPACK #-} !(Int, Int)
+                 | LevenPartial {-# UNPACK #-} !Int {-# UNPACK #-} !Int
                    -- The tuple contains:
                    --   * The number of matched tokens
                    --
@@ -293,7 +293,7 @@ walkThrough acceptScore aut state v !vectorLength =
         in case scoreMaybe of
           Just _ -> walkThrough' scoreMaybe (i+1) st'
           Nothing    -> case lastScore of
-            Just x -> x `seq` LevenPartial (i,x)
+            Just x -> x `seq` LevenPartial i x
             Nothing -> error "Levenshtein.walkthrough: unexpected failure!"
 
 -- An optimized version of 'walkThrough' for levenshtein distance 0.
@@ -318,6 +318,6 @@ walkThroughZero aut (LevenState ((pos,val):[])) v !vectorLength =
       else let !j = pos + i
            in if j < autLevenSize && V.unsafeIndex v i == levenIndex aut j
               then walkThroughZero' (i+1)
-              else LevenPartial (i, 0)
+              else LevenPartial i 0
 walkThroughZero _ _ _ _ =
   error "Levenshtein.walkThroughZero: unexpected case (dist /= 0)"
