@@ -32,6 +32,7 @@ import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Range hiding (coveragePercentage)
+import           Thesis.Data.Stackoverflow.Answer (AnswerFragmentMetaData)
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.BloomFilter
 import           Thesis.Search.FragmentData
@@ -111,7 +112,7 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
   $(logDebug) $ "Number of search starting points " <>
                 (Text.pack . show $ length relevantNGramTails)
 
-  let searchResults = buildMap' resultList
+  let searchResults = buildMap $ concat resultList
 
   searchResults `seq` $(logDebug) $ "Number of search results: " <>
                         (Text.pack . show . sum $ length <$> searchResults) <>
@@ -120,9 +121,6 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
   return $ ResultSet $ (:[]) <$> searchResults
 
   where
-    buildMap' groups =
-      M.fromListWith (++) ((\x -> (resultMetaData x, [x])) <$> concat groups)
-
     ngramRelevant tks = indexBF =?: (token <$> tks)
 
     searchFor (_, start, tokenVector) =
@@ -140,6 +138,21 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
                       , resultFragmentRange = range
                       , resultLevenScore = score
                       }
+
+buildMap :: (Eq ann, Hashable ann, FragmentData ann) =>
+            [AlignmentMatch t l ann]
+         -> M.HashMap ann [AlignmentMatch t l ann]
+buildMap xs =
+  M.fromListWith (++) ((\x -> (resultMetaData x, [x])) <$> xs)
+
+{-# SPECIALIZE buildMap :: [AlignmentMatch t l (Int, Int)]
+                        -> M.HashMap (Int, Int) [AlignmentMatch t l (Int, Int)]
+  #-}
+
+{-# SPECIALIZE buildMap :: [AlignmentMatch t l AnswerFragmentMetaData]
+                        -> M.HashMap AnswerFragmentMetaData
+                                     [AlignmentMatch t l AnswerFragmentMetaData]
+  #-}
 
 -- | For an ngram with (assumed) contiguous tokens give us the position range of
 -- the whole ngram and the ngram
