@@ -179,6 +179,7 @@ lookupAllSuff !aut trie !minMatchLength
                  (startL aut)
                  0
                  minMatchLength
+{-# INLINABLE lookupAllSuff #-}
 
 -- NOTE: THIS APPEARS TO BE IDENTICAL WITH lookupWithL' EXCEPT FOR THE DEPTH
 -- TRACKING. ONE OF THE TWO SHOULD THEREFORE BE SCRAPPED!
@@ -237,8 +238,7 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                      minDepth
         LevenPartial !nMatched !levenDist ->
           let !k = V.length label - nMatched
-          in if | nMatched == 0 -> Seq.empty
-                | nMatched >  0 && d + nMatched >= minDepth ->
+          in if | nMatched >  0 && d + nMatched >= minDepth ->
                   let !valuesFiltered = do
                         (s, d) <- trieLeavesDist node
                         let !d' = d+k
@@ -247,13 +247,14 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                   in return ( resultDepth
                             , valuesFiltered
                             , levenDist)
-                | nMatched > 0 -> Seq.empty
+                | nMatched >= 0 -> Seq.empty
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
     cur node | d <= minDepth = Seq.empty
              | otherwise = case acceptScore aut st of
                              Just s -> Seq.singleton (d, trieLeavesDist node, s)
                              _ -> Seq.empty
+{-# INLINEABLE lookupSuff #-}
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial {-# UNPACK #-} !Int {-# UNPACK #-} !Int

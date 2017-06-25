@@ -138,6 +138,7 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
                       , resultFragmentRange = range
                       , resultLevenScore = score
                       }
+{-# INLINABLE findMatches #-}
 
 buildMap :: (Eq ann, Hashable ann, FragmentData ann) =>
             [AlignmentMatch t l ann]
@@ -179,6 +180,8 @@ search SearchIndex{..} !n !xs !minMatchLength = do
   rg `seq` return $ (md, rg, levenD)
   where
     !aut = LevensteinAutomaton (V.length xs) n (token . (V.unsafeIndex xs))
+
+{-# INLINABLE search #-}
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
@@ -297,3 +300,4 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
     getQueryTokens = processAndTokenize lang txt
     printNumberOfAlignmentMatches = Text.pack . show . numberOfAlignmentMatches
     printNumberOfGroups = Text.pack . show . numberOfFragments
+{-# INLINABLE performSearch #-}
