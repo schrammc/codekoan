@@ -21,6 +21,7 @@ import Data.Hashable
 import Data.Maybe (fromMaybe)
 
 
+
 import           Text.XML.Stream.Parse
 import           Thesis.Data.Stackoverflow.XML.Helpers
 
@@ -69,7 +70,10 @@ data AnswerFragmentMetaData =
   AnswerFragmentMetaData { fragmentMetaId :: {-# UNPACK #-} !AnswerFragmentId
                          , fragmentMetaSize :: {-# UNPACK #-} !Int
                          }
-  deriving (Show, Eq, Ord, Generic, Hashable)
+  deriving (Show, Eq, Ord, Generic)
+
+instance Hashable AnswerFragmentMetaData where
+  hashWithSalt n AnswerFragmentMetaData{..} = hashWithSalt n fragmentMetaId
 
 instance NFData AnswerFragmentMetaData where
   rnf AnswerFragmentMetaData{..} = deepseq fragmentMetaId ()
