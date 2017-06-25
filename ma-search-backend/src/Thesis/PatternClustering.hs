@@ -47,7 +47,7 @@ clusterPatterns :: ( Eq t, Hashable t, NFData t
                 -> f (FragmentId ann, LanguageText l)
                 -> m [[FragmentId ann]]
 clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
-  index <- buildIndex lang source 10
+  index <- buildIndex lang source (minMatchLength settings)
   links <- forM (toList patterns) $ \(ann, txt) -> do
     let Just (tks, _) = M.lookup ann patternMap
     resultSetMaybe  <- performSearch index
@@ -76,3 +76,4 @@ clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
     source = CL.sourceList $ (\(ann, t) -> (toFragData ann, t)) <$> toList patterns
     seql [] v = v
     seql (x:xs) v = seq x (seql xs v)
+{-# INLINEABLE clusterPatterns #-}
