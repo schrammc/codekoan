@@ -69,6 +69,7 @@ data Range a = Range { rangeStart :: {-# UNPACK #-} !Int
 -- | The number of characters in a range
 rangeLength :: Range a -> Int
 rangeLength (Range a b) = b - a
+{-# INLINE rangeLength #-}
 
 -- | From a given list of ranges build a list of ranges so that the ranges are
 -- non-overlapping (i.e. no position is covered by a range twice). Furthermore the
@@ -128,6 +129,7 @@ merge :: Range a -> Range a -> Maybe (Range a)
 merge ra@(Range a b) rb@(Range c d) | overlapOrBorder ra rb =
                                         Just $! Range (min a c) (max b d)
                                     | otherwise = Nothing
+{-# INLINE merge #-}
 
 -- | A predicate to tell if two ranges overlap. Overlapping is when two ranges
 -- share at least one position.
@@ -139,18 +141,22 @@ merge ra@(Range a b) rb@(Range c d) | overlapOrBorder ra rb =
 overlap :: Range a -> Range a -> Bool
 overlap !(Range a b) !(Range c d) =
   (b <= d && c < b) || (d <= b && a < d)
+{-# INLINE overlap #-}
 
 -- | A predicate to tell if two ranges overlap or touch.
 overlapOrBorder :: Range a -> Range a -> Bool
 overlapOrBorder !(Range a b) !(Range c d) =
   (b <= d && c <= b) || (d <= b && a <= d)
+{-# INLINE overlapOrBorder #-}
 
 -- | Return true if the second range contains the first range
 isSubRangeOf :: Range a -> Range a -> Bool
 isSubRangeOf !(Range a b) !(Range c d) = c <= a && d >= b
+{-# INLINE isSubRangeOf #-}
 
 textInRange :: Range a -> Text -> Text
 textInRange (Range a b) txt = Text.take (b - a) $! (Text.drop a txt)
+{-# INLINE textInRange #-}
 
 -- | A helper function for display purposes. This function returns the text in
 -- the given range and the line - range for the covered text (end-exclusive).
@@ -181,8 +187,9 @@ convertRange (Range a b) = (Range a b)
 -- | /O(1)/ Get the slice of the vector that's in range.
 vectorInRange :: Range a -> V.Vector a -> Maybe (V.Vector a)
 vectorInRange (Range a b) vec | b - a >= 0 && b <= V.length vec  =
-                                Just $ V.slice a (b-a) vec
+                                Just $! V.slice a (b-a) vec
                               | otherwise = Nothing
+{-# INLINE vectorInRange #-}
 
 -- | Helper function to get all ranges in a text in one pass because text has
 -- /O(n)/ random access.
