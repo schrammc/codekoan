@@ -16,16 +16,15 @@
 {-# LANGUAGE RecordWildCards #-}
 module Thesis.Search.Levenstein where
 
-import           Thesis.Search.CompressedTrie
-
 import           Data.Foldable
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable (Hashable)
 import           Data.Monoid ((<>))
-import           Data.Sequence (Seq, ViewL(..), (><) )
+import           Data.Sequence (Seq, (><))
 import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Vector as V
+import           Thesis.Search.CompressedTrie
 
 --------------------------------------------------------------------------------
 --
@@ -251,20 +250,10 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                 | nMatched > 0 -> Seq.empty
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
-    cur node =
-          let !score = case acceptScore aut st of
-                        Just s  -> Seq.singleton s
-                        Nothing -> Seq.empty
-              !hits = if d > minDepth
-                      then do
-                        _ <- score -- Do nothing if we fail to calculate the score
-                        trieLeavesDist node
-                      else Seq.empty
-          in if Seq.null hits
-             then Seq.empty
-             else case score of
-               (Seq.viewl -> EmptyL) -> Seq.empty
-               (Seq.viewl -> (s :< _)) -> Seq.singleton (d, hits ,s)
+    cur node | d <= minDepth = Seq.empty
+             | otherwise = case acceptScore aut st of
+                             Just s -> Seq.singleton (d, trieLeavesDist node, s)
+                             _ -> Seq.empty
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial {-# UNPACK #-} !Int {-# UNPACK #-} !Int
