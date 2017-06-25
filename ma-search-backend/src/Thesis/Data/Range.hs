@@ -183,6 +183,7 @@ textLinesInRange (Range a b) txt =
 -- | A helper function to convert the phantom type of a range
 convertRange :: Range a -> Range b
 convertRange (Range a b) = (Range a b)
+{-# INLINE convertRange #-}
 
 -- | /O(1)/ Get the slice of the vector that's in range.
 vectorInRange :: Range a -> V.Vector a -> Maybe (V.Vector a)
