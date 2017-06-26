@@ -219,7 +219,8 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
             otherNodes = snd <$> filter (\(k,_) -> k `M.member` mp') (M.toList mp)
             curValues = mconcat $ (\(_, _, nd') -> cur nd') <$> otherNodes
         in curValues >< results
-    CTrieLeaf v    ->
+    CTrieLeaf v | d < minDepth -> Seq.empty
+                | otherwise ->
       maybe Seq.empty
             (\score -> Seq.singleton (d, Seq.singleton (v, 0),score))
             (acceptScore aut st)
@@ -254,7 +255,6 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
              | otherwise = case acceptScore aut st of
                              Just s -> Seq.singleton (d, trieLeavesDist node, s)
                              _ -> Seq.empty
-{-# INLINEABLE lookupSuff #-}
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial {-# UNPACK #-} !Int {-# UNPACK #-} !Int
