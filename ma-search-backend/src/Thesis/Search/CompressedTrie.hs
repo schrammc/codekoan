@@ -11,6 +11,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UnboxedTuples #-}
 module Thesis.Search.CompressedTrie where
 
 import           Control.Applicative ((<|>))
@@ -51,11 +52,12 @@ linearTrie :: (Foldable f, Eq a, Hashable a) => f a -> v -> CompressedTrie a v
 linearTrie !xs !v = linearTrie' (V.fromList $ toList xs) v
 
 linearTrie' :: (Eq a, Hashable a) => V.Vector a -> v -> CompressedTrie a v
-linearTrie' !vec !v | V.null vec = CTrieNode M.empty (Just v)
+linearTrie' !vec !v | vectorLength == 0 = CTrieNode M.empty (Just v)
                     | otherwise  = CTrieNode mp Nothing
   where
+    !vectorLength = V.length vec
     x = V.head vec
-    mp = vec `seq` M.singleton x $! (vec, V.length vec, CTrieLeaf v)
+    mp = vec `seq` M.singleton x $! (vec, vectorLength, CTrieLeaf v)
 
 -- | Merge two tries with a merging function if two values are at the end of the
 -- same path
@@ -71,9 +73,10 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
   CTrieNode (M.unionWith merge mp mp') (fOr f v v')
   where
     thrd (_, _, x) = x
-    merge (va, la, ta) (vb, lb, tb) | va == vb = (va, la, mergeTriesWith f ta tb)
+    merge (va, la, ta) (vb, lb, tb) | V.length va == V.length vb &&
+                                      va == vb = (va, la, mergeTriesWith f ta tb)
                                     | otherwise =
-      let (common, ra, rb) = pref va vb
+      let (# common, ra, rb #) = pref va vb
           nd | V.null ra =
             let new =
                   CTrieNode (M.singleton (V.head rb) (rb, V.length rb, tb)) (g ta)
@@ -89,18 +92,19 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
                                             ,(V.head rb, (rb, V.length rb, tb))])
                               Nothing
       in nd `seq` (common, V.length common, nd)
-    pref va vb = let common   = largestCommonPrefix va vb
-                     n        = length common
-                     (ra, rb) = (V.drop n va, V.drop n vb)
-                 in common `seq` ra `seq` rb `seq` (common, ra, rb)
+    pref va vb = let !common = largestCommonPrefix va vb
+                     !n     = V.length common
+                     !ra    = V.drop n va
+                     !rb    = V.drop n vb
+                 in (# common, ra, rb #)
     g (CTrieLeaf x)  = Just x
     g (CTrieNode _ x) = x
 
 largestCommonPrefix :: (Eq a) => V.Vector a -> V.Vector a  -> V.Vector a
-largestCommonPrefix !va !vb | V.null va || V.null vb = V.empty
+largestCommonPrefix !va !vb | minLength == 0 = V.empty
                             | otherwise = V.unsafeSlice 0 (go 0) va
   where
-    minLength = min (V.length va) (V.length vb)
+    !minLength = min (V.length va) (V.length vb)
     go !i | i == minLength = i
           | V.unsafeIndex va i == V.unsafeIndex vb i = go (i+1)
           | otherwise = i
@@ -120,14 +124,15 @@ buildSuffixTrie :: (Hashable a, Eq a, Eq v)
 buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
   where
     n = fromMaybe 0 minSuffixLength
-    suffixes = filter ((> n) . length) (vtails xs)
+    suffixes = filter ((> n) . V.length) (vtails xs)
 
 -- | Like Data.List.tails for Vector. This doesn't copy the vector's contents.
 vtails :: V.Vector a -> [V.Vector a]
 vtails v = do
-  start <- [0 .. V.length v]
-  let n = (V.length v) - start
-  return $ V.unsafeSlice start n v
+  start <- [0 .. len]
+  return $ V.unsafeSlice start (len - start) v
+  where
+    !len = V.length v
 
 buildTrieWith :: (Foldable f, Hashable a, Eq a, Eq v)
                  => (v -> v -> v)
