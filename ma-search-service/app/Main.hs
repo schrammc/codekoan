@@ -153,7 +153,7 @@ appLoop foundation@(Application{..}) replyChan channel = do
         endTime <- liftIO $ getCurrentTime
 
         $(logInfo) $ "Request for " <> (pack $ show queryId) <> " took " <>
-                     (pack . show $ diffUTCTime startTime endTime)
+                     (pack . show $ diffUTCTime endTime startTime)
       
         case searchResult of
           -- Log an error if we can't find a search result in the index for the
