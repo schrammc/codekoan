@@ -280,6 +280,7 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
                                                  coverageAnalyzed
                      $(logDebug) "Repeat coverage filter on individual results..."
                      return $ answersWithCoverage coveragePercentage $
+                              sortAlignmentMatches $
                               filterSumTotalLength minSumResultLength r
                    else do
                      $(logDebug) "Skipping block analysis."
