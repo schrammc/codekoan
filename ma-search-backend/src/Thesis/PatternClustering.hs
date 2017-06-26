@@ -76,4 +76,3 @@ clusterPatterns lang toFragData semanticAnalyzer settings patterns = do
     source = CL.sourceList $ (\(ann, t) -> (toFragData ann, t)) <$> toList patterns
     seql [] v = v
     seql (x:xs) v = seq x (seql xs v)
-{-# INLINEABLE clusterPatterns #-}
