@@ -24,9 +24,6 @@ module Thesis.Data.Range
           -- ** Sub-range detection
         , isSubRangeOf
 
-          -- * Splitting
-        , rangeSplits
-
           -- * Unions
         , rangeCover
         , merge
@@ -46,7 +43,7 @@ module Thesis.Data.Range
 
          ) where
 
-import Data.List (sort, nub)
+import Data.List (sort, nub, foldl')
 
 import Data.Aeson
 import GHC.Generics(Generic)
@@ -121,7 +118,7 @@ rangeSplits rangeList =
 -- from return the fraction of positions that are covered by at least one range.
 coveragePercentage :: Int -> [Range a] -> Double
 coveragePercentage !n ranges =
-  (fromIntegral . sum $ rangeLength <$> rangeCover ranges) / (fromIntegral n)
+  (fromIntegral $ foldl' (+) 0 $ rangeLength <$> rangeCover ranges) / (fromIntegral n)
 
 -- | Merge two ranges. If the two ranges overlap or border each other, return a
 -- merged range including both. If they don't, return Nothing.

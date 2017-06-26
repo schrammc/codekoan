@@ -36,7 +36,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
 import           Control.DeepSeq
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable
-import           Data.List (groupBy, sortOn, sortBy)
+import           Data.List (groupBy, sortOn, sortBy, foldl')
 import           Data.Maybe (catMaybes)
 import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
@@ -232,4 +232,4 @@ filterSumTotalLength n resultSet =
   where
     -- The length of all query token ranges summed up
     totalLength :: [AlignmentMatch t l ann] -> Int
-    totalLength xs = sum $ rangeLength . resultFragmentRange <$> xs
+    totalLength xs = foldl' (+) 0 (rangeLength . resultFragmentRange <$> xs)
