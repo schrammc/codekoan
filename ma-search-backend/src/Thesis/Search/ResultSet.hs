@@ -30,6 +30,7 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , removeSubsumptionInSet
 
                                , removeSubsumption'
+                               , sortAlignmentMatches
                                )where
 
 import           Control.DeepSeq
@@ -141,15 +142,17 @@ removeSubsumptionInSet :: (Eq t, Eq ann) => ResultSet t l ann -> ResultSet t l a
 removeSubsumptionInSet ResultSet{..}  =
   ResultSet $  fmap (\rs -> removeSubsumption' <$> rs) resultSetMap
 
+sortAlignmentMatches :: ResultSet t l ann -> ResultSet t l ann
+sortAlignmentMatches rs = mapFragmentResults rs $ \_ matches ->
+  Just $ sortOn (\r -> ( rangeStart $ resultQueryRange r
+                              , (-1) * (rangeLength $ resultQueryRange r)))
+                       matches
 removeSubsumption' :: (Eq t, Eq ann) =>
                       [AlignmentMatch t l ann]
                    -> [AlignmentMatch t l ann]
 removeSubsumption' [] = []
-removeSubsumption' results' = maxSet [] results
+removeSubsumption' results = maxSet [] results
   where
-    results = sortOn (\r -> ( rangeStart $ resultQueryRange r
-                            , (-1) * (rangeLength $ resultQueryRange r)))
-                     results'
     maxSet _      []        = []
     maxSet active (next:xs) =
       let (# subsumedByNone, active' #) = adjustActive active next

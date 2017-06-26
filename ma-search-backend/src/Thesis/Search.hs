@@ -96,6 +96,10 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
          (ngram',start', x):(takeRepeats start' rst)
      | otherwise = takeRepeats lastRec rst
 
+
+-- | TAKE CARE: alignment matches that are in the result set of this function
+-- are not yet sorted and can cause problems with functions such as 'rangeCover'
+-- or redundant match removal!
 findMatches :: (NFData t, MonadLogger m, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
@@ -126,7 +130,7 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
     searchFor (_, start, tokenVector) =
       let !result = search index n tokenVector minMatchLength
       in do
-           (metadata, range, score) <- toList result
+           (metadata, range, score) <- result
            -- TODO: instead of length foundTokens we need the length of the
            -- tokens that have been matched in the query doc!
            let !rlength = rangeLength range
@@ -171,11 +175,11 @@ search :: (Hashable t, Eq t, FragmentData ann) =>
        -> Int  -- ^ Levenshtein distance
        -> V.Vector (TokenWithRange t l)
        -> Int -- ^ Minimal length of an alignment match
-       -> Seq (ann, Range t , Int)
+       -> [(ann, Range t , Int)]
 search SearchIndex{..} !n !xs !minMatchLength = do
   (matchedLength, results, levenD) <- lookupAllSuff aut indexTrie minMatchLength
-  (mds, dist) <- results
-  md <- foldr (<|) Seq.empty mds
+  (mds, dist) <- toList $ results
+  md <- S.toList mds
   let rg = buildRange md matchedLength dist
   rg `seq` return $ (md, rg, levenD)
   where
@@ -235,7 +239,8 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
 
   firstMatches <- findMatches index levenshteinDistance queryTokens minMatchLength
 
-  let initialMatches = filterSumTotalLength minSumResultLength $
+  let initialMatches = sortAlignmentMatches $
+                       filterSumTotalLength minSumResultLength $
                        fragmentsLongerThan minMatchLength $
                        firstMatches
 

@@ -78,9 +78,9 @@ rangeLength (Range a b) = b - a
 -- If two ranges are conflicting, they are merged into one range covering both
 -- original ranges
 rangeCover :: [Range a] -> [Range a]
-rangeCover rangeList =
-  case sort rangeList of
-    (r:rs) -> result r rs
+rangeCover ranges =
+  case ranges of
+    r:rs -> result r rs
     [] -> []
   where
     result cur [] = [cur]

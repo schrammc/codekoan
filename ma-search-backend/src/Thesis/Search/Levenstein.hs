@@ -169,9 +169,9 @@ lookupWithL' acceptScore aut (CTrieNode mp v) st = cur >< do
 lookupAllSuff :: (Hashable a, Eq a, Eq v) => LevensteinAutomaton a
               -> CompressedTrie a (S.Set v)
               -> Int -- ^ Minimum match length
-              -> Seq (Int, Seq (S.Set v, Int), Int)
+              -> [(Int, Seq (S.Set v, Int), Int)]
 lookupAllSuff !aut trie !minMatchLength
-  | trie == empty = Seq.empty
+  | trie == empty = []
   | otherwise = do
       lookupSuff acceptAllScoreL
                  aut
@@ -192,37 +192,41 @@ lookupSuff :: (Hashable a, Eq a, Eq v)
            -- ^ Depth
            -> Int
            -- ^ Minimal result depth
-           -> Seq (Int, Seq (S.Set v, Int) , Int)
+           -> [(Int, Seq (S.Set v, Int) , Int)]
 lookupSuff acceptScore !aut nd !st !d !minDepth =
   case nd of
     CTrieNode mp curVal
       | levenN aut == 0 -> case stateList st of
-        [] -> Seq.empty
+        [] -> []
         ((i,_):[]) | i < levenSize aut ->
                      let !k = levenIndex aut i
                      in case M.lookup k mp of
-                       Nothing -> cur nd
+                       Nothing -> toList $ cur nd
                        Just br ->
-                         cur (CTrieNode (M.delete k mp) curVal) >< oneBranch br
-                  | i == levenSize aut -> cur nd
+                         case cur (CTrieNode (M.delete k mp) curVal) of
+                           Nothing -> oneBranch br
+                           Just x -> x:(oneBranch br)
+                  | i == levenSize aut -> toList $ cur nd
                   | otherwise ->
                      error "Levenshtein.lookupSuff impossible case (i > levenSize)"
         _  -> error "Levenshtein.lookupSuff impossible case (length stateList > 1)"
       | otherwise ->
         let mp' = M.mapMaybe f mp
             f br = let rs = oneBranch br
-                   in if Seq.null rs
+                   in if null rs
                       then Nothing
                       else Just $! rs
             results = mconcat $ M.elems mp'
             -- Nodes for which we have no results
             otherNodes = snd <$> filter (\(k,_) -> k `M.member` mp') (M.toList mp)
-            curValues = mconcat $ (\(_, _, nd') -> cur nd') <$> otherNodes
-        in curValues >< results
-    CTrieLeaf v | d < minDepth -> Seq.empty
+            curValues = foldl' (\l (_, _, nd') -> case cur nd' of
+                                     Nothing -> l
+                                     Just x -> x:l) results otherNodes
+        in curValues
+    CTrieLeaf v | d < minDepth -> []
                 | otherwise ->
-      maybe Seq.empty
-            (\score -> Seq.singleton (d, Seq.singleton (v, 0),score))
+      maybe []
+            (\score -> [(d, Seq.singleton (v, 0),score)])
             (acceptScore aut st)
   where
     oneBranch (label, labelLength, node) =
@@ -248,13 +252,13 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                   in return ( resultDepth
                             , valuesFiltered
                             , levenDist)
-                | nMatched >= 0 -> Seq.empty
+                | nMatched >= 0 -> []
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
-    cur node | d <= minDepth = Seq.empty
+    cur node | d <= minDepth = Nothing
              | otherwise = case acceptScore aut st of
-                             Just s -> Seq.singleton (d, trieLeavesDist node, s)
-                             _ -> Seq.empty
+                             Just s -> Just (d, trieLeavesDist node, s)
+                             _ -> Nothing
 
 data LevenResult = LevenDone !LevenState
                  | LevenPartial {-# UNPACK #-} !Int {-# UNPACK #-} !Int
