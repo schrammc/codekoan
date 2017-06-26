@@ -36,11 +36,12 @@ module Thesis.Search.ResultSet ( ResultSet(..)
 import           Control.DeepSeq
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable
-import           Data.List (groupBy, sortOn)
+import           Data.List (groupBy, sortOn, sortBy)
 import           Data.Maybe (catMaybes)
 import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
 import           Thesis.Search.FragmentData
+import Data.Ord
 
 -- | Search results organized into questions and fragments of these questions
 newtype ResultSet t l ann =
@@ -144,9 +145,15 @@ removeSubsumptionInSet ResultSet{..}  =
 
 sortAlignmentMatches :: ResultSet t l ann -> ResultSet t l ann
 sortAlignmentMatches rs = mapFragmentResults rs $ \_ matches ->
-  Just $ sortOn (\r -> ( rangeStart $ resultQueryRange r
-                              , (-1) * (rangeLength $ resultQueryRange r)))
-                       matches
+  Just $ sortBy comp matches
+  where
+    comp ra rb =
+      case compare (rangeStart $ resultQueryRange ra)
+                   (rangeStart $ resultQueryRange rb) of
+        EQ -> compare ((-1) * (rangeLength $ resultQueryRange ra))
+                      ((-1) * (rangeLength $ resultQueryRange rb))
+        x  -> x
+
 removeSubsumption' :: (Eq t, Eq ann) =>
                       [AlignmentMatch t l ann]
                    -> [AlignmentMatch t l ann]
