@@ -93,7 +93,7 @@ blockAccordance :: BlockData t
                 -> AlignmentMatch t l ann
                 -> AlignmentMatch t l ann
                 -> Bool
-blockAccordance BlockData{..} resA resB =
+blockAccordance BlockData{..} !resA !resB =
      noQueryOverlap
   && noFragOverlap
   && queryDist == fragmentDist
@@ -124,13 +124,11 @@ blockAnalysis :: BlockData t
 blockAnalysis blockData results = cliques accordanceGraph
   where
     resultV   = V.fromList results
-    accordance = blockAccordance blockData
-
     accordanceGraph = buildGraph resultV edges
     edges = do
       (n, result ) <- zip [0 ..] results
       (k, result') <- zip [0 .. (max 0 (n-1))] results
-      if accordance result result'
+      if blockAccordance blockData result result'
         then [(k, n)]
         else []
 

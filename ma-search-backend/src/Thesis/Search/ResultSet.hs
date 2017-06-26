@@ -9,6 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE UnboxedTuples #-}
 module Thesis.Search.ResultSet ( ResultSet(..)
                                , listOfResults
                                , buildResultSet
@@ -151,11 +152,11 @@ removeSubsumption' results' = maxSet [] results
                      results'
     maxSet _      []        = []
     maxSet active (next:xs) =
-      let (subsumedByNone, active') = adjustActive active next
+      let (# subsumedByNone, active' #) = adjustActive active next
       in if subsumedByNone
          then next:(maxSet active' xs)
          else maxSet active' xs
-    adjustActive []     next = (True, [next])
+    adjustActive []     next = (# True, [next] #)
     adjustActive active next =
       let active' = dropWhile (\a -> (rangeEnd $ resultQueryRange a) <
                                      (rangeStart $ resultQueryRange next))
@@ -163,8 +164,8 @@ removeSubsumption' results' = maxSet [] results
           subsumedByNone = null $
                            filter (subsumedProperSame next) active'
       in if subsumedByNone
-         then (True, next:active')
-         else (False, active')
+         then (# True, next:active' #)
+         else (# False, active' #)
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.
