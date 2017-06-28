@@ -241,7 +241,7 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
 
   let initialMatches = sortAlignmentMatches $
                        filterSumTotalLength minSumResultLength $
-                       fragmentsLongerThan minMatchLength $
+--                       fragmentsLongerThan minMatchLength $
                        firstMatches
 
 

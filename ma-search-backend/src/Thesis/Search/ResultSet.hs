@@ -81,7 +81,7 @@ answersWithCoverage cov resultSet =
         then Just rs
         else Nothing
   where
-    cov' = max 0 (min 1 cov)
+    !cov' = max 0 (min 1 cov)
 
 -- | Filters out individual alignment matches that are shorter than the given
 -- minimum length.
