@@ -189,10 +189,10 @@ numberOfFragments ResultSet{..} = sum $ do
   return $ length frags
 
 numberOfAlignmentMatches :: ResultSet t l ann -> Int
-numberOfAlignmentMatches ResultSet{..} = sum $ do
+numberOfAlignmentMatches ResultSet{..} = foldl' (+) 0 $ do
   (_, groupList) <- M.toList resultSetMap
   group <- groupList
-  return $ length group
+  return $! length group
 
 -- | A helper function to flatten a result set into a list
 flattenSet :: ResultSet t l ann -> [(ann, [AlignmentMatch t l ann])]

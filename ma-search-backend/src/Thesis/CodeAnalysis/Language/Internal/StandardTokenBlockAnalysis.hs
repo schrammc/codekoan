@@ -45,19 +45,23 @@ standardBlockData :: (Eq t) =>
                 -> VectorView t
                 -- ^ The tokens of the processed and tokenized pattern-code
                 -> BlockData t
-standardBlockData indent unindent queryTokens fragmentTokens =
-  BlockData { queryRelation =
-                 blockRelationWithPreData queryPD indent unindent queryTokens
-            , fragmentRelation =
-                blockRelationWithPreData fragmentPD indent unindent fragmentTokens
-            , queryBlockString    =
-                  blockStringInRegion indent unindent queryTokens
-            , fragmentBlockString =
-                  blockStringInRegion indent unindent fragmentTokens
-            }
-  where
-    queryPD = preData unindent indent queryTokens
-    fragmentPD = preData unindent indent fragmentTokens
+standardBlockData indent unindent queryTokens =
+  let queryPD = preData unindent indent queryTokens
+  in \fragmentTokens ->
+    let fragmentPD = preData unindent indent fragmentTokens
+    in BlockData { queryRelation =
+                      blockRelationWithPreData queryPD indent unindent queryTokens
+                 , fragmentRelation =
+                     blockRelationWithPreData fragmentPD
+                                              indent
+                                              unindent
+                                              fragmentTokens
+                 , queryBlockString    =
+                       blockStringInRegion indent unindent queryTokens
+                 , fragmentBlockString =
+                       blockStringInRegion indent unindent fragmentTokens
+                 }
+  
 
 blockStringInRegion :: (Eq t) =>
                        t

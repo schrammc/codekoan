@@ -156,4 +156,4 @@ resultSetBlockAnalysis getTokenV lang queryTokens ResultSet{..} =
           analyzedGroups = concat $ blockAnalysis blockData <$> groups
       return analyzedGroups
   where
-    buildBlockData fragTokens = languageGenBlockData lang queryTokens fragTokens
+    buildBlockData = languageGenBlockData lang queryTokens
