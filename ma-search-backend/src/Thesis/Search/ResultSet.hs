@@ -171,11 +171,12 @@ removeSubsumption' results = maxSet [] results
       let active' = dropWhile (\a -> (rangeEnd $ resultQueryRange a) <
                                      (rangeStart $ resultQueryRange next))
                     active
-          subsumedByNone = null $
-                           filter (subsumedProperSame next) active'
+          !subsumedByNone = not $ any (subsumedProperSame next) active'
       in if subsumedByNone
          then (# True, next:active' #)
          else (# False, active' #)
+
+
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.
