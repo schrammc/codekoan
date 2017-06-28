@@ -145,13 +145,13 @@ removeSubsumptionInSet ResultSet{..}  =
 
 sortAlignmentMatches :: ResultSet t l ann -> ResultSet t l ann
 sortAlignmentMatches rs = mapFragmentResults rs $ \_ matches ->
-  Just $ sortBy comp matches
+  Just $! sortBy comp matches
   where
     comp ra rb =
-      case compare (rangeStart $ resultQueryRange ra)
-                   (rangeStart $ resultQueryRange rb) of
-        EQ -> compare ((-1) * (rangeLength $ resultQueryRange ra))
-                      ((-1) * (rangeLength $ resultQueryRange rb))
+      case compare (rangeStart $! resultQueryRange ra)
+                   (rangeStart $! resultQueryRange rb) of
+        EQ -> compare ((-1) * (rangeLength $! resultQueryRange ra))
+                      ((-1) * (rangeLength $! resultQueryRange rb))
         x  -> x
 
 removeSubsumption' :: (Eq t, Eq ann) =>
@@ -186,7 +186,7 @@ numberOfAnswers ResultSet{..} = M.size resultSetMap
 numberOfFragments :: ResultSet t l ann -> Int
 numberOfFragments ResultSet{..} = sum $ do
   (_, frags) <- M.toList resultSetMap
-  return $ length frags
+  return $! length frags
 
 numberOfAlignmentMatches :: ResultSet t l ann -> Int
 numberOfAlignmentMatches ResultSet{..} = foldl' (+) 0 $ do
@@ -199,7 +199,7 @@ flattenSet :: ResultSet t l ann -> [(ann, [AlignmentMatch t l ann])]
 flattenSet ResultSet{..} = do
   (ann, matches) <- M.toList resultSetMap
   match <- matches
-  return (ann, match)
+  return $! (ann, match)
 
 -- | A helper function to build a result set from a list, it should hold that
 -- @

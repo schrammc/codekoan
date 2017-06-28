@@ -105,8 +105,8 @@ blockRelationWithPreData pd unindent indent tks !a !b =
   let 
     relevantRegion =
       snd <$> (takeWhile ((< y) . fst) $ dropWhile ((< x) . fst) pd)
-    x = normalizeV tks $ min a b
-    y = normalizeV tks $ max a b
+    !x = normalizeV tks $ min a b
+    !y = normalizeV tks $ max a b
   in 
    blockRelationBasic unindent indent relevantRegion x y
 
@@ -117,8 +117,8 @@ blockRelation indent unindent tks !a !b =
     relevantRegion = unsafeSliceView x (y-x) tks
     -- x and y are the minimum of a and b and the maximum of a and b after a
     -- normalization that puts each value in the interval of 
-    x = normalizeV tks $ min a b
-    y = normalizeV tks $ max a b
+    !x = normalizeV tks $ min a b
+    !y = normalizeV tks $ max a b
 
 -- | Assumes that a <= b or bad things happend
 blockRelationBasic :: (Foldable f, Eq t) =>
