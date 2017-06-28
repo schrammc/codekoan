@@ -14,17 +14,19 @@
 {-# LANGUAGE BangPatterns#-}
 module Thesis.Search where
 
+import           Control.Concurrent.MVar
 import           Control.DeepSeq
 import           Control.Monad.Catch
+import           Control.Monad.IO.Class
 import           Control.Monad.Logger
+import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Maybe
 import           Data.Foldable (toList)
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
+import           Data.Maybe (isJust)
 import           Data.Monoid ((<>))
-import           Data.Sequence (Seq, (<|))
-import qualified Data.Sequence as Seq
 import qualified Data.Set as S
 import qualified Data.Text as Text
 import qualified Data.Vector as V
@@ -213,6 +215,55 @@ tokenizeAndPerformSearch index lang dict settings txt analyzer =
     Nothing -> return Nothing
     Just tks -> performSearch index lang dict settings (txt, tks) analyzer
 
+tokenizeAndPerformCachedSearch :: ( Eq t
+                            , NFData t
+                            , Hashable t
+                            , Monad m
+                            , MonadIO m
+                            , MonadThrow m
+                            , MonadLogger m
+                            , FragmentData ann) =>
+                            SearchIndex t l ann
+                         -> Language t l
+                         --              -> DataDictionary m
+                         -> (ann -> MaybeT m (TokenVector t l, LanguageText l))
+                         -> SearchSettings
+                         -> LanguageText l
+                         -> SemanticAnalyzer m a
+                         -> m (Maybe (ResultSet t l ann))
+tokenizeAndPerformCachedSearch index lang dict settings txt analyzer =
+  case processAndTokenize lang txt of
+    Nothing -> return Nothing
+    Just tks -> performCachedSearch index lang dict settings (txt, tks) analyzer
+
+-- | Same as 'performSearch' but caches "dictionary" lookups if both block filtering and semantic analysis is turned on in the given search settings.
+performCachedSearch :: ( Eq t
+                       , NFData t
+                       , Hashable t
+                       , Monad m
+                       , MonadIO m
+                       , MonadThrow m
+                       , MonadLogger m
+                       , FragmentData ann) =>
+                       SearchIndex t l ann
+                    -> Language t l
+--              -> DataDictionary m
+              -> (ann -> MaybeT m (TokenVector t l, LanguageText l))
+              -- ^ "Dictionary" for getting full text and tokens of fragments
+              -> SearchSettings
+              -> (LanguageText l, TokenVector t l)
+              -> SemanticAnalyzer m a
+              -> m (Maybe (ResultSet t l ann))
+performCachedSearch index lang dict conf@SearchSettings{..} query analyzer
+  | isJust semanticThreshold && blockFiltering =
+    -- We only cache if we do both block filtering and semantic filtering
+    -- because only then is caching dictionary looukps useful
+    performSearch index lang dict conf query analyzer
+  | otherwise = do
+    $(logDebug) "Searching with cached dictionary lookups..."
+    cachedDict <- cachedLookup dict
+    performSearch index lang cachedDict conf query analyzer
+
 -- | Perform a search based on a set of search settings.
 --
 -- Can throw a 'SemanticException' if something goes wrong in semantic processing.
@@ -304,3 +355,26 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
     getQueryTokens = processAndTokenize lang txt
     printNumberOfAlignmentMatches = Text.pack . show . numberOfAlignmentMatches
     printNumberOfGroups = Text.pack . show . numberOfFragments
+
+-- | Cache the lookups of patterns in a hashmap. This helper allows us to
+-- sometimes spare a database loookups if we are doing semantic simliarity
+cachedLookup :: (MonadIO m, Hashable ann, Eq ann) =>
+                (ann -> MaybeT m (TokenVector t l, LanguageText l))
+             -> m (ann -> MaybeT m (TokenVector t l, LanguageText l))
+cachedLookup doLookup = do
+  mv <- liftIO $ newMVar M.empty
+  return (go mv)
+  where
+    go mv = \x -> do
+      mp <- liftIO $ takeMVar mv
+      case M.lookup x mp of
+        Just val -> liftIO (putMVar mv mp) >> return val
+        Nothing -> do
+          resultMaybe <- lift $ runMaybeT (doLookup x)
+          case resultMaybe of
+            Nothing -> do
+              liftIO $ putMVar mv mp
+              MaybeT $ return Nothing
+            Just v  -> do
+              liftIO (putMVar mv (M.insert x v mp))
+              return v
