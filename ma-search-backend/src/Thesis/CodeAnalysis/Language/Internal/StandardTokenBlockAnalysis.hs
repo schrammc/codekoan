@@ -135,7 +135,7 @@ blockRelationBasic indent unindent tks !a !b
   where
 --    relevantRegion = unsafeSliceView x (y-x) tks
     f = updateTracker indent unindent
-
+{-# INLINE blockRelationBasic#-}
 
 updateTracker :: Eq t => t -> t -> RelationTracker -> t -> RelationTracker
 updateTracker indent unindent !tr@RelationTracker{..} !t =
@@ -145,3 +145,4 @@ updateTracker indent unindent !tr@RelationTracker{..} !t =
        then tr{ maxDown = maxDown - 1, current = current - 1}
        else tr{ current = current - 1}
      | otherwise -> tr
+{-# INLINE updateTracker#-}
