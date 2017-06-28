@@ -87,6 +87,7 @@ import           Thesis.Util.VectorView
 
 normalizeV :: Foldable f => f a -> Int -> Int
 normalizeV vector !k = max 0 $! min k (length vector - 1)
+{-# INLINE normalizeV#-}
 
 -- | Analyze the block accordance of two alignment matches
 blockAccordance :: BlockData t
@@ -106,7 +107,7 @@ blockAccordance BlockData{..} !resA !resB =
                                     (rangeStart $! resultFragmentRange resB)
 --    blockStringEquality = (queryBlockString $ resultQueryRange resA) ==
 --                          (queryBlockString $ resultQueryRange resB)
-    noQueryOverlap = not $! overlap (resultQueryRange resA)
+    !noQueryOverlap = not $! overlap (resultQueryRange resA)
                                     (resultQueryRange resB)
     noFragOverlap  = not $! overlap (resultFragmentRange resA)
                                     (resultFragmentRange resB)
