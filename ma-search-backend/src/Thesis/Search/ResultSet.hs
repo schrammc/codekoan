@@ -158,6 +158,7 @@ removeSubsumption' :: (Eq t, Eq ann) =>
                       [AlignmentMatch t l ann]
                    -> [AlignmentMatch t l ann]
 removeSubsumption' [] = []
+removeSubsumption' (x:[]) = x:[]
 removeSubsumption' results = maxSet [] results
   where
     maxSet _      []        = []
@@ -175,8 +176,6 @@ removeSubsumption' results = maxSet [] results
       in if subsumedByNone
          then (# True, next:active' #)
          else (# False, active' #)
-
-
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.

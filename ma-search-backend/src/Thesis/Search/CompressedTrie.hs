@@ -31,9 +31,12 @@ import           Control.DeepSeq
 data CompressedTrie a v where
   CTrieNode :: (Eq a, Hashable a)
                => !(M.HashMap a (V.Vector a, Int, CompressedTrie a v))
-               -- Structural information of the trie
+               -- ^ Structural information of the trie
+               --   * Label
+               --   * LabelLength (Performance reasons)
+               --   * Next node
             -> !(Maybe v)
-               -- The annotation of a completed word
+               -- ^ The annotation of a completed word
             -> CompressedTrie a v
   CTrieLeaf :: !v -> CompressedTrie a v
 
@@ -133,6 +136,10 @@ vtails v = do
   return $ V.unsafeSlice start (len - start) v
   where
     !len = V.length v
+
+vinits :: V.Vector a -> [V.Vector a]
+vinits !v | V.null v = []
+          | otherwise = v:(vinits $! V.init v)
 
 buildTrieWith :: (Foldable f, Hashable a, Eq a, Eq v)
                  => (v -> v -> v)
