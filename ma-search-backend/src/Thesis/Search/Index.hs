@@ -110,8 +110,8 @@ buildIndex lang postSource ngramSize = do
           )
       =$= CL.catMaybes
       =$ (CL.foldM (\trie -> \(str, v) -> do
-                       mapM_ (liftIO . stToIO . BF.Mutable.insert mutableBF) $
-                         (hash . V.toList <$> ngrams ngramSize str)
+--                       mapM_ (liftIO . stToIO . BF.Mutable.insert mutableBF) $
+--                         (hash . V.toList <$> ngrams ngramSize str)
                        return $ (mergeTriesWith S.union) trie
                                   (buildSuffixTrie (Just ngramSize) str (S.singleton v))
                    )

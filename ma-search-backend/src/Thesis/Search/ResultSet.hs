@@ -163,19 +163,19 @@ removeSubsumption' results = maxSet [] results
   where
     maxSet _      []        = []
     maxSet active (next:xs) =
-      let (# subsumedByNone, active' #) = adjustActive active next
+      let ( subsumedByNone, active') = adjustActive active next
       in if subsumedByNone
          then next:(maxSet active' xs)
          else maxSet active' xs
-    adjustActive []     next = (# True, [next] #)
+    adjustActive []     next = (True, [next] )
     adjustActive active next =
       let active' = dropWhile (\a -> (rangeEnd $ resultQueryRange a) <
                                      (rangeStart $ resultQueryRange next))
                     active
           !subsumedByNone = not $ any (subsumedProperSame next) active'
       in if subsumedByNone
-         then (# True, next:active' #)
-         else (# False, active' #)
+         then (True, next:active' )
+         else (False, active')
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.

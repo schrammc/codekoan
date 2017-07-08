@@ -48,6 +48,11 @@ instance (NFData a, NFData v) => NFData (CompressedTrie a v) where
    rnf (CTrieLeaf v) = deepseq v ()
    rnf (CTrieNode mp v) = deepseq mp $ deepseq v ()
 
+nodeValue :: CompressedTrie a v -> Maybe v
+nodeValue (CTrieNode _ maybeV) = maybeV
+nodeValue (CTrieLeaf v)        = Just v
+{-# INLINE nodeValue #-}
+
 empty :: (Eq a, Hashable a) => CompressedTrie a v
 empty = CTrieNode M.empty Nothing
 
@@ -79,7 +84,7 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
     merge (va, la, ta) (vb, lb, tb) | V.length va == V.length vb &&
                                       va == vb = (va, la, mergeTriesWith f ta tb)
                                     | otherwise =
-      let (# common, ra, rb #) = pref va vb
+      let (common, ra, rb) = pref va vb
           nd | V.null ra =
             let new =
                   CTrieNode (M.singleton (V.head rb) (rb, V.length rb, tb)) (g ta)
@@ -99,7 +104,7 @@ mergeTriesWith f !(CTrieNode mp v) !(CTrieNode mp' v') =
                      !n     = V.length common
                      !ra    = V.drop n va
                      !rb    = V.drop n vb
-                 in (# common, ra, rb #)
+                 in (common, ra, rb)
     g (CTrieLeaf x)  = Just x
     g (CTrieNode _ x) = x
 
@@ -126,6 +131,17 @@ buildSuffixTrie :: (Hashable a, Eq a, Eq v)
                 -> CompressedTrie a v
 buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
   where
+    n = fromMaybe 0 minSuffixLength
+    suffixes = filter ((> n) . V.length) (vtails xs)
+
+
+buildLengthAnnotatedSuffixTrie :: (Hashable a, Eq a) =>
+                                  Maybe Int
+                               -> V.Vector a
+                               -> CompressedTrie a Int
+buildLengthAnnotatedSuffixTrie minSuffixLength xs =
+  buildTrie $ zip suffixes [0..]
+  where 
     n = fromMaybe 0 minSuffixLength
     suffixes = filter ((> n) . V.length) (vtails xs)
 

@@ -44,6 +44,9 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
+import Thesis.CodeAnalysis.Language (TokenVector)
+
+import Debug.Trace
 
 -- | This function serves to solve a possible case of combinatorial explosion in
 -- search. The problem is the following:
@@ -98,6 +101,26 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
          (ngram',start', x):(takeRepeats start' rst)
      | otherwise = takeRepeats lastRec rst
 
+
+findMatchesZero :: (Eq t, NFData t, MonadLogger m, Hashable t, FragmentData ann)
+                => SearchIndex t l ann
+                -> V.Vector (TokenWithRange t l) -- ^ The submitted code to be searched
+                -> Int            -- ^ The minimal match length
+                -> MaybeT m (ResultSet t l ann)
+findMatchesZero index v n = traceShow (length lookupResults) $ return . ResultSet . (fmap (:[])) . buildMap $ do
+  (qRange, fRange, md) <- lookupResults
+  let textRange = 
+        let (Range x y) = qRange
+            !a = traceShow (qRange, fRange, V.length v) rangeStart $! coveredRange $! V.unsafeIndex v x
+            !b = rangeEnd $! coveredRange $! V.unsafeIndex v (y-1)
+        in Range a b
+  return $! AlignmentMatch { resultQueryRange = qRange
+                           , resultFragmentRange = fRange
+                           , resultMetaData = md
+                           , resultLevenScore = 0
+                           , resultTextRange = textRange}
+  where
+    lookupResults = lookupZero n (token <$> v) (indexTrie index)
 
 -- | TAKE CARE: alignment matches that are in the result set of this function
 -- are not yet sorted and can cause problems with functions such as 'rangeCover'
@@ -187,13 +210,7 @@ search SearchIndex{..} !n !xs !minMatchLength = do
   where
     !aut = LevensteinAutomaton (V.length xs) n (token . (V.unsafeIndex xs))
 
--- | Given an answer sequence, a sequence of matched tokens and a remainder
--- return the range of covered tokens in the answer fragments.
-buildRange :: FragmentData d => d -> Int -> Int -> Range a
-buildRange !dat !n !d =
-  let !tokenLength = fragDataTokenLength dat
-  in Range (tokenLength - (n + d)) (tokenLength - d)
-{-# INLINE buildRange #-}
+
 
 tokenizeAndPerformSearch :: ( Eq t
                             , NFData t
@@ -288,7 +305,12 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  firstMatches <- findMatches index levenshteinDistance queryTokens minMatchLength
+  firstMatches <- findMatchesZero index queryTokens minMatchLength
+
+  $(logDebug) $ "Beforelength filtering there are: "
+                  <> printNumberOfAlignmentMatches firstMatches
+                  <> " matches in " <> printNumberOfGroups firstMatches
+                  <> " groups"
 
   let initialMatches = sortAlignmentMatches $
                        filterSumTotalLength minSumResultLength $

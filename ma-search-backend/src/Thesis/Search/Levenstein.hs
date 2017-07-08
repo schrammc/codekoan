@@ -26,6 +26,9 @@ import qualified Data.Set as S
 import qualified Data.Vector as V
 import           Thesis.Search.CompressedTrie
 
+import Thesis.Data.Range
+import Thesis.Search.FragmentData
+import Debug.Trace
 --------------------------------------------------------------------------------
 --
 -- Implementation of efficient Levenstein Automata
@@ -315,3 +318,228 @@ walkThroughZero aut (LevenState ((pos,val):[])) v !vectorLength =
               else LevenPartial i 0
 walkThroughZero _ _ _ _ =
   error "Levenshtein.walkThroughZero: unexpected case (dist /= 0)"
+
+lookupZero :: (Hashable a, Eq a, FragmentData d) =>
+              Int 
+           -> V.Vector a
+           -> CompressedTrie a (S.Set d)
+           -> [(Range a, Range a, d)]
+lookupZero n xs tr =
+  case (queryTrie, tr) of
+    (CTrieNode mpQ _, CTrieNode mpF _) -> do
+      (cq, edgeQ) <- M.toList mpQ
+      case M.lookup cq mpF of
+        Nothing -> []
+        Just edgeF -> snd $ collect' (cq, edgeQ) (cq, edgeF) 0 n 0 0
+    _ -> []
+          
+       
+  where
+    queryTrie = buildLengthAnnotatedSuffixTrie (Just n) xs
+
+collect' :: (Hashable a, Eq a, FragmentData d) =>
+            (a, (V.Vector a, Int, CompressedTrie a Int))
+         -> (a, (V.Vector a, Int, CompressedTrie a (S.Set d)))
+         -> Int
+         -> Int
+         -> Int
+         -> Int
+         -> ([Int], [(Range a, Range a, d)])
+-- | Returns queryRange, fragmentRange, result
+collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nodeF)) depth minDepth posQ posF =
+  -- There are four possibilities here:
+  --   1. We walk down both edges and get stuck in the middle of both
+  --      This is the only case in which we can always terinate.
+  --
+  --   2. We walk down both edges until we hit a query node and are in the
+  --      middle of the fragment edge.
+  --   3. We walk down both edges until we hit a fragment node and are in the
+  --      middle of the query edge
+  --
+  --   4. We walk down both edges and both are identical in which case we
+  --      arrive at a the new query and fragment nodes at the same time.
+  --
+  -- We terminate if we reach:
+  --   * case  1
+  --   * or cases 2 and 3 if we encounter leaf nodes
+  --   * or case 4 if:
+  --     * we encounter at least one leaf
+  --     * or if the sets of starting-letters of the two nodes outgoing edges
+  --       are distinct.  
+  case advance labelQ labelLengthQ labelF labelLengthF posQ posF of
+    WalkResult (Partial n) _ ->
+      let !effectiveDepth = depth+n
+          ns = toList $ trieLeaves nodeQ
+          results = do
+            (vals, dist) <- toList $ trieLeavesDist nodeF
+            (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+            n <- ns
+            return (Range n (n+effectiveDepth), fragRange, v)
+      in if effectiveDepth >= minDepth
+         then (ns, results)
+         else ([], [])
+    WalkResult Done Query -> 
+      let !effectiveDepth = depth + labelLengthQ
+          !posF' = posF + labelLengthQ - 1
+          !nextF = traceShow ("a", V.length labelF, posF, posF') $ V.unsafeIndex labelF posF'
+      in if effectiveDepth < minDepth
+         then ([], [])
+         else 
+           case nodeQ of
+             (CTrieNode mpQ maybeN) | Just e <- M.lookup nextF mpQ ->
+               let nd' = CTrieNode (M.delete nextF mpQ) maybeN
+                   (ns, results) = collect' (nextF, e) f
+                                            effectiveDepth
+                                            minDepth
+                                            0
+                                            posF'
+                   otherNs = toList $ trieLeaves nd'
+               in (otherNs ++ ns, results)
+             _ -> let ns = toList $ trieLeaves nodeQ
+                      results = do
+                        (vals, dist) <- toList $ trieLeavesDist nodeF
+                        (v, fragRange) <- buildFragmentRanges vals
+                                            effectiveDepth
+                                            dist
+                        n <- ns
+                        return (Range n (n+effectiveDepth), fragRange, v)
+                  in (ns, results)
+                             
+    WalkResult Done Fragment ->
+      let !effectiveDepth = depth + labelLengthF
+      in if effectiveDepth < minDepth
+         then ([], [])
+         else
+           let !posQ' = posQ + labelLengthF - 1
+               !nextQ = traceShow "b" $ V.unsafeIndex labelQ posQ'
+               -- Gather the results of looking further down (if possible) and
+               -- the fragment node without the path we continued the search on
+               (nodeF', (queryNs, downResults)) =
+                 case nodeF of
+                   (CTrieNode mpF _)
+                     | Just nextEF <- M.lookup nextQ mpF ->
+                       let ns = toList $ trieLeaves (nodeWithout nextQ nodeQ)
+                           (dn, dr) = collect' q
+                                               (nextQ, nextEF)
+                                               effectiveDepth
+                                               minDepth
+                                               posQ'
+                                               0
+                       in ( nodeWithout nextQ nodeF, (dn ++ ns, dr))
+                   _ -> (nodeF, (toList $ trieLeaves nodeQ, []))
+           in 
+             let fragmentDists = do
+                   (vals, dist) <- toList $ trieLeavesDist nodeF'
+                   (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+                   return (v, fragRange)
+               
+                 results = do
+                   n <- queryNs
+                   let !qRange = Range n (n + effectiveDepth)
+                   (vf, fragRange) <- fragmentDists
+                   return (qRange, fragRange, vf)
+             in (queryNs, results ++ downResults)
+             
+    WalkResult Done Both ->
+      let !effectiveDepth = depth + labelLengthF
+      in if effectiveDepth < minDepth
+         then ([], [])
+         else
+           case (nodeQ, nodeF) of
+             (CTrieLeaf n, _) ->
+               let qrange = Range n (n+effectiveDepth)
+                   results = do
+                     (vals, dist) <- toList $ trieLeavesDist nodeF
+                     (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+                     return (qrange, fragRange, v)
+               in ([n], results)
+             (_, CTrieLeaf set) ->
+               let ns = toList $ trieLeaves nodeQ
+                   results = do
+                     v <- toList set
+                     let fragRange = buildRange v effectiveDepth 0
+                     n <- ns
+                     return (Range n (n + effectiveDepth), fragRange, v)
+               in (ns, results)
+             (CTrieNode mpQ maybeN, CTrieNode mpF maybeVals) ->
+               let commonR = commonResult $ do
+                        (cq, edgeQ) <- M.toList mpQ
+                        case M.lookup cq mpF of
+                          Nothing -> return ([], [])
+                          Just edgeF -> return $ collect' (cq, edgeQ)
+                                                          (cq, edgeF)
+                                                          effectiveDepth
+                                                          minDepth
+                                                          0
+                                                          0
+                   
+                   q' = CTrieNode (M.difference mpQ mpF) maybeN
+                   f' = CTrieNode (M.difference mpF mpQ) maybeVals
+                   disNs = toList $ trieLeaves q'
+                   disFs = toList $ trieLeavesDist f'
+                   disjoint = do
+                     n <- disNs
+                     let qrange = Range n (n + effectiveDepth)
+                     (vals, dist) <- disFs
+                     (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+                     return (qrange, fragRange, v)
+                   result@(resultNs, resultRanges) =
+                     mergeResults (disNs, disjoint) commonR
+               in length resultNs `seq` length resultRanges `seq` result
+
+
+mergeResults (ns, rs) (ns', rs') = (ns ++ ns', rs ++ rs')
+
+commonResult rs = let (a, b) = foldl mergeResults ([], []) rs
+                  in length a `seq` length b `seq` (a,b)
+
+data WalkResult = WalkResult {-# UNPACK #-}!AdvResult {-# UNPACK #-}!Side
+
+data AdvResult = Done
+               | Partial {-# UNPACK #-}!Int
+
+data Side = Query
+          | Fragment
+          | Both
+
+advance :: (Eq a) =>
+           V.Vector a
+        -> Int
+        -- ^ Length of query label vector
+        -> V.Vector a
+        -> Int
+        -- ^ Length of fragment label vector
+        -> Int
+        -- ^ position on query vector
+        -> Int
+        -- ^ position on fragment vector
+        -> WalkResult
+advance !labelQ !labelLengthQ !labelF !labelLengthF !posQ !posF =
+  WalkResult (go 0) partialSide
+  where
+    partialSide | labelLengthQ == labelLengthF = Both
+                | labelLengthQ <  labelLengthF = Query
+                | otherwise = Fragment
+    maxValue = min (labelLengthQ - posQ) (labelLengthF - posF)
+    go !i | i == maxValue = Done
+          | otherwise = if (V.unsafeIndex labelQ (posQ+i)) ==
+                           (V.unsafeIndex labelF (posF+i))
+                        then go (i+1)
+                        else Partial i
+
+buildFragmentRanges set matched dist = do
+  v <- toList set
+  return $! (v, buildRange v matched dist)
+
+-- | Given an answer sequence, a sequence of matched tokens and a remainder
+-- return the range of covered tokens in the answer fragments.
+buildRange :: FragmentData d => d -> Int -> Int -> Range a
+buildRange !dat !n !d =
+  let !tokenLength = fragDataTokenLength dat
+  in Range (tokenLength - (n + d)) (tokenLength - d)
+{-# INLINE buildRange #-}
+
+nodeWithout :: a -> CompressedTrie a v -> CompressedTrie a v
+nodeWithout x (CTrieNode mp v) = CTrieNode (M.delete x mp) v
+nodeWithout _ nd = nd
+{-# INLINE nodeWithout #-}
