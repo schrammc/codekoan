@@ -331,11 +331,20 @@ lookupZero n xs tr =
       case M.lookup cq mpF of
         Nothing -> []
         Just edgeF -> snd $ collect' (cq, edgeQ) (cq, edgeF) 0 n 0 0
-    _ -> []
-          
-       
+    _ -> []      
   where
     queryTrie = buildLengthAnnotatedSuffixTrie (Just n) xs
+
+
+testLookupZero :: (Hashable a, Eq a) =>
+                  V.Vector a
+               -> [V.Vector a]
+               -> [(Range a, Range a, (Int, Int))]
+testLookupZero q fs = lookupZero 0 q tr
+  where
+    tr = foldl1 (mergeTriesWith (S.union)) $ do
+      (n, f) <- (zip [0..] fs)
+      return $ buildSuffixTrie Nothing f (S.singleton (n, V.length f))
 
 collect' :: (Hashable a, Eq a, FragmentData d) =>
             (a, (V.Vector a, Int, CompressedTrie a Int))
@@ -368,27 +377,28 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
   --       are distinct.  
   case advance labelQ labelLengthQ labelF labelLengthF posQ posF of
     WalkResult (Partial n) _ ->
-      let !effectiveDepth = depth+n
-          ns = toList $ trieLeaves nodeQ
-          results = do
-            (vals, dist) <- toList $ trieLeavesDist nodeF
-            (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
-            n <- ns
-            return (Range n (n+effectiveDepth), fragRange, v)
-      in if effectiveDepth >= minDepth
-         then (ns, results)
-         else ([], [])
-    WalkResult Done Query -> 
+        let !effectiveDepth = depth + n
+            ns = toList $ trieLeaves nodeQ
+            results = do
+              (vals, dist) <- toList $ trieLeavesDist nodeF
+              (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+              n <- ns
+              return (Range n (n+effectiveDepth), fragRange, v)
+        in if effectiveDepth >= minDepth
+           then (ns, results)
+           else ([], [])
+    WalkResult Done Query ->
       let !effectiveDepth = depth + labelLengthQ
-          !posF' = posF + labelLengthQ - 1
-          !nextF = traceShow ("a", V.length labelF, posF, posF') $ V.unsafeIndex labelF posF'
+          !posF' = posF + labelLengthQ
+          !nextF = V.unsafeIndex labelF posF'
       in if effectiveDepth < minDepth
          then ([], [])
-         else 
+         else
            case nodeQ of
              (CTrieNode mpQ maybeN) | Just e <- M.lookup nextF mpQ ->
                let nd' = CTrieNode (M.delete nextF mpQ) maybeN
-                   (ns, results) = collect' (nextF, e) f
+                   (ns, results) = collect' (nextF, e)
+                                            f
                                             effectiveDepth
                                             minDepth
                                             0
@@ -405,55 +415,58 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                         return (Range n (n+effectiveDepth), fragRange, v)
                   in (ns, results)
                              
-    WalkResult Done Fragment ->
+    WalkResult Done Fragment -> 
       let !effectiveDepth = depth + labelLengthF
-      in if effectiveDepth < minDepth
-         then ([], [])
-         else
-           let !posQ' = posQ + labelLengthF - 1
-               !nextQ = traceShow "b" $ V.unsafeIndex labelQ posQ'
-               -- Gather the results of looking further down (if possible) and
-               -- the fragment node without the path we continued the search on
-               (nodeF', (queryNs, downResults)) =
-                 case nodeF of
-                   (CTrieNode mpF _)
-                     | Just nextEF <- M.lookup nextQ mpF ->
-                       let ns = toList $ trieLeaves (nodeWithout nextQ nodeQ)
-                           (dn, dr) = collect' q
-                                               (nextQ, nextEF)
-                                               effectiveDepth
-                                               minDepth
-                                               posQ'
-                                               0
-                       in ( nodeWithout nextQ nodeF, (dn ++ ns, dr))
-                   _ -> (nodeF, (toList $ trieLeaves nodeQ, []))
-           in 
-             let fragmentDists = do
-                   (vals, dist) <- toList $ trieLeavesDist nodeF'
-                   (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
-                   return (v, fragRange)
-               
-                 results = do
-                   n <- queryNs
-                   let !qRange = Range n (n + effectiveDepth)
-                   (vf, fragRange) <- fragmentDists
-                   return (qRange, fragRange, vf)
-             in (queryNs, results ++ downResults)
-             
+          !posQ' = posQ + labelLengthF
+          !nextQ = V.unsafeIndex labelQ posQ'
+          -- Gather the results of looking further down (if possible) and
+          -- the fragment node without the path we continued the search on
+          (nodeF', (queryNs, downResults)) =
+            case nodeF of
+              (CTrieNode mpF _)
+                | Just nextEF <- M.lookup nextQ mpF ->
+                  let ns = toList $ trieLeaves (nodeWithout nextQ nodeQ)
+                      (dn, dr) = collect' q
+                                          (nextQ, nextEF)
+                                          effectiveDepth
+                                          minDepth
+                                          posQ'
+                                          0
+                  in ( nodeWithout nextQ nodeF, (dn ++ ns, dr))
+              _ -> (nodeF, (toList $ trieLeaves nodeQ, [])) 
+        
+          
+          results =
+            if effectiveDepth < minDepth
+            then []
+            else
+              let fragmentDists = do
+                    (vals, dist) <- toList $ trieLeavesDist nodeF'
+                    (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+                    return (v, fragRange)
+              in do
+                n <- queryNs
+                let !qRange = Range n (n + effectiveDepth)
+                (vf, fragRange) <- fragmentDists
+                return (qRange, fragRange, vf)
+          in (queryNs, results ++ downResults)
+
     WalkResult Done Both ->
       let !effectiveDepth = depth + labelLengthF
       in if effectiveDepth < minDepth
          then ([], [])
          else
            case (nodeQ, nodeF) of
-             (CTrieLeaf n, _) ->
+             (CTrieLeaf n, _) | effectiveDepth < minDepth -> ([], [])
+                              | otherwise ->
                let qrange = Range n (n+effectiveDepth)
                    results = do
                      (vals, dist) <- toList $ trieLeavesDist nodeF
                      (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
                      return (qrange, fragRange, v)
                in ([n], results)
-             (_, CTrieLeaf set) ->
+             (_, CTrieLeaf set) | effectiveDepth < minDepth -> ([], [])
+                                | otherwise ->
                let ns = toList $ trieLeaves nodeQ
                    results = do
                      v <- toList set
@@ -484,7 +497,9 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                      (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
                      return (qrange, fragRange, v)
                    result@(resultNs, resultRanges) =
-                     mergeResults (disNs, disjoint) commonR
+                     if effectiveDepth < minDepth
+                     then ([], [])
+                     else mergeResults (disNs, disjoint) commonR
                in length resultNs `seq` length resultRanges `seq` result
 
 
@@ -494,13 +509,15 @@ commonResult rs = let (a, b) = foldl mergeResults ([], []) rs
                   in length a `seq` length b `seq` (a,b)
 
 data WalkResult = WalkResult {-# UNPACK #-}!AdvResult {-# UNPACK #-}!Side
-
+                deriving (Show)
 data AdvResult = Done
                | Partial {-# UNPACK #-}!Int
+               deriving (Show)
 
 data Side = Query
           | Fragment
           | Both
+          deriving (Show)
 
 advance :: (Eq a) =>
            V.Vector a
@@ -517,13 +534,15 @@ advance :: (Eq a) =>
 advance !labelQ !labelLengthQ !labelF !labelLengthF !posQ !posF =
   WalkResult (go 0) partialSide
   where
-    partialSide | labelLengthQ == labelLengthF = Both
-                | labelLengthQ <  labelLengthF = Query
+    !qlength = labelLengthQ - posQ
+    !flength = labelLengthF - posF
+    partialSide | qlength == flength = Both
+                | qlength <  flength = Query
                 | otherwise = Fragment
-    maxValue = min (labelLengthQ - posQ) (labelLengthF - posF)
+    maxValue = min qlength flength
     go !i | i == maxValue = Done
-          | otherwise = if (V.unsafeIndex labelQ (posQ+i)) ==
-                           (V.unsafeIndex labelF (posF+i))
+          | otherwise = if (V.unsafeIndex labelQ $! (posQ+i)) ==
+                           (V.unsafeIndex labelF $! (posF+i))
                         then go (i+1)
                         else Partial i
 

@@ -107,13 +107,11 @@ findMatchesZero :: (Eq t, NFData t, MonadLogger m, Hashable t, FragmentData ann)
                 -> V.Vector (TokenWithRange t l) -- ^ The submitted code to be searched
                 -> Int            -- ^ The minimal match length
                 -> MaybeT m (ResultSet t l ann)
-findMatchesZero index v n = traceShow (length lookupResults) $ return . ResultSet . (fmap (:[])) . buildMap $ do
+findMatchesZero index v n = return . ResultSet . (fmap (:[])) . buildMap $ do
   (qRange, fRange, md) <- lookupResults
   let textRange = 
-        let (Range x y) = qRange
-            !a = traceShow (qRange, fRange, V.length v) rangeStart $! coveredRange $! V.unsafeIndex v x
-            !b = rangeEnd $! coveredRange $! V.unsafeIndex v (y-1)
-        in Range a b
+        Range (rangeStart $! coveredRange $! V.unsafeIndex v (rangeStart qRange))
+              (rangeEnd $! coveredRange $! V.unsafeIndex v (rangeEnd qRange - 1))
   return $! AlignmentMatch { resultQueryRange = qRange
                            , resultFragmentRange = fRange
                            , resultMetaData = md

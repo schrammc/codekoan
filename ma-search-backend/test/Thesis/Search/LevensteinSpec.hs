@@ -8,14 +8,37 @@ import           Test.Hspec
 import           Test.QuickCheck
 import           Thesis.Search.CompressedTrie
 import           Thesis.Search.Levenstein
+import Thesis.Data.Range
 import qualified Data.Map as M
+import Debug.Trace
 
 spec :: SpecWith ()
 spec = do
   describe "Thesis.Search.LevensteinSpec" $ do
     alwaysFindSuff
     findDuplicatePatterns
+    sameZeroLookup
 
+sameZeroLookup :: SpecWith ()
+sameZeroLookup =
+  it "ZeroLookup" $
+    property $ \(q :: [Int], fs :: [[Int]]) ->
+      if length q == 0
+      then True
+      else 
+        let results = lookupZero 0
+                                 (V.fromList q)
+                                 (tr (V.fromList q) (V.fromList <$> fs))
+        in if contains q results
+           then True
+           else traceShow (q, fs, (\(a,_,_) -> a) <$> results) False
+  where
+    tr q fs = foldl1 (mergeTriesWith (S.union)) $ do
+      (n, f) <- (zip ([0..] :: [Int]) (q:fs))
+      return $ buildSuffixTrie Nothing f (S.singleton (n, V.length f))
+    contains _ [] = False
+    contains q ((rq, _, x):xs) | rq == Range 0 (length q) && x == (0, length q) = True
+                               | otherwise = contains q xs
 -- | Given a suffix tree is constructed for a set of nonempty
 -- strings. Then each of these individual strings should be
 -- retrievable from the suffix tree by the lookup function.
@@ -52,7 +75,7 @@ alwaysFindSuff = do
                         0
             resultSets = do
               (_, setsAndPositions, _) <- results
-              (set, _) <- setsAndPositions
+              (set, _) <- toList setsAndPositions
               return set
         -- Make sure that the original vector is in the results
         return $ i `elem` resultSets
@@ -83,3 +106,4 @@ findDuplicatePatterns = do
       --         -- whole.
       --         Just ((k, _):[]) = M.lookup str xs
       --     in k == n
+
