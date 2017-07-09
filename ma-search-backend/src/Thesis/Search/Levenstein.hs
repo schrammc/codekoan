@@ -250,7 +250,7 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                   let !valuesFiltered = do
                         (s, d) <- trieLeavesDist node
                         let !d' = d+k
-                        if d' > minDepth then return (s,d') else Seq.empty
+                        if d' >= minDepth then return (s,d') else Seq.empty
                       !resultDepth = d + nMatched
                   in return ( resultDepth
                             , valuesFiltered
@@ -258,7 +258,7 @@ lookupSuff acceptScore !aut nd !st !d !minDepth =
                 | nMatched >= 0 -> []
                 | otherwise -> error $ "Levenshtein.lookupSuff: Matched " <>
                                        "a negative amount of characters!"
-    cur node | d <= minDepth = Nothing
+    cur node | d < minDepth = Nothing
              | otherwise = case acceptScore aut st of
                              Just s -> Just (d, trieLeavesDist node, s)
                              _ -> Nothing
