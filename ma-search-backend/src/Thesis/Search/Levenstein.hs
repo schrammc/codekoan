@@ -355,7 +355,7 @@ collect' :: (Hashable a, Eq a, FragmentData d) =>
          -> Int
          -> ([Int], [(Range a, Range a, d)])
 -- | Returns queryRange, fragmentRange, result
-collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nodeF)) depth minDepth posQ posF =
+collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nodeF)) depth minDepth posQ posF = 
   -- There are four possibilities here:
   --   1. We walk down both edges and get stuck in the middle of both
   --      This is the only case in which we can always terinate.
@@ -381,15 +381,17 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
             ns = toList $ trieLeaves nodeQ
             results = do
               (vals, dist) <- toList $ trieLeavesDist nodeF
-              (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+              (v, fragRange) <- buildFragmentRanges vals
+                                                    effectiveDepth
+                                                    (dist + posF + n)
               n <- ns
-              return (Range n (n+effectiveDepth), fragRange, v)
+              return $ (Range n (n+effectiveDepth), fragRange, v)
         in if effectiveDepth >= minDepth
            then (ns, results)
            else ([], [])
     WalkResult Done Query ->
-      let !effectiveDepth = depth + labelLengthQ
-          !posF' = posF + labelLengthQ
+      let !effectiveDepth = depth + (labelLengthQ - posQ)
+          !posF' = posF + (labelLengthQ - posQ)
           !nextF = V.unsafeIndex labelF posF'
       in if effectiveDepth < minDepth
          then ([], [])
@@ -410,14 +412,14 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                         (vals, dist) <- toList $ trieLeavesDist nodeF
                         (v, fragRange) <- buildFragmentRanges vals
                                             effectiveDepth
-                                            dist
+                                            (dist + (labelLengthF - posF'))
                         n <- ns
-                        return (Range n (n+effectiveDepth), fragRange, v)
+                        return $ (Range n (n+effectiveDepth), fragRange, v)
                   in (ns, results)
                              
     WalkResult Done Fragment -> 
-      let !effectiveDepth = depth + labelLengthF
-          !posQ' = posQ + labelLengthF
+      let !effectiveDepth = depth + (labelLengthF - posF)
+          !posQ' = posQ + (labelLengthF - posF)
           !nextQ = V.unsafeIndex labelQ posQ'
           -- Gather the results of looking further down (if possible) and
           -- the fragment node without the path we continued the search on
@@ -425,14 +427,18 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
             case nodeF of
               (CTrieNode mpF _)
                 | Just nextEF <- M.lookup nextQ mpF ->
-                  let ns = toList $ trieLeaves (nodeWithout nextQ nodeQ)
+                  let ns = case nodeQ of
+                             CTrieLeaf _ -> []
+                             CTrieNode mp _ -> do
+                               (_, (_,_,node)) <- M.toList mp
+                               toList $ trieLeaves node
                       (dn, dr) = collect' q
                                           (nextQ, nextEF)
                                           effectiveDepth
                                           minDepth
                                           posQ'
                                           0
-                  in ( nodeWithout nextQ nodeF, (dn ++ ns, dr))
+                  in (nodeWithout nextQ nodeF, (dn ++ ns, dr))
               _ -> (nodeF, (toList $ trieLeaves nodeQ, [])) 
         
           
@@ -448,11 +454,11 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                 n <- queryNs
                 let !qRange = Range n (n + effectiveDepth)
                 (vf, fragRange) <- fragmentDists
-                return (qRange, fragRange, vf)
+                return $ (qRange, fragRange, vf)
           in (queryNs, results ++ downResults)
 
     WalkResult Done Both ->
-      let !effectiveDepth = depth + labelLengthF
+      let !effectiveDepth = depth + (labelLengthF - posF)
       in if effectiveDepth < minDepth
          then ([], [])
          else
@@ -495,7 +501,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                      let qrange = Range n (n + effectiveDepth)
                      (vals, dist) <- disFs
                      (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
-                     return (qrange, fragRange, v)
+                     return $ (qrange, fragRange, v)
                    result@(resultNs, resultRanges) =
                      if effectiveDepth < minDepth
                      then ([], [])
