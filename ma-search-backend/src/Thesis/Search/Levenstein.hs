@@ -383,7 +383,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
               (vals, dist) <- toList $ trieLeavesDist nodeF
               (v, fragRange) <- buildFragmentRanges vals
                                                     effectiveDepth
-                                                    (dist + posF + n)
+                                                    (dist + (labelLengthF - (posF + n)))
               n <- ns
               return $ (Range n (n+effectiveDepth), fragRange, v)
         in if effectiveDepth >= minDepth
