@@ -82,7 +82,7 @@ To index this data into the database in a Format, that Codekoan can understand,
 use the `ma-postgres-indexer` binary like this:
 
 ```
-stack exec ma-postgres-indexer <dump-xml-file>
+stack exec ma-postgres-indexer <dump-xml "stackoverflow.com-Posts" file>
                                <postgres host>
 							   <postgres port>
 							   <postgres user>
