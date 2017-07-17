@@ -25,9 +25,9 @@ run `stack build`. This should be sufficient to build all of the necessary
 binaries. The binaries can be found in `.stack-work/install/<your
 architecture>/lts-8.0/8.0.2/bin/`.
 
-## Set up RabbitMQ
+### Set up RabbitMQ
 
-### Installation
+#### Installation
 
 The [RabbitMQ](https://www.rabbitmq.com) messaging system is used to coordinate
 the distributed parts of the Codekoan pipeline. RabbitMQ must be installed on
@@ -38,7 +38,7 @@ use RabbitMQ's [management plugin](https://www.rabbitmq.com/management.html)
 which is included in the default RabbitMQ installation (although not enabled by
 default)
 
-### RabbitMQ Configuration
+#### RabbitMQ Configuration
 
 This section assumes that you are familiar with
 the [basics](https://www.rabbitmq.com/getstarted.html) of RabbitMQ. If you
@@ -68,7 +68,7 @@ you need to create four queues `queries-java-[1..4]` that are bound to the
 The returned replies need to be collected by an exchange named `replies` which
 is bound to a queue named `replies`.
 
-## Set up PostgreSQL
+### Set up PostgreSQL
 
 Codekoan currently uses the [PostgreSQL](https://www.postgresql.org/) database,
 which needs to be set up on your system.
@@ -89,3 +89,55 @@ stack exec ma-postgres-indexer <dump-xml-file>
 							   <postgres password>
 							   <postgres database>
 ```
+
+## Set up a search-cluster
+
+Some of the services in the following require open ports. The recommended way to
+set up the Codekoan search engine is to only open ports for https/http access on
+the web-application and not allow network traffic to other services from outside.
+
+The git repository comes with sample configuration files which are usually named
+`settings.yaml`. The ports that will be used in the following documentation are
+just examples and can be configured freely.
+
+### Start the reply cache
+
+The reply cache is a small webservice that consumes search results from rabbitmq
+and stores them for later consumption.
+
+Launch with: `stack exec ma-reply-cache <settings.yaml>`
+
+This service requires an open port, which is **6367** by default.
+
+### Start the rabbitmq injector
+
+This service accepts, validates and submits queries. It replies to the submitter
+with a json-wrapped search query id, by which submitters can track their search
+in the reply cache mentioned above.
+
+Launch with: `stack exec ma-rmq-injector <settings.yaml>`
+
+This service requires an open port which is **6368** by default.
+
+### Configure and start the semantic service
+
+In most configuration settings search will analyze the similarity of identifier
+words in code. This is done by a configurable web service. Such a service is included in the codekoan distribution.
+
+It can be started with `stack exec ma-semantic-service <settings.yaml>`
+
+This service requires an open port which is **6366** by default.
+
+### Start the webservice
+
+For users to interact with a search cluster, the codekoan web-application is
+very useful.
+
+Launch it with `stack exec ma-site-light <settings.yaml>`.
+
+The web-application routinely operates on port **6365** which should be proxied
+by e.g. apache or nginx in order to enable ssl and integrate into an existing
+website.
+
+### Set up a search service cluster
+
