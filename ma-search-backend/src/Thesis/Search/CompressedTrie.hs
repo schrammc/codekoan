@@ -143,7 +143,7 @@ buildLengthAnnotatedSuffixTrie minSuffixLength xs =
   buildTrie $ zip suffixes [0..]
   where 
     n = fromMaybe 0 minSuffixLength
-    suffixes = filter ((> n) . V.length) (vtails xs)
+    suffixes = filter ((>= n) . V.length) (vtails xs)
 
 -- | Like Data.List.tails for Vector. This doesn't copy the vector's contents.
 vtails :: V.Vector a -> [V.Vector a]
