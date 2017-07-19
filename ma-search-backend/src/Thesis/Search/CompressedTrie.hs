@@ -132,7 +132,7 @@ buildSuffixTrie :: (Hashable a, Eq a, Eq v)
 buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
   where
     n = fromMaybe 0 minSuffixLength
-    suffixes = filter ((> n) . V.length) (vtails xs)
+    suffixes = filter ((>= n) . V.length) (vtails xs)
 
 
 buildLengthAnnotatedSuffixTrie :: (Hashable a, Eq a) =>
