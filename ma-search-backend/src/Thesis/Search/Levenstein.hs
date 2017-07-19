@@ -484,7 +484,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
              let ns = toList $ trieLeaves nodeQ
                  results = do
                    v <- toList set
-                   let fragRange = buildRange v effectiveDepth 0
+                   let !fragRange = buildRange v effectiveDepth 0
                    n <- ns
                    return $ (Range n (n + effectiveDepth), fragRange, v)
              in (ns, results)
@@ -503,13 +503,13 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                  -- TODO: is it really necessary to add (fst commonR) here?
                  -- this probably only introduces redundant hits
                  q' = CTrieNode (M.difference mpQ mpF) maybeN
-                 disNs = (toList $ trieLeaves q') ++ (fst commonR)
+                 disNs = (toList $ trieLeaves q') -- ++ (fst commonR)
 
                  f' = CTrieNode (M.difference mpF mpQ) maybeVals
                  disFs = toList $ trieLeavesDist f'
                  disjoint = do
                    n <- disNs
-                   let qrange = Range n (n + effectiveDepth)
+                   let !qrange = Range n (n + effectiveDepth)
                    (vals, dist) <- disFs
                    (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
                    return $ (qrange, fragRange, v)
@@ -522,8 +522,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
 
 mergeResults (ns, rs) (ns', rs') = (ns ++ ns', rs ++ rs')
 
-commonResult rs = let (a, b) = foldl mergeResults ([], []) rs
-                  in length a `seq` length b `seq` (a,b)
+commonResult rs = let (as, bs) = unzip rs in (concat as,concat bs)
 
 data WalkResult = WalkResult {-# UNPACK #-}!AdvResult {-# UNPACK #-}!Side
                 deriving (Show)
@@ -565,7 +564,8 @@ advance !labelQ !labelLengthQ !labelF !labelLengthF !posQ !posF =
 
 buildFragmentRanges set matched dist = do
   v <- toList set
-  return $! (v, buildRange v matched dist)
+  let !rg = buildRange v matched dist
+  return (v, rg)
 
 -- | Given an answer sequence, a sequence of matched tokens and a remainder
 -- return the range of covered tokens in the answer fragments.
