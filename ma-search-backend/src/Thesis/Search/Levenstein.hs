@@ -337,14 +337,15 @@ lookupZero n xs tr =
 
 
 testLookupZero :: (Show a, Hashable a, Eq a) =>
-                  V.Vector a
+                  Int
+               -> V.Vector a
                -> [V.Vector a]
                -> [(Range a, Range a, (Int, Int))]
-testLookupZero q fs = traceShow tr $ lookupZero 0 q tr
+testLookupZero minDepth q fs = traceShow tr $ lookupZero minDepth q tr
   where
     tr = foldl1 (mergeTriesWith (S.union)) $ do
       (n, f) <- (zip [0..] fs)
-      return $ buildSuffixTrie Nothing f (S.singleton (n, V.length f))
+      return $ buildSuffixTrie (Just minDepth) f (S.singleton (n, V.length f))
 
 collect' :: (Hashable a, Eq a, FragmentData d) =>
             (a, (V.Vector a, Int, CompressedTrie a Int))
@@ -414,6 +415,9 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                      return $ (qrange, frange, d)
                      
                in (otherNs ++ ns, otherResults ++ results)
+             -- At this point nodeQ is either a leaf or doesn't contain the char
+             -- that we could use to continue so we collect it's leaf labels and
+             -- build results
              _ -> let ns = toList $ trieLeaves nodeQ
                       results = do
                         (vals, dist) <- toList $ trieLeavesDist nodeF
@@ -424,7 +428,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                         return $ (Range n (n+effectiveDepth), fragRange, v)
                   in (ns, results)
                              
-    WalkResult Done Fragment -> 
+    WalkResult Done Fragment ->
       let !effectiveDepth = depth + (labelLengthF - posF)
           !posQ' = posQ + (labelLengthF - posF)
           !nextQ = V.unsafeIndex labelQ posQ'
@@ -466,55 +470,54 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
 
     WalkResult Done Both ->
       let !effectiveDepth = depth + (labelLengthF - posF)
-      in if effectiveDepth < minDepth
-         then ([], [])
-         else
-           case (nodeQ, nodeF) of
-             (CTrieLeaf n, _) | effectiveDepth < minDepth -> ([], [])
+      in case (nodeQ, nodeF) of
+           (CTrieLeaf n, _) | effectiveDepth < minDepth -> ([], [])
+                            | otherwise ->
+             let qrange = Range n (n+effectiveDepth)
+                 results = do
+                   (vals, dist) <- toList $ trieLeavesDist nodeF
+                   (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+                   return $ (qrange, fragRange, v)
+             in ([n], results)
+           (_, CTrieLeaf set) | effectiveDepth < minDepth -> ([], [])
                               | otherwise ->
-               let qrange = Range n (n+effectiveDepth)
-                   results = do
-                     (vals, dist) <- toList $ trieLeavesDist nodeF
-                     (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
-                     return $ (qrange, fragRange, v)
-               in ([n], results)
-             (_, CTrieLeaf set) | effectiveDepth < minDepth -> ([], [])
-                                | otherwise ->
-               let ns = toList $ trieLeaves nodeQ
-                   results = do
-                     v <- toList set
-                     let fragRange = buildRange v effectiveDepth 0
-                     n <- ns
-                     return $ (Range n (n + effectiveDepth), fragRange, v)
-               in (ns, results)
-             (CTrieNode mpQ maybeN, CTrieNode mpF maybeVals) ->
-               let commonR = commonResult $ do
-                        (cq, edgeQ) <- M.toList mpQ
-                        case M.lookup cq mpF of
-                          Nothing -> return ([], [])
-                          Just edgeF -> return $ collect' (cq, edgeQ)
-                                                          (cq, edgeF)
-                                                          effectiveDepth
-                                                          minDepth
-                                                          0
-                                                          0
-                   
-                   q' = CTrieNode (M.difference mpQ mpF) maybeN
-                   disNs = (toList $ trieLeaves q') ++ (fst commonR)
+             let ns = toList $ trieLeaves nodeQ
+                 results = do
+                   v <- toList set
+                   let fragRange = buildRange v effectiveDepth 0
+                   n <- ns
+                   return $ (Range n (n + effectiveDepth), fragRange, v)
+             in (ns, results)
+           (CTrieNode mpQ maybeN, CTrieNode mpF maybeVals) ->
+             let commonR = commonResult $ do
+                      (cq, edgeQ) <- M.toList mpQ
+                      case M.lookup cq mpF of
+                        Nothing -> return ([], [])
+                        Just edgeF -> return $ collect' (cq, edgeQ)
+                                                        (cq, edgeF)
+                                                        effectiveDepth
+                                                        minDepth
+                                                        0
+                                                        0
 
-                   f' = CTrieNode (M.difference mpF mpQ) maybeVals                  
-                   disFs = toList $ trieLeavesDist f'
-                   disjoint = do
-                     n <- disNs
-                     let qrange = Range n (n + effectiveDepth)
-                     (vals, dist) <- disFs
-                     (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
-                     return $ (qrange, fragRange, v)
-                   result@(resultNs, resultRanges) =
-                     if effectiveDepth < minDepth
-                     then ([], [])
-                     else mergeResults (disNs, disjoint) commonR
-               in length resultNs `seq` length resultRanges `seq` result
+                 -- TODO: is it really necessary to add (fst commonR) here?
+                 -- this probably only introduces redundant hits
+                 q' = CTrieNode (M.difference mpQ mpF) maybeN
+                 disNs = (toList $ trieLeaves q') ++ (fst commonR)
+
+                 f' = CTrieNode (M.difference mpF mpQ) maybeVals
+                 disFs = toList $ trieLeavesDist f'
+                 disjoint = do
+                   n <- disNs
+                   let qrange = Range n (n + effectiveDepth)
+                   (vals, dist) <- disFs
+                   (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
+                   return $ (qrange, fragRange, v)
+                 result@(resultNs, resultRanges) =
+                   if effectiveDepth < minDepth
+                   then commonR
+                   else mergeResults (disNs, disjoint) commonR
+             in length resultNs `seq` length resultRanges `seq` result
 
 
 mergeResults (ns, rs) (ns', rs') = (ns ++ ns', rs ++ rs')
