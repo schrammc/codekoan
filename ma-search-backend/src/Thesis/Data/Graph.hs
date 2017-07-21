@@ -6,6 +6,7 @@
 -- implemented -- algorithms.
 
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
 module Thesis.Data.Graph
        ( -- * Graphs
          Graph
@@ -47,21 +48,18 @@ buildGraph graphNodes edges = Graph{..}
     formatEdge (a,b) = (min a b, max a b)
 
 -- | A graph with undirected edges.
-data Graph a = Graph { graphNodes :: V.Vector a
-                     , graphEdges :: IntMap IntSet
+data Graph a = Graph { graphNodes :: !(V.Vector a)
+                     , graphEdges :: !(IntMap IntSet)
                      }
-               deriving (Show)
+             deriving (Show)
 
 -- | Answers the questions if two nodes are connected. Nodes can't be connected
 -- to themselves (i.e. 'connected gr a a == False')
 connected :: Graph a -> Int -> Int -> Bool
-connected Graph{..} a b | a == b = False
-                        | otherwise = maybe False id $ do
-                          neighbours <- IM.lookup x graphEdges
-                          return $ IS.member y neighbours
-  where
-    x = min a b
-    y = max a b
+connected Graph{..} !a !b | a == b = False
+                          | otherwise = maybe False id $ do
+                            neighbours <- IM.lookup (min a b) graphEdges
+                            return $ IS.member (max a b) neighbours
 
 -- | Find all distinct maxial cliques in a graph. A maximal clique is any clique
 -- that can't be enlarged by addition of a node.
