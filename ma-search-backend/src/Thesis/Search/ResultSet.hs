@@ -33,10 +33,11 @@ module Thesis.Search.ResultSet ( ResultSet(..)
                                , sortAlignmentMatches
                                )where
 
+import Data.Monoid
 import           Control.DeepSeq
 import qualified Data.HashMap.Strict as M
 import           Data.Hashable
-import           Data.List (groupBy, sortOn, sortBy, foldl')
+import           Data.List (groupBy, sortBy, foldl')
 import           Data.Maybe (catMaybes)
 import           Thesis.Data.Range
 import           Thesis.Search.AlignmentMatch
@@ -148,11 +149,10 @@ sortAlignmentMatches rs = mapFragmentResults rs $ \_ matches ->
   Just $! sortBy comp matches
   where
     comp ra rb =
-      case compare (rangeStart $! resultQueryRange ra)
-                   (rangeStart $! resultQueryRange rb) of
-        EQ -> compare ((-1) * (rangeLength $! resultQueryRange ra))
-                      ((-1) * (rangeLength $! resultQueryRange rb))
-        x  -> x
+      compare (rangeStart $! resultQueryRange ra)
+              (rangeStart $! resultQueryRange rb) <>
+      compare (Down . rangeLength $! resultQueryRange ra)
+              (Down . rangeLength $! resultQueryRange rb)
 
 removeSubsumption' :: (Eq t, Eq ann) =>
                       [AlignmentMatch t l ann]
