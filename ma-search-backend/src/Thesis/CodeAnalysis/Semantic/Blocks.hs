@@ -68,15 +68,13 @@
 --
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE MultiWayIf #-}
 module Thesis.CodeAnalysis.Semantic.Blocks where
 
-import           Control.Monad
 import           Control.Monad.Trans.Maybe
-
+import           Data.Hashable (Hashable)
 import qualified Data.HashMap.Strict as M
-import Data.Hashable (Hashable)
 import qualified Data.Vector as V
-
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Semantic.BlockData
 import           Thesis.Data.Graph
@@ -122,10 +120,28 @@ blockAccordance BlockData{..} !resA !resB =
 blockAnalysis :: BlockData t
               -> [AlignmentMatch t l ann] -- ^ result matches
               -> [[AlignmentMatch t l ann]]
+-- The first few cases here are loop "unrolling" for performance.
+-- The last case is the genreal solution.
+blockAnalysis _         (x:[]) = [[x]]
+blockAnalysis blockData (x:y:[])
+  | blockAccordance blockData x y = [[x, y]]
+  | otherwise = [[x], [y]]
+blockAnalysis blockData (x:y:z:[]) =
+  let !xy = blockAccordance blockData x y
+      !yz = blockAccordance blockData y z
+      !zx = blockAccordance blockData z x
+  in if | xy && yz && zx-> [[x,y,z]]
+        | xy && yz-> [[x,y], [y,z]]
+        | xy && zx-> [[x,y], [x,z]]
+        | yz && zx-> [[y,z], [x,z]]
+        | xy -> [[x,y],[z]]
+        | yz -> [[y,z],[x]]
+        | zx -> [[z,x],[y]]
+        | otherwise -> [[x],[y],[z]]
 blockAnalysis blockData results = cliques accordanceGraph
   where
-    resultV   = V.fromList results
-    accordanceGraph = buildGraph resultV edges
+    !resultV = V.fromList results
+    accordanceGraph = buildGraphUnsafe resultV edges
     edges = do
       (n, result ) <- zip [0 ..] results
       (k, result') <- zip [0 .. (max 0 (n-1))] results
