@@ -12,6 +12,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE BangPatterns#-}
+{-# LANGUAGE FlexibleContexts #-}
 module Thesis.Search where
 
 import           Control.Concurrent.MVar
@@ -31,6 +32,7 @@ import qualified Data.Set as S
 import qualified Data.Text as Text
 import qualified Data.Vector as V
 import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Language (TokenVector)
 import           Thesis.CodeAnalysis.Semantic
 import           Thesis.CodeAnalysis.Semantic.Blocks
 import           Thesis.Data.Range hiding (coveragePercentage)
@@ -44,9 +46,6 @@ import           Thesis.Search.NGrams
 import           Thesis.Search.ResultSet
 import           Thesis.Search.Settings
 import           Thesis.Util.VectorView
-import Thesis.CodeAnalysis.Language (TokenVector)
-
-import Debug.Trace
 
 -- | This function serves to solve a possible case of combinatorial explosion in
 -- search. The problem is the following:
@@ -101,14 +100,15 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
          (ngram',start', x):(takeRepeats start' rst)
      | otherwise = takeRepeats lastRec rst
 
-
-findMatchesZero :: (Eq t, NFData t, MonadLogger m, Hashable t, FragmentData ann)
+findMatchesZero :: (Ord (FragmentId ann), Eq t, NFData t, MonadLogger m, Hashable t, FragmentData ann)
                 => SearchIndex t l ann
-                -> V.Vector (TokenWithRange t l) -- ^ The submitted code to be searched
-                -> Int            -- ^ The minimal match length
+                -> V.Vector (TokenWithRange t l)
+                -- ^ The submitted code to be searched
+                -> Int
+                -- ^ The minimal match length
                 -> MaybeT m (ResultSet t l ann)
 findMatchesZero index v n = return . ResultSet . (fmap (:[])) . buildMap $ do
-  (qRange, fRange, md) <- lookupResults
+  BasicResult qRange fRange md <- lookupResults
   let textRange = 
         Range (rangeStart $! coveredRange $! V.unsafeIndex v (rangeStart qRange))
               (rangeEnd $! coveredRange $! V.unsafeIndex v (rangeEnd qRange - 1))
@@ -123,7 +123,7 @@ findMatchesZero index v n = return . ResultSet . (fmap (:[])) . buildMap $ do
 -- | TAKE CARE: alignment matches that are in the result set of this function
 -- are not yet sorted and can cause problems with functions such as 'rangeCover'
 -- or redundant match removal!
-findMatches :: (NFData t, MonadLogger m, Hashable t, FragmentData ann)
+findMatches :: (Ord (FragmentId ann), NFData t, MonadLogger m, Hashable t, FragmentData ann)
                => SearchIndex t l ann
                -> Int            -- ^ The tolerated levenshtein distance
                -> TokenVector t l -- ^ The submitted code to be searched
@@ -146,7 +146,6 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
                         " in " <> (Text.pack . show $ M.size searchResults) <> "groups"
 
   return $ ResultSet $ (:[]) <$> searchResults
-
   where
     ngramRelevant tks = indexBF =?: (token <$> tks)
 
@@ -165,7 +164,6 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
                       , resultFragmentRange = range
                       , resultLevenScore = score
                       }
-
 
 buildMap :: (Eq ann, Hashable ann, FragmentData ann) =>
             [AlignmentMatch t l ann]
@@ -216,6 +214,7 @@ tokenizeAndPerformSearch :: ( Eq t
                             , Monad m
                             , MonadThrow m
                             , MonadLogger m
+                            , Ord (FragmentId ann)
                             , FragmentData ann) =>
                             SearchIndex t l ann
                          -> Language t l
@@ -237,6 +236,7 @@ tokenizeAndPerformCachedSearch :: ( Eq t
                             , MonadIO m
                             , MonadThrow m
                             , MonadLogger m
+                            , Ord (FragmentId ann)
                             , FragmentData ann) =>
                             SearchIndex t l ann
                          -> Language t l
@@ -259,6 +259,7 @@ performCachedSearch :: ( Eq t
                        , MonadIO m
                        , MonadThrow m
                        , MonadLogger m
+                       , Ord (FragmentId ann)
                        , FragmentData ann) =>
                        SearchIndex t l ann
                     -> Language t l
@@ -288,6 +289,7 @@ performSearch :: ( Eq t
                  , Monad m
                  , MonadThrow m
                  , MonadLogger m
+                 , Ord (FragmentId ann)
                  , FragmentData ann) =>
                  SearchIndex t l ann
               -> Language t l
@@ -303,7 +305,7 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  firstMatches <- findMatchesZero index queryTokens minMatchLength
+  firstMatches <- findMatchesZero index {-0-} queryTokens minMatchLength
 
   $(logDebug) $ "Beforelength filtering there are: "
                   <> printNumberOfAlignmentMatches firstMatches
