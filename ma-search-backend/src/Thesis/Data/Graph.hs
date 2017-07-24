@@ -12,28 +12,34 @@ module Thesis.Data.Graph
          Graph
 
          -- * Construction
-       , buildGraph
+       , buildGraphUnsafe
 
          -- * Algorithms
        , connected
        , cliques
        ) where
 
-import Data.Algorithm.MaximalCliques
+import           Data.Algorithm.MaximalCliques
 
-import qualified Data.Vector as V
-import Data.List
-import Data.IntMap (IntMap)
+import           Data.IntMap (IntMap)
 import qualified Data.IntMap as IM
-import Data.IntSet (IntSet)
+import           Data.IntSet (IntSet)
 import qualified Data.IntSet as IS
+import           Data.List
+import           Data.Maybe (fromMaybe)
+import qualified Data.Vector as V
 
--- | Safely build a bidirectional graph from a vector of vertices and a list of
+-- | Build a bidirectional graph from a vector of vertices and a list of
 -- edges that are given as pairs of indices. Edges to nodes not in the graph
 -- will be rejected.
-buildGraph :: V.Vector a -> [(Int, Int)] -> Graph a
-buildGraph graphNodes edges = Graph{..}
+--
+-- /This assumes the edges list is sorted by 'fst'/
+buildGraphUnsafe :: V.Vector a -> [(Int, Int)] -> Graph a
+buildGraphUnsafe graphNodes edges = Graph{..}
   where
+    -- safe variant woult be fromListWith (IS.union) in graphEdges = (...) $ do
+    --
+    -- this is a bit faster though.
     graphEdges = IM.fromList $ do
       edgeGroup <- groupBy (\(a, _) -> \(b, _) -> a == b) preparedEdges
       let edgeSource = fst $ head edgeGroup
@@ -57,7 +63,7 @@ data Graph a = Graph { graphNodes :: !(V.Vector a)
 -- to themselves (i.e. 'connected gr a a == False')
 connected :: Graph a -> Int -> Int -> Bool
 connected Graph{..} !a !b | a == b = False
-                          | otherwise = maybe False id $ do
+                          | otherwise = fromMaybe False $ do
                             neighbours <- IM.lookup (min a b) graphEdges
                             return $ IS.member (max a b) neighbours
 
@@ -65,15 +71,15 @@ connected Graph{..} !a !b | a == b = False
 -- that can't be enlarged by addition of a node.
 cliques :: Graph a -> [[a]]
 cliques gr@Graph{..} = do
-  cs <-IS.toList <$> cliques' gr
+  cs <- cliques' gr
   return $ V.unsafeIndex graphNodes <$> cs 
 
 -- | Find all distinct maxial cliques in a graph. A maximal clique is any clique
 -- that can't be enlarged by addition of a node. This returns the indices of the
 -- resulting nodes.
-cliques' :: Graph a -> [IntSet]
+cliques' :: Graph a -> [[Int]]
 cliques' gr@Graph{..} =
-  IS.fromList <$> getMaximalCliques neighboursP
-                                    ([0 .. (V.length graphNodes) - 1])
+  getMaximalCliques neighboursP ([0 .. (V.length graphNodes) - 1])
   where
     neighboursP = connected gr
+{-# INLINE cliques' #-}
