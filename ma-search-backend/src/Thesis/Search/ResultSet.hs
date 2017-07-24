@@ -148,34 +148,36 @@ sortAlignmentMatches :: ResultSet t l ann -> ResultSet t l ann
 sortAlignmentMatches rs = mapFragmentResults rs $ \_ matches ->
   Just $! sortBy comp matches
   where
-    comp ra rb =
+    comp !ra !rb =
       compare (rangeStart $! resultQueryRange ra)
               (rangeStart $! resultQueryRange rb) <>
       compare (Down . rangeLength $! resultQueryRange ra)
               (Down . rangeLength $! resultQueryRange rb)
+
+data SubsumptionIntermediate t l ann =
+  SubsumptionIntermediate {-# UNPACK #-} !Bool
+                          {-# UNPACK #-} ![AlignmentMatch t l ann]
 
 removeSubsumption' :: (Eq t, Eq ann) =>
                       [AlignmentMatch t l ann]
                    -> [AlignmentMatch t l ann]
 removeSubsumption' [] = []
 removeSubsumption' (x:[]) = x:[]
-removeSubsumption' results = maxSet [] results
+removeSubsumption' results = fst $ foldl' maxSet ([], []) results
   where
-    maxSet _      []        = []
-    maxSet active (next:xs) =
-      let ( subsumedByNone, active') = adjustActive active next
-      in if subsumedByNone
-         then next:(maxSet active' xs)
-         else maxSet active' xs
-    adjustActive []     next = (True, [next] )
-    adjustActive active next =
+    maxSet (results, active) !next =
+      let SubsumptionIntermediate subsumedByAny active' = adjustActive active next
+      in if subsumedByAny
+         then (results, active')
+         else (next:results, active')
+
+    adjustActive active !next =
       let active' = dropWhile (\a -> (rangeEnd $ resultQueryRange a) <
                                      (rangeStart $ resultQueryRange next))
                     active
-          !subsumedByNone = not $ any (subsumedProperSame next) active'
-      in if subsumedByNone
-         then (True, next:active' )
-         else (False, active')
+      in if any (subsumedProperSame next) active'
+         then SubsumptionIntermediate True active'
+         else SubsumptionIntermediate False (next:active')
 
 -- | Get the number of answers for which this result set contains alignment
 -- match groups.
