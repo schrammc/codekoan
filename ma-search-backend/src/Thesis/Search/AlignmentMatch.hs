@@ -16,7 +16,7 @@ import Thesis.Data.Range
 import Control.DeepSeq
 
 data AlignmentMatch t l ann =
-  AlignmentMatch { resultTextRange :: {-# UNPACK #-} !(Range (LanguageText l))
+  AlignmentMatch { resultTextRange :: (Range (LanguageText l))
                    -- ^ The matched text range in the query document
                  , resultQueryRange :: {-# UNPACK #-} !(Range t)
                  , resultMetaData :: {-# UNPACK #-} !ann
@@ -36,13 +36,13 @@ instance (NFData t, NFData ann) => NFData (AlignmentMatch t l ann) where
            resultLevenScore am `deepseq` ()
 
 -- | Same as 'subsumedBy' assuming a and b are matched to the same resultMeta ann
-subsumedProperSame !a !b = textRangeSubsumption && fragmentSubsumption && proper
+subsumedProperSame !a !b = queryRangeSubsumption && fragmentSubsumption && proper
   where
     proper = resultLevenScore a >= resultLevenScore b
     fragmentSubsumption = isSubRangeOf (resultFragmentRange a)
                                        (resultFragmentRange b)
-    textRangeSubsumption = isSubRangeOf (resultTextRange a)
-                                        (resultTextRange b)
+    queryRangeSubsumption = isSubRangeOf (resultQueryRange a)
+                                         (resultQueryRange b)
 
 -- | Returns true if the second search result covers more than the first search
 -- result and therefore makes the first search result redundant.
@@ -62,8 +62,8 @@ subsumedBy !a !b = sameFragment &&
 --                                       (resultMatchedTokens b)
     fragmentSubsumption = isSubRangeOf (resultFragmentRange a)
                                        (resultFragmentRange b)
-    textRangeSubsumption = isSubRangeOf (resultTextRange a)
-                                        (resultTextRange b)
+    textRangeSubsumption = isSubRangeOf (resultQueryRange a)
+                                        (resultQueryRange b)
 
 subsumedByProper :: (Eq t, Eq ann) =>
                     AlignmentMatch t l ann
