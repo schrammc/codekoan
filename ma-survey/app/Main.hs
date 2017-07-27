@@ -34,8 +34,8 @@ import           Network.Connection
 import           Network.HTTP.Conduit
 import           Network.HTTP.Simple hiding (httpLbs)
 import           Statistics.Distribution
-import           Statistics.Distribution.Normal
 import           Statistics.Distribution.ChiSquared
+import           Statistics.Distribution.Normal
 import           System.Directory
 import           System.Environment
 import           System.FilePath
@@ -46,29 +46,33 @@ import           Thesis.Data.Stackoverflow.Dictionary.Postgres
 import           Thesis.Messaging.Query
 import           Thesis.Messaging.ResultSet
 import           Thesis.Search.Settings
+import           Thesis.Survey.DirHelper
 import           Thesis.SurveySettings
 import           Thesis.Util.MonadUtils
+import Thesis.Survey.LocalWithIndex
 
-main = do
-  args <- getArgs
-  case args of
-    "process":settingsPath:dirPath:[] -> do
-      settingsMaybe <- Data.Yaml.decodeFile settingsPath :: IO (Maybe SurveySettings)
-      case settingsMaybe of
-        Nothing -> do
-          putStrLn "Settings file doesn't contain valid yaml!"
-        Just settings -> runWithSettings settings dirPath
-    "analyze":settingsPath:filePath:[] -> do
-      settingsMaybe <- Data.Yaml.decodeFile settingsPath :: IO (Maybe SurveySettings)
-      case settingsMaybe of
-        Nothing -> do
-          putStrLn "Settings file doesn't contain valid yaml!"
-        Just settings -> do
-          putStrLn $ "Analyzing " ++ filePath
-          runAnalysis settings filePath
-      return ()
-    _ -> printHelpString
+main = mainLocal
 
+--main = do
+--  args <- getArgs
+--  case args of
+--    "process":settingsPath:dirPath:[] -> do
+--      settingsMaybe <- Data.Yaml.decodeFile settingsPath :: IO (Maybe SurveySettings)
+--      case settingsMaybe of
+--        Nothing -> do
+--          putStrLn "Settings file doesn't contain valid yaml!"
+--        Just settings -> runWithSettings settings dirPath
+--    "analyze":settingsPath:filePath:[] -> do
+--      settingsMaybe <- Data.Yaml.decodeFile settingsPath :: IO (Maybe SurveySettings)
+--      case settingsMaybe of
+--        Nothing -> do
+--          putStrLn "Settings file doesn't contain valid yaml!"
+--        Just settings -> do
+--          putStrLn $ "Analyzing " ++ filePath
+--          runAnalysis settings filePath
+--      return ()
+--    _ -> printHelpString
+--
 printHelpString = do
   putStrLn "usage: <settings-path> <directory-path>"
 
@@ -85,13 +89,6 @@ runWithSettings settings dirPath = do
     process settings path = do
       res <- processFile settings path
       return (path, res)
-
-filterCodeFiles :: [FilePath] -> [FilePath]
-filterCodeFiles ps =
-  filter (\p -> isSuffixOf ".java" p ||
-                isSuffixOf ".py" p ||
-                isSuffixOf ".hs" p
-         ) ps
 
 processFile :: SurveySettings -> FilePath -> IO (Maybe ResultSetMsg)
 processFile settings path = do
@@ -175,16 +172,6 @@ waitForResult settings (QueryId qId) = do
          | status == "nothing" -> return (Nothing, StatusPending)
          | otherwise -> return (Nothing, StatusException)
     sleepTime = 10 * 1000 * 1000
-
-allFiles :: FilePath -> IO [FilePath]
-allFiles path = do
-  isDir <- doesDirectoryExist path
-  if not isDir
-    then return (path:[])
-    else do
-      entries <- listDirectory path
-      paths <- concat <$> forM ((\p -> path ++ "/" ++ p) <$>  entries) allFiles
-      return $ paths
 
 runAnalysis :: SurveySettings -> FilePath -> IO ()
 runAnalysis settings path = runStdoutLoggingT $ do

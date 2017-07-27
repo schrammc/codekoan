@@ -305,7 +305,8 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
-  firstMatches <- findMatchesZero index {-0-} queryTokens minMatchLength
+--  firstMatches <- findMatchesZero index {-0-} queryTokens minMatchLength
+  firstMatches <- findMatches index 0 queryTokens minMatchLength
 
   $(logDebug) $ "Beforelength filtering there are: "
                   <> printNumberOfAlignmentMatches firstMatches

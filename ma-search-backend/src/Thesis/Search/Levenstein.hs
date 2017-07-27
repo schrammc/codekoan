@@ -395,7 +395,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
     WalkResult (Partial n) _ ->
         let !effectiveDepth = depth + n
             ns = toList $ trieLeaves nodeQ
-            results = do
+            resultsPartial = do
               (vals, dist) <- toList $ trieLeavesDist nodeF
               (v, fragRange) <- buildFragmentRanges
                                   vals
@@ -404,7 +404,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
               n <- ns
               return $ BasicResult (Range n (n+effectiveDepth)) fragRange v
         in if effectiveDepth >= minDepth
-           then CollectResult ns results
+           then CollectResult ns resultsPartial
            else emptyCollectResult
 
     WalkResult Done Query ->
@@ -436,7 +436,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
              -- that we could use to continue so we collect it's leaf labels and
              -- build results
              _ -> let ns = toList $ trieLeaves nodeQ
-                      results = do
+                      resultsDoneQuery = do
                         (vals, dist) <- toList $ trieLeavesDist nodeF
                         (v, fragRange) <- buildFragmentRanges vals
                                             effectiveDepth
@@ -445,7 +445,7 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
                         return $ BasicResult (Range n (n+effectiveDepth))
                                              fragRange
                                              v
-                  in CollectResult ns results
+                  in CollectResult ns resultsDoneQuery
                              
     WalkResult Done Fragment ->
       let !effectiveDepth = depth + (labelLengthF - posF)
@@ -472,20 +472,19 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
               _ -> (nodeF, CollectResult (toList $ trieLeaves nodeQ) [])
         
           
-          results =
+          resultsDoneFragment =
             if effectiveDepth < minDepth
             then []
             else
               let fragmentDists = do
                     (vals, dist) <- toList $ trieLeavesDist nodeF'
-                    (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
-                    return (v, fragRange)
+                    buildFragmentRanges vals effectiveDepth dist
               in do
+                (vf, fragRange) <- fragmentDists
                 n <- queryNs
                 let !qRange = Range n (n + effectiveDepth)
-                (vf, fragRange) <- fragmentDists
-                return $ BasicResult qRange fragRange vf
-          in CollectResult (queryNs) (results ++ downResults)
+                return $! BasicResult qRange fragRange vf
+          in CollectResult (queryNs) (resultsDoneFragment ++ downResults)
 
     WalkResult Done Both ->
       let !effectiveDepth = depth + (labelLengthF - posF)
@@ -493,20 +492,20 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
            (CTrieLeaf n, _) | effectiveDepth < minDepth -> emptyCollectResult
                             | otherwise ->
              let qrange = Range n (n+effectiveDepth)
-                 results = do
+                 resultsBothQLeaf = do
                    (vals, dist) <- toList $ trieLeavesDist nodeF
                    (v, fragRange) <- buildFragmentRanges vals effectiveDepth dist
                    return $ BasicResult qrange fragRange v
-             in CollectResult [n] results
+             in CollectResult [n] resultsBothQLeaf
            (_, CTrieLeaf set) | effectiveDepth < minDepth -> emptyCollectResult
                               | otherwise ->
              let ns = toList $ trieLeaves nodeQ
-                 results = do
+                 resultsBothFLeaf = do
                    v <- toList set
                    let !fragRange = buildRange v effectiveDepth 0
                    n <- ns
                    return $ BasicResult (Range n (n + effectiveDepth)) fragRange v
-             in CollectResult ns results
+             in CollectResult ns resultsBothFLeaf
            (CTrieNode mpQ maybeN, CTrieNode mpF maybeVals) ->
              let commonR = commonResult $ do
                       (cq, edgeQ) <- M.toList mpQ
@@ -542,7 +541,8 @@ collect' q@(cq, (labelQ, labelLengthQ, nodeQ)) f@(cf, (labelF, labelLengthF, nod
 mergeResults (CollectResult ns rs) (CollectResult ns' rs') =
   CollectResult (ns ++ ns') (rs ++ rs')
 
-commonResult rs = CollectResult (concat $ collectNs <$> rs) (concat $ collectRs <$> rs)
+commonResult rs = CollectResult (concat $ collectNs <$> rs)
+                                (concat $ collectRs <$> rs)
 
 data WalkResult = WalkResult {-# UNPACK #-}!AdvResult {-# UNPACK #-}!Side
                 deriving (Show)
