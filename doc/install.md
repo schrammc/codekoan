@@ -1,4 +1,4 @@
-[LMU specific config](uni.md)
+[LMU specific config](doc/uni.md)
 # Codekoan installation instructions
 
 This document outlines how to build and run the Codekoan search pipeline. While
