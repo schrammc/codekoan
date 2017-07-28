@@ -171,7 +171,6 @@ search-postgres-database:
   db-port: 5432
   db-host: "localhost"
 search-semantic-url: "http://localhost:3666/submit"
-
 ```
 
 
@@ -196,5 +195,5 @@ or in `ma-search-service/settings.yaml` into the new directory (e.g.
 `/home/user/instance-1/`). Start the service using 
 
 ```bash
-./ma-search-service settings.yaml > service.log
+./ma-search-service > service.log
 ```
