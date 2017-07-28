@@ -155,7 +155,7 @@ modifications of the below sample configuration file:
 
 ```yaml
 search-language: "java"
-search-exchange: "java-cluster-1"
+search-exchange: "queries-java-1"
 search-question-tag: "java"
 search-cluster-size: 5
 search-answer-digits: [0, 1]
