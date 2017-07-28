@@ -122,7 +122,8 @@ This service requires an open port which is **6368** by default.
 ### Configure and start the semantic service
 
 In most configuration settings search will analyze the similarity of identifier
-words in code. This is done by a configurable web service. Such a service is included in the codekoan distribution.
+words in code. This is done by a configurable web service. Such a service is
+included in the codekoan distribution.
 
 It can be started with `stack exec ma-semantic-service <settings.yaml>`
 
@@ -141,3 +142,46 @@ website.
 
 ### Set up a search service cluster
 
+The actual work of CodeKoan search engine is performed in worker processes that
+are started with the `ma-search-service` process. Each of these worker processes
+can hold either part or all of the given stackoverflow patterns for a given
+programming language.
+
+The following will discuss how these worker instances are configured using
+modifications of the below sample configuration file:
+
+```yaml
+search-language: "java"
+search-exchange: "java-cluster-1"
+search-question-tag: "java"
+search-cluster-size: 5
+search-answer-digits: [0, 1]
+search-rabbitmq-settings:
+  rabbitmq-user: "guest"
+  rabbitmq-pwd: "guest"
+  rabbitmq-host: "localhost"
+  rabbitmq-virtual-host: "/"
+search-postgres-database:
+  db-user: "<user>"
+  db-pwd: "<passwor>"
+  db-name: "testdb"
+  db-port: 5432
+  db-host: "localhost"
+search-semantic-url: "http://localhost:3666/submit"
+
+```
+
+
+#### Controlling Index Distribution
+
+All answers in Stack Overflow are assigned inter IDs. Which answers are indexed
+in which worker process is determined by using a **modulus 10** of each answer's
+id. This is done in the `search-answer-digits` parameter. This is a list of
+single digits. For example the sample config above would lead to an index that
+roughly contains one fifth of all of Stack Overflow, namely the answers with IDs
+that end in either 0 or 1.
+
+**IMPORTANT:** take care, that indices of distributed workers don't overlap,
+i.e. don't create a situation where you have one worker with
+`search-answer-digits: [0,1,2]` and another worker with `search-answer-digits:
+[1,2,3]`. If you do this, you will get *duplicated search results*!
