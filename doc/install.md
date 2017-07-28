@@ -183,5 +183,4 @@ that end in either 0 or 1.
 
 **IMPORTANT:** take care, that indices of distributed workers don't overlap,
 i.e. don't create a situation where you have one worker with
-`search-answer-digits: [0,1,2]` and another worker with `search-answer-digits:
-[1,2,3]`. If you do this, you will get *duplicated search results*!
+`search-answer-digits: [0,1,2]` and another worker with `search-answer-digits: [1,2,3]`. If you do this, you will get *duplicated search results*!
