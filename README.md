@@ -1,4 +1,4 @@
-[LMU specific config](uni.md)
+[LMU specific config](doc/uni.md)
 
 # The Codekoan search engine
 
