@@ -1,3 +1,4 @@
+(LMU specific config)[uni.md]
 # Codekoan installation instructions
 
 This document outlines how to build and run the Codekoan search pipeline. While
@@ -45,7 +46,7 @@ default)
 
 This section assumes that you are familiar with
 the [basics](https://www.rabbitmq.com/getstarted.html) of RabbitMQ. If you
-aren't you should probably browse through the linked documentation.
+aren't you should probably browse through the linked documentation. 
 
 Naming of queues and exchanges does not follow a fixed scheme and you can change
 the names used below to anything you like, however we recommend using the
