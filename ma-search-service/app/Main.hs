@@ -40,7 +40,7 @@ import           Thesis.SearchException
 import           Thesis.SearchService.ApplicationType
 import           Thesis.SearchService.ServiceSettings
 import           Thesis.Util.LoggingUtils
-
+import System.Environment
 data Timeout = Timeout
 
 -- | Helper function that always returns a 'Timeout' value.

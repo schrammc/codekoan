@@ -18,6 +18,7 @@ spec = do
     alwaysFindSuff
     findDuplicatePatterns
     sameZeroLookup
+    alwaysFindZero
 
 sameZeroLookup :: SpecWith ()
 sameZeroLookup =
@@ -37,8 +38,29 @@ sameZeroLookup =
       (n, f) <- (zip ([0..] :: [Int]) (q:fs))
       return $ buildSuffixTrie Nothing f (S.singleton (n, V.length f))
     contains _ [] = False
-    contains q ((rq, _, x):xs) | rq == Range 0 (length q) && x == (0, length q) = True
-                               | otherwise = contains q xs
+    contains q ((rq, _, x):xs)
+      | rq == Range 0 (length q) && x == (0, length q) = True
+      | otherwise = contains q xs
+
+alwaysFindZero = do
+  it "Suffixtree lookup with triesearch should find each entry" $
+    property $ \(strs' :: [String]) ->
+      let strs = filter (not . null) strs'
+      in case strs of
+        [] -> True
+        _ -> 
+          let vectors = V.fromList <$> strs
+              trie = foldl1 (mergeTriesWith S.union) $ do
+                (n, v) <- zip ([0 ..] :: [Int]) vectors
+                return $ buildSuffixTrie Nothing v (S.singleton (n, V.length v))
+          in and $ do
+             (n, v) <- zip ([0..] :: [Int]) vectors
+             let f (a,_,b) = (a,b)
+                 lookupRes = (f <$> lookupZero 0 v trie)
+             k <- [0.. (V.length v - 1)]
+             let x = (Range k (V.length v), (n, V.length v))
+             return $ x `elem` lookupRes
+
 -- | Given a suffix tree is constructed for a set of nonempty
 -- strings. Then each of these individual strings should be
 -- retrievable from the suffix tree by the lookup function.
@@ -106,4 +128,3 @@ findDuplicatePatterns = do
       --         -- whole.
       --         Just ((k, _):[]) = M.lookup str xs
       --     in k == n
-
