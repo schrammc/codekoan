@@ -20,6 +20,9 @@ available on the stack homepage.
 
 ### Build the Codekoan pipeline
 
+*TODO:* On LMU worker instances the current project root is
+`/home/kryo/programming/ma-project`
+
 Once you have the stack build tool installed go the the Codekoan repository and
 run `stack build`. This should be sufficient to build all of the necessary
 binaries. The binaries can be found in `.stack-work/install/<your
@@ -172,7 +175,7 @@ search-semantic-url: "http://localhost:3666/submit"
 ```
 
 
-#### Controlling Index Distribution
+#### Controlling Index Distribution In The Config
 
 All answers in Stack Overflow are assigned inter IDs. Which answers are indexed
 in which worker process is determined by using a **modulus 10** of each answer's
@@ -184,3 +187,14 @@ that end in either 0 or 1.
 **IMPORTANT:** take care, that indices of distributed workers don't overlap,
 i.e. don't create a situation where you have one worker with
 `search-answer-digits: [0,1,2]` and another worker with `search-answer-digits: [1,2,3]`. If you do this, you will get *duplicated search results*!
+
+#### Run The Search Service
+
+Copy the `ma-search-service` from the `.stack-work/...` directory mentioned
+above into a new directory. Copy a `settings.yaml` file as in the example above
+or in `ma-search-service/settings.yaml` into the new directory (e.g.
+`/home/user/instance-1/`). Start the service using 
+
+```bash
+./ma-search-service settings.yaml > service.log
+```
