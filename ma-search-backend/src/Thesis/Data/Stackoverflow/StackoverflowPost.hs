@@ -46,14 +46,18 @@ data StackoverflowPost = PostQuestion !Question
                        | PostUnknown
                        deriving (Show, Eq)
 
+-- | Predicate to determine if a post is a stack overflow question
 isQuestion :: StackoverflowPost -> Bool
 isQuestion (PostQuestion _) = True
 isQuestion _ = False
 
+-- | Predicate to determine if a post is a stack overflow answer
 isAnswer :: StackoverflowPost -> Bool
 isAnswer (PostAnswer _) = True
 isAnswer _ = False
 
+-- | Predicate to determine if a post is an answer or a question (as opposed to
+-- some other unknown category)
 questionOrAnswer :: StackoverflowPost -> Bool
 questionOrAnswer PostUnknown = False
 questionOrAnswer _           = True
@@ -93,11 +97,12 @@ ratingAndLength p = do
 --------------------------------------------------------------------------------
 --
 -- Conduit helpers
-    
+
+-- | Only process stack overflow answers further
 filterAnswers :: Monad m => Conduit StackoverflowPost m Answer
 filterAnswers =  CL.filter isAnswer =$= CL.map (\(PostAnswer a) -> a)
 
-
+-- | Only process stack overflow questions further
 filterQuestions :: Monad m => Conduit StackoverflowPost m Question
 filterQuestions =  CL.filter isQuestion =$= CL.map (\(PostQuestion q) -> q)
 
@@ -110,7 +115,8 @@ data PostType = AnswerType | QuestionType | OtherType
               deriving (Show, Eq)
 
 
-
+-- | Read a text encoded post type where 1 is a question, 2 is an answer and
+-- everything else is "other"
 readPostType :: Text.Text -> PostType
 readPostType "1" = QuestionType
 readPostType "2" = AnswerType
