@@ -120,7 +120,7 @@ parsePosts :: ConduitM Event StackoverflowPost (ResourceT IO) ()
 parsePosts = void $ tagNoAttr "posts" $ manyYield parsePost
 
 parsePost :: ConduitM Event o (ResourceT IO) (Maybe StackoverflowPost)
-parsePost = tagName "row" parseAttributes $ return
+parsePost = tag "row" (\_ -> parseAttributes) $ return
   where
     parseAttributes = do
       rowId <- readAttribute "Id"
