@@ -64,7 +64,7 @@ executable           ma-search-service
                    , transformers >= 0.4
                    , yaml >= 0.8.18.1
   default-language:  Haskell2010
-  ghc-options:    -threaded -optc-O3 -O2 -rtsopts -with-rtsopts=-N -Wall -fno-warn-unused-do-bind -fspecialise-aggressively -fexpose-all-unfoldings
+  ghc-options:    -threaded -optc-O3 -O2 -rtsopts -with-rtsopts="-A20M -N" -Wall -fno-warn-unused-do-bind -fspecialise-aggressively -fexpose-all-unfoldings
 
 test-suite ma-search-service-test
   type:                exitcode-stdio-1.0
