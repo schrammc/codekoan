@@ -24,6 +24,7 @@ import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Maybe
 import           Data.Foldable (toList)
 import qualified Data.HashMap.Strict as M
+import qualified Data.HashMap.Lazy as ML
 import           Data.Hashable (Hashable)
 import qualified Data.List as List
 import           Data.Maybe (isJust)
@@ -67,8 +68,8 @@ import           Thesis.Util.VectorView
 --
 removeRepeats :: (Eq t) =>
                  Int
-              -> [(V.Vector (TokenWithRange t l), Int,b)]
-              -> [(V.Vector (TokenWithRange t l), Int,b)]
+              -> [(V.Vector t, Int,b)]
+              -> [(V.Vector t, Int,b)]
 removeRepeats n lst' = removeRepeats' S.empty n (zip lst (tail $ List.tails lst))
   where
     snd3 (_,x,_) = x
@@ -77,9 +78,9 @@ removeRepeats n lst' = removeRepeats' S.empty n (zip lst (tail $ List.tails lst)
 removeRepeats' :: (Eq t) =>
                   S.Set Int
                -> Int
-               -> [((V.Vector (TokenWithRange t l), Int, b)
-                   , [(V.Vector (TokenWithRange t l), Int, b)])]
-               -> [(V.Vector (TokenWithRange t l), Int, b)]
+               -> [((V.Vector t, Int, b)
+                   , [(V.Vector t, Int, b)])]
+               -> [(V.Vector t, Int, b)]
 removeRepeats' _ _ [] = []
 removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
   | S.member start recognized = removeRepeats' recognized ngramSize xs
@@ -96,7 +97,7 @@ removeRepeats' recognized ngramSize (((ngram, start,tl), rest):xs)
     takeRepeats _ [] = []
     takeRepeats lastRec ((ngram', start', x):rst)
      | start' > (ngramSize + lastRec) = []
-     | (token <$$$> ngram) == (token <$$$> ngram') =
+     | (ngram) == (ngram') =
          (ngram',start', x):(takeRepeats start' rst)
      | otherwise = takeRepeats lastRec rst
 
@@ -118,7 +119,12 @@ findMatchesZero index v n = return . ResultSet . (fmap (:[])) . buildMap $ do
                            , resultLevenScore = 0
                            , resultTextRange = textRange}
   where
-    lookupResults = lookupZero n (token <$> v) (indexTrie index)
+    ngramsWithTails = allNgramTails (indexNGramSize index) (token <$> v)
+--    relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
+--                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
+--                                  (removeRepeats 2 ngramsWithTails)
+    relevantSuffixes = map (\(_,_,x) -> x) $ removeRepeats 2 $ ngramsWithTails
+    lookupResults = lookupZero n relevantSuffixes (indexTrie index)
 
 -- | TAKE CARE: alignment matches that are in the result set of this function
 -- are not yet sorted and can cause problems with functions such as 'rangeCover'
@@ -169,7 +175,7 @@ buildMap :: (Eq ann, Hashable ann, FragmentData ann) =>
             [AlignmentMatch t l ann]
          -> M.HashMap ann [AlignmentMatch t l ann]
 buildMap xs =
-  M.fromListWith (++) ((\x -> (resultMetaData x, [x])) <$> xs)
+  ML.fromListWith (++) ((\x -> (resultMetaData x, [x])) <$> xs)
 
 {-# SPECIALIZE buildMap :: [AlignmentMatch t l (Int, Int)]
                         -> M.HashMap (Int, Int) [AlignmentMatch t l (Int, Int)]
@@ -305,7 +311,7 @@ performSearch index lang dict conf@SearchSettings{..} (txt, queryTokens) analyze
   $(logDebug) $ "Search-settings: " <> (Text.pack . show $ conf)
   $(logDebug) "Levenshtein - search..."
 
---  firstMatches <- findMatchesZero index {-0-} queryTokens minMatchLength
+  --firstMatches <- findMatchesZero index {-0-} queryTokens minMatchLength
   firstMatches <- findMatches index 0 queryTokens minMatchLength
 
   $(logDebug) $ "Beforelength filtering there are: "
