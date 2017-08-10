@@ -78,8 +78,9 @@ cliques gr@Graph{..} = do
 -- that can't be enlarged by addition of a node. This returns the indices of the
 -- resulting nodes.
 cliques' :: Graph a -> [[Int]]
-cliques' gr@Graph{..} =
-  getMaximalCliques neighboursP ([0 .. (V.length graphNodes) - 1])
+cliques' Graph{..} =
+  IS.toList <$> maximalCliques pickpivot f (IM.keysSet graphEdges)
   where
-    neighboursP = connected gr
+    f = (IM.!) graphEdges
+    pickpivot p x = head $ IS.elems p ++ IS.elems x
 {-# INLINE cliques' #-}
