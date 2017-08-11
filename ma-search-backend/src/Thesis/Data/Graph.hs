@@ -52,6 +52,7 @@ buildGraphUnsafe graphNodes edges = Graph{..}
                                       && a >= 0 && b >= 0
                            ) edges
 
+
 -- | A graph with directed edges.
 data Graph a = Graph { graphNodes :: !(V.Vector a)
                      , graphEdges :: !(IntMap IntSet)
@@ -69,7 +70,9 @@ connected Graph{..} !a !b | a == b = False
 neighbourIndices :: Graph a -> Int -> IS.IntSet
 neighbourIndices Graph{..} n = IS.union outNeighbours inNeighbours
   where
-    outNeighbours = (IM.!) graphEdges n
+    outNeighbours = case IM.lookup n graphEdges of
+      Nothing -> IS.empty
+      Just x  -> x
     inNeighbours = IS.fromAscList $ do
       (k, outNs) <- IM.toAscList graphEdges
       if IS.member n outNs
@@ -88,7 +91,8 @@ cliques gr@Graph{..} = do
 -- resulting nodes.
 cliques' :: Graph a -> [[Int]]
 cliques' gr@(Graph{..}) =
-  IS.toList <$> maximalCliques pickpivot f (IM.keysSet graphEdges)
+  fmap IS.toList
+  $ maximalCliques pickpivot f (IS.fromList $ [0 .. V.length graphNodes - 1])
   where
     f = neighbourIndices gr
     pickpivot p x = head $ IS.elems p ++ IS.elems x
