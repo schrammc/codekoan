@@ -40,18 +40,17 @@ buildGraphUnsafe graphNodes edges = Graph{..}
     -- safe variant woult be fromListWith (IS.union) in graphEdges = (...) $ do
     --
     -- this is a bit faster though.
-    graphEdges = IM.fromList $ do
+    graphEdges = IM.fromListWith (IS.union) $ do
       edgeGroup <- groupBy (\(a, _) -> \(b, _) -> a == b) preparedEdges
       let edgeSource = fst $ head edgeGroup
           edgeTargets = IS.fromList $ snd <$> edgeGroup
       return (edgeSource, edgeTargets)
     
-    preparedEdges = formatEdge <$> filter (\(a,b) -> a /= b
-                                                     && a < V.length graphNodes
-                                                     && b < V.length graphNodes
-                                                     && a >= 0 && b >= 0
-                                          ) edges
-    formatEdge (a,b) = (min a b, max a b)
+    preparedEdges = filter (\(a,b) -> a /= b
+                                      && a < V.length graphNodes
+                                      && b < V.length graphNodes
+                                      && a >= 0 && b >= 0
+                           ) edges
 
 -- | A graph with directed edges.
 data Graph a = Graph { graphNodes :: !(V.Vector a)
