@@ -135,25 +135,25 @@ buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
     suffixes = filter ((>= n) . V.length) (vtails xs)
 
 
-buildLengthAnnotatedSuffixTrie :: (Hashable a, Eq a) =>
+buildStartPointAnnotatedSuffixTrie :: (Hashable a, Eq a) =>
                                   Maybe Int
                                -> V.Vector a
                                -> CompressedTrie a Int
-buildLengthAnnotatedSuffixTrie minSuffixLength xs =
+buildStartPointAnnotatedSuffixTrie minSuffixLength xs =
 --  buildTrie $ fmap (\s -> (s, V.length s)) $ filter ((> n) . V.length)  suffixes
   buildTrie $ zip suffixes [0..]
   where 
-    n = fromMaybe 0 minSuffixLength
+    n = max 1 $ fromMaybe 1 minSuffixLength
     suffixes = filter ((>= n) . V.length) $ (vtails xs)
 
-buildLengthAnnotatedSuffixTrieFromList :: (Hashable a, Eq a) =>
+buildStartPointAnnotatedSuffixTrieFromList :: (Hashable a, Eq a) =>
                                           Maybe Int
                                        -> [(V.Vector a, Int)]
                                        -> CompressedTrie a Int
-buildLengthAnnotatedSuffixTrieFromList minSuffixLength suffixes =
-  buildTrie $  filter ((> n) . V.length . fst) suffixes
+buildStartPointAnnotatedSuffixTrieFromList minSuffixLength suffixes =
+  buildTrie $  filter ((>= n) . V.length . fst) suffixes
   where 
-    n = fromMaybe 0 minSuffixLength
+    n = max 1 $ fromMaybe 1 minSuffixLength
 
 -- | Like Data.List.tails for Vector. This doesn't copy the vector's contents.
 vtails :: V.Vector a -> [V.Vector a]

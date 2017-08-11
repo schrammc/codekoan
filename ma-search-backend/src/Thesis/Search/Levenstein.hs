@@ -333,8 +333,8 @@ lookupZero n xs tr =
         Just edgeF -> collectRs $ collect' (cq, edgeQ) (cq, edgeF) 0 n 0 0
     _ -> []      
   where
-   --queryTrie = buildLengthAnnotatedSuffixTrieFromList (Just n) xs
-   queryTrie = buildLengthAnnotatedSuffixTrie (Just n) xs
+   --queryTrie = buildStartPointAnnotatedSuffixTrieFromList (Just n) xs
+   queryTrie = buildStartPointAnnotatedSuffixTrie (Just n) xs
 
 
 --testLookupZero :: (Show a, Hashable a, Eq a) =>
