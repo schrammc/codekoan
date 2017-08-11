@@ -17,9 +17,9 @@ spec = do
   describe "Thesis.Search.LevensteinSpec" $ do
     alwaysFindSuff
     findDuplicatePatterns
---    sameZeroLookup
---    alwaysFindZero
-{-
+    sameZeroLookup
+    alwaysFindZero
+
 sameZeroLookup :: SpecWith ()
 sameZeroLookup =
   it "ZeroLookup" $
@@ -32,13 +32,13 @@ sameZeroLookup =
                                  (tr (V.fromList q) (V.fromList <$> fs))
         in if contains q results
            then True
-           else traceShow (q, fs, (\(a,_,_) -> a) <$> results) False
+           else traceShow (q, fs, (\(BasicResult a _ _) -> a) <$> results) False
   where
     tr q fs = foldl1 (mergeTriesWith (S.union)) $ do
       (n, f) <- (zip ([0..] :: [Int]) (q:fs))
       return $ buildSuffixTrie Nothing f (S.singleton (n, V.length f))
     contains _ [] = False
-    contains q ((rq, _, x):xs)
+    contains q ((BasicResult rq _ x):xs)
       | rq == Range 0 (length q) && x == (0, length q) = True
       | otherwise = contains q xs
 
@@ -55,12 +55,12 @@ alwaysFindZero = do
                 return $ buildSuffixTrie Nothing v (S.singleton (n, V.length v))
           in and $ do
              (n, v) <- zip ([0..] :: [Int]) vectors
-             let f (a,_,b) = (a,b)
+             let f (BasicResult a _ b) = (a,b)
                  lookupRes = (f <$> lookupZero 0 v trie)
              k <- [0.. (V.length v - 1)]
              let x = (Range k (V.length v), (n, V.length v))
              return $ x `elem` lookupRes
--}
+
 -- | Given a suffix tree is constructed for a set of nonempty
 -- strings. Then each of these individual strings should be
 -- retrievable from the suffix tree by the lookup function.
