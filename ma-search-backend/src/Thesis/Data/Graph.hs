@@ -53,7 +53,7 @@ buildGraphUnsafe graphNodes edges = Graph{..}
                                           ) edges
     formatEdge (a,b) = (min a b, max a b)
 
--- | A graph with undirected edges.
+-- | A graph with directed edges.
 data Graph a = Graph { graphNodes :: !(V.Vector a)
                      , graphEdges :: !(IntMap IntSet)
                      }
@@ -67,6 +67,16 @@ connected Graph{..} !a !b | a == b = False
                             neighbours <- IM.lookup (min a b) graphEdges
                             return $ IS.member (max a b) neighbours
 
+neighbourIndices :: Graph a -> Int -> IS.IntSet
+neighbourIndices Graph{..} n = IS.union outNeighbours inNeighbours
+  where
+    outNeighbours = (IM.!) graphEdges n
+    inNeighbours = IS.fromAscList $ do
+      (k, outNs) <- IM.toAscList graphEdges
+      if IS.member n outNs
+         then return k
+         else []
+
 -- | Find all distinct maxial cliques in a graph. A maximal clique is any clique
 -- that can't be enlarged by addition of a node.
 cliques :: Graph a -> [[a]]
@@ -78,9 +88,9 @@ cliques gr@Graph{..} = do
 -- that can't be enlarged by addition of a node. This returns the indices of the
 -- resulting nodes.
 cliques' :: Graph a -> [[Int]]
-cliques' Graph{..} =
+cliques' gr@(Graph{..}) =
   IS.toList <$> maximalCliques pickpivot f (IM.keysSet graphEdges)
   where
-    f = (IM.!) graphEdges
+    f = neighbourIndices gr
     pickpivot p x = head $ IS.elems p ++ IS.elems x
 {-# INLINE cliques' #-}
