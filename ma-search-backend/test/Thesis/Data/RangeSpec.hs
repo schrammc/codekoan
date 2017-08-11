@@ -5,7 +5,7 @@ import Data.Maybe
 
 import Test.Hspec
 import Test.QuickCheck
-
+import Data.List
 import Thesis.Data.Range
 
 instance Arbitrary (Range a) where
@@ -64,8 +64,8 @@ rangeCoverCorrect = it "no overlaps in range cover" $ property rangeCoverCorrect
 rangeCoverCorrectP :: forall a. [Range a] -> Bool
 rangeCoverCorrectP [] = rangeCover [] == []
 rangeCoverCorrectP xs = and $ do
-  a <- rangeCover xs
-  b <- rangeCover xs
+  a <- rangeCover $ sort xs
+  b <- rangeCover $ sort xs
   return $ if a == b
            then True
            else overlap a b == False

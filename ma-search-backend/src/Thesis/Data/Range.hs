@@ -69,11 +69,13 @@ rangeLength (Range a b) = b - a
 {-# INLINE rangeLength #-}
 
 -- | From a given list of ranges build a list of ranges so that the ranges are
--- non-overlapping (i.e. no position is covered by a range twice). Furthermore the
--- resulting ranges are sorted in order of occurrence.
+-- non-overlapping (i.e. no position is covered by a range twice). The resulting
+-- ranges are sorted in order of occurrence.
 --
 -- If two ranges are conflicting, they are merged into one range covering both
 -- original ranges
+--
+-- /This assumes that the input ranges are sorted!/
 rangeCover :: [Range a] -> [Range a]
 rangeCover ranges =
   case ranges of
