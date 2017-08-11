@@ -140,17 +140,18 @@ buildLengthAnnotatedSuffixTrie :: (Hashable a, Eq a) =>
                                -> V.Vector a
                                -> CompressedTrie a Int
 buildLengthAnnotatedSuffixTrie minSuffixLength xs =
-  buildTrie $ fmap (\s -> (s, V.length s)) $ filter ((> n) . V.length)  suffixes
+--  buildTrie $ fmap (\s -> (s, V.length s)) $ filter ((> n) . V.length)  suffixes
+  buildTrie $ zip suffixes [0..]
   where 
     n = fromMaybe 0 minSuffixLength
-    suffixes = filter ((>= n) . V.length) (vtails xs)
+    suffixes = filter ((>= n) . V.length) $ (vtails xs)
 
 buildLengthAnnotatedSuffixTrieFromList :: (Hashable a, Eq a) =>
                                           Maybe Int
-                                       -> [V.Vector a]
+                                       -> [(V.Vector a, Int)]
                                        -> CompressedTrie a Int
 buildLengthAnnotatedSuffixTrieFromList minSuffixLength suffixes =
-  buildTrie $ fmap (\s -> (s, V.length s)) $ filter ((> n) . V.length) suffixes
+  buildTrie $  filter ((> n) . V.length . fst) suffixes
   where 
     n = fromMaybe 0 minSuffixLength
 

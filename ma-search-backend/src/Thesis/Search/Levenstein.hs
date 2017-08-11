@@ -321,7 +321,7 @@ walkThroughZero _ _ _ _ =
 
 lookupZero :: (Hashable a, Eq a, FragmentData d) =>
               Int 
-           -> [V.Vector a]
+           -> V.Vector a
            -> CompressedTrie a (S.Set d)
            -> [BasicResult a d]
 lookupZero n xs tr =
@@ -333,19 +333,20 @@ lookupZero n xs tr =
         Just edgeF -> collectRs $ collect' (cq, edgeQ) (cq, edgeF) 0 n 0 0
     _ -> []      
   where
-    queryTrie = buildLengthAnnotatedSuffixTrieFromList (Just n) xs
+   --queryTrie = buildLengthAnnotatedSuffixTrieFromList (Just n) xs
+   queryTrie = buildLengthAnnotatedSuffixTrie (Just n) xs
 
 
-testLookupZero :: (Show a, Hashable a, Eq a) =>
-                  Int
-               -> V.Vector a
-               -> [V.Vector a]
-               -> [BasicResult a (Int, Int)]
-testLookupZero minDepth q fs = traceShow tr $ lookupZero minDepth (vtails q) tr
-  where
-    tr = foldl1 (mergeTriesWith (S.union)) $ do
-      (n, f) <- (zip [0..] fs)
-      return $ buildSuffixTrie (Just minDepth) f (S.singleton (n, V.length f))
+--testLookupZero :: (Show a, Hashable a, Eq a) =>
+--                  Int
+--               -> V.Vector a
+--               -> [V.Vector a]
+--               -> [BasicResult a (Int, Int)]
+--testLookupZero minDepth q fs = traceShow tr $ lookupZero minDepth (vtails q) tr
+--  where
+--    tr = foldl1 (mergeTriesWith (S.union)) $ do
+--      (n, f) <- (zip [0..] fs)
+--      return $ buildSuffixTrie (Just minDepth) f (S.singleton (n, V.length f))
 
 data CollectResult a d =
   CollectResult { collectNs :: {-# UNPACK #-} ![Int]

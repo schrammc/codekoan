@@ -117,12 +117,7 @@ findMatchesZero index v n = return . ResultSet . (fmap (:[])) . buildMap $ do
                            , resultLevenScore = 0
                            , resultTextRange = textRange}
   where
-    ngramsWithTails = allNgramTails (indexNGramSize index) (token <$> v)
---    relevantNGramTails = filter (\(ngr, _, _) -> True ) $ --ngramRelevant ngr)
---                           filter (\(_  , x, _) -> x `mod` 5 == 0) $
---                                  (removeRepeats 2 ngramsWithTails)
-    relevantSuffixes = map (\(_,_,x) -> x) $ removeRepeats 2 $ ngramsWithTails
-    lookupResults = lookupZero n relevantSuffixes (indexTrie index)
+    lookupResults = lookupZero n (token <$> v) (indexTrie index)
 
 -- | TAKE CARE: alignment matches that are in the result set of this function
 -- are not yet sorted and can cause problems with functions such as 'rangeCover'
