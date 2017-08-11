@@ -54,8 +54,8 @@ suffixesProperty n = property $ \(w :: String) ->
   if null w
   then True
   else
-    let n' = max 0 (fromMaybe 0 n)
-        nonemptySuffixes = sort $ filter (\x -> length x > n') $ tails w
+    let n' = max 1 (fromMaybe 1 n)
+        nonemptySuffixes = sort $ filter (\x -> length x >= n') $ tails w
         w' = V.fromList w
         tr = buildSuffixTrie n w' (0 :: Int)
         trieWords = sort  $ fst <$> wordsInTrie' tr

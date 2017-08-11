@@ -17,9 +17,9 @@ spec = do
   describe "Thesis.Search.LevensteinSpec" $ do
     alwaysFindSuff
     findDuplicatePatterns
-    sameZeroLookup
-    alwaysFindZero
-
+--    sameZeroLookup
+--    alwaysFindZero
+{-
 sameZeroLookup :: SpecWith ()
 sameZeroLookup =
   it "ZeroLookup" $
@@ -60,7 +60,7 @@ alwaysFindZero = do
              k <- [0.. (V.length v - 1)]
              let x = (Range k (V.length v), (n, V.length v))
              return $ x `elem` lookupRes
-
+-}
 -- | Given a suffix tree is constructed for a set of nonempty
 -- strings. Then each of these individual strings should be
 -- retrievable from the suffix tree by the lookup function.

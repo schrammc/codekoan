@@ -131,7 +131,7 @@ buildSuffixTrie :: (Hashable a, Eq a, Eq v)
                 -> CompressedTrie a v
 buildSuffixTrie minSuffixLength xs v = buildTrie $ zip suffixes (repeat v)
   where
-    n = fromMaybe 0 minSuffixLength
+    n = max 1 $ fromMaybe 1 minSuffixLength
     suffixes = filter ((>= n) . V.length) (vtails xs)
 
 
