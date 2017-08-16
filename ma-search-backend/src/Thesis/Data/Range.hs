@@ -54,6 +54,7 @@ import qualified Data.Text as Text
 
 import qualified Data.Vector as V
 import Control.DeepSeq
+import Data.Coerce (coerce)
 
 -- | An integer range with a phantom type @a@, that allows us to specify, /what/
 -- the range pertains to. So e.g. a range in a @[a]@ would be a @'Range' a@.
@@ -181,7 +182,7 @@ textLinesInRange (Range a b) txt =
 
 -- | A helper function to convert the phantom type of a range
 convertRange :: Range a -> Range b
-convertRange (Range a b) = (Range a b)
+convertRange = coerce
 {-# INLINE convertRange #-}
 
 -- | /O(1)/ Get the slice of the vector that's in range.
