@@ -1,88 +1,130 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Thesis.CodeAnalysis.Mutation.Base where
 
-import           Control.Monad.IO.Class
-import           Data.Coerce
-import           Data.String
-import           Data.Text as Text
-import qualified Data.Vector.Unboxed as VUnboxed
+import           Control.Monad.Random.Strict
+import           Data.Char
+import           Data.Monoid
+import           Data.Set (Set)
+import qualified Data.Set as S
+import           Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Vector as V
 import           Thesis.Data.Range
-import Text.Read
-newtype TextPosition = TextPosition {posToInt :: Int}
-                     deriving (Show, Eq, Ord)
 
-newtype VString = VString {vstringToVector :: VUnboxed.Vector Char}
-                deriving (Eq, Ord)
+newtype TextPosition = TextPosition {posToInt :: Word}
+                     deriving (Eq, Ord, Show)
 
-instance Show VString where
-  show = VUnboxed.toList . vstringToVector
-
-instance Read VString where
-  readPrec = do
-    x <- readPrec
-    return $ fromString x
-
-instance IsString VString where
-  fromString = VString . VUnboxed.fromList
-
-textToVString :: Text -> VString
-textToVString  = fromString . Text.unpack
-
-randomPosition :: MonadIO m => VString -> m TextPosition
-randomPosition = undefined
-
-shiftToLineStart :: VString -> TextPosition -> TextPosition
-shiftToLineStart t pos = TextPosition . go $ posToInt pos
+indentBy :: Int -> Text -> Text
+indentBy n = Text.unlines . fmap (mappend t) . Text.lines
   where
-    go k | k <= 0 = 0
-         | otherwise = let c = VUnboxed.unsafeIndex (coerce t) (k - 1)
-                       in if c == '\n' then k else go (k - 1)
+    t = Text.pack $ replicate n ' '
 
-shiftToNextLineStart :: VString -> TextPosition -> TextPosition
-shiftToNextLineStart str pos = TextPosition . go $ posToInt pos + 1
+unindentBy :: Int -> Text -> Text
+unindentBy n = Text.unlines . fmap (Text.drop n) . Text.lines
+
+minIndent :: Text -> Int
+minIndent txt =
+  let lineLengths = fmap (Text.length . Text.takeWhile isSpace)
+                    $ filter (not . isSpaceOnly)
+                    $ Text.lines txt
+  in case lineLengths of
+    [] -> 0
+    _  -> minimum lineLengths
+
+isSpaceOnly :: Text -> Bool
+isSpaceOnly t = all isSpace (Text.unpack t)
+
+-- | Insert a piece of text at a given position into a text
+insertAt :: Text
+         -- ^ Inserted piece
+         -> TextPosition
+         --  ^ Insert position
+         -> Text
+         -- ^ The text into which we insert
+         -> Text
+insertAt piece pos txt =
+  let (before, after) = Text.splitAt (fromIntegral $ posToInt pos) txt
+  in before <> piece <> after
+
+-- | Find out the current text indentation level at the given position. If the
+-- given position is within an empty line the indent of the previous non-empty
+-- line is used. If there is no previous non-empty line the result is 0
+indentAt :: Text -> TextPosition -> Word
+indentAt t pos = go (Text.lines t) 0 0
   where
-    t = vstringToVector str
-    go k | k >= (VUnboxed.length t - 1) = (VUnboxed.length t - 1)
-         | otherwise = let c = VUnboxed.unsafeIndex t (k - 1)
-                       in if c == '\n' then k else go (k + 1)
+    posInt = fromIntegral $ posToInt pos
+    go []     _ ind = ind
+    go (l:ls) p ind
+      | isSpaceOnly l = go ls (p + Text.length l + 1) ind
+      | otherwise =
+        let ind' = fromIntegral $ minIndent l
+        in if posInt < p + (Text.length l + 1)
+           then ind'
+           else go ls (p + Text.length l + 1) ind'
 
-indentLevelAt :: VString -> TextPosition -> Int
-indentLevelAt t pos' = (posToInt end) - (posToInt pos)
+randomPosition :: MonadRandom m => Text -> m (TextPosition)
+randomPosition t = do
+  p <- getRandomR (0, Text.length t)
+  return . TextPosition $ fromIntegral p
+
+randomTextRange :: (MonadRandom m) => Text -> m (Range Text)
+randomTextRange t = do
+  let n = Text.length t
+  a <- getRandomR (0, n)
+  b <- getRandomR (0, n)
+  return $ Range (min a b) (max a b)
+
+insertAtRandomPosition :: MonadRandom m
+                       => Text
+                       -- ^ Inserted piece
+                       -> Text
+                       -- ^ whole text
+                       -> m Text
+insertAtRandomPosition piece txt = do
+  pos <- randomPosition txt
+  return $ insertAt piece pos txt
+
+replaceAt :: Text -> Range Text -> Text -> Text
+replaceAt piece range txt =
+  let (before, rest) = Text.splitAt (rangeStart range) txt
+      (_, after) = Text.splitAt (rangeEnd range - rangeStart range) rest
+  in before <> piece <> after
+
+-- | Delete text in a given range
+deleteAt :: Range Text -> Text -> Text
+deleteAt = replaceAt ""
+
+-- | An indentifier made up of some of the given words
+randomWordId :: (MonadRandom m) => V.Vector Text -> m Text
+randomWordId words = do
+  n <- getRandomR (1, 5)
+  idWords <- replicateM n $ do
+    k <- getRandomR (0, V.length words - 1)
+    return $ V.unsafeIndex words k
+  return $ camelConcat idWords
   where
-    pos = shiftToLineStart t pos'
-    end = moveRightWhile (`elem` [' ', '\t']) t pos
+    camelConcat xs = case Text.toLower <$> xs of
+      y:ys -> mconcat $ y:(firstUpper <$> ys)
+      [] -> Text.empty
+    firstUpper x = case Text.unpack x of
+      c:cs -> Text.pack $ (toUpper c):cs
+      [] -> Text.empty
+    
+-- | A random identifier made up of upper and lower case letters
+randomId :: (MonadRandom m) => m Text
+randomId = fmap Text.pack $ do
+  n <- getRandomR (1,20)
+  replicateM n $ do
+    c <- getRandomR ('a', 'z')
+    b <- getRandom
+    return $ if b then c else toUpper c
 
-moveLeftWhile  :: (Char -> Bool) -> VString -> TextPosition -> TextPosition
-moveLeftWhile pred str pos = TextPosition . go $ posToInt pos
+-- | Start positions of the lines in the given text
+lineStartPositions :: Text -> Set TextPosition
+lineStartPositions txt = S.fromList $ go (Text.lines txt) 0  
   where
-    go k | k <= 0 = 0
-         | otherwise = if pred $ VUnboxed.unsafeIndex (coerce str) k
-                       then go (k - 1)
-                       else k
-
-moveRightWhile :: (Char -> Bool) -> VString -> TextPosition -> TextPosition
-moveRightWhile pred str pos = TextPosition . go $ posToInt pos
-  where
-    t = vstringToVector str
-    go k | k >= VUnboxed.length t - 1 = VUnboxed.length t - 1
-         | otherwise = if pred $ VUnboxed.unsafeIndex t k
-                       then go (k + 1)
-                       else k
-
-getCurrentLine :: VString -> TextPosition -> VString
-getCurrentLine str pos =
-  let startPos = shiftToLineStart     str pos
-      endPos   = shiftToNextLineStart str pos
-  in VString $ VUnboxed.slice (posToInt startPos)
-                              (posToInt endPos - posToInt startPos)
-                              (coerce str)
-
-vstringInRange :: Range VString -> VString -> VString
-vstringInRange (Range a b) str =
-  coerce $ VUnboxed.unsafeSlice a (b - 1) (coerce str)
-
-indentBy :: Int -> VString -> VString
-indentBy k str = undefined
-
-minIndentLevel :: VString -> Int
-minIndentLevel str = undefined
+    go lins n =
+      let currentPos = (TextPosition $ fromIntegral n)
+      in case lins of
+           []   -> []
+           l:ls -> currentPos:(go ls (n + Text.length l + 1))
