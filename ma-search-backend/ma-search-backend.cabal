@@ -32,6 +32,7 @@ library
                      , Thesis.CodeAnalysis.Language.Internal
                      , Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
+                     , Thesis.CodeAnalysis.Mutation.Base
                      , Thesis.CodeAnalysis.Semantic
                      , Thesis.CodeAnalysis.Semantic.BlockData
                      , Thesis.CodeAnalysis.Semantic.Blocks
@@ -99,6 +100,7 @@ library
                      , http-conduit >= 2.1.10
                      , maximal-cliques >= 0.1.1
                      , monad-logger >= 0.3.9
+                     , MonadRandom >= 0.5.1
                      , parallel >= 3.2
                      , postgresql-simple >= 0.5.2
                      , resourcet >= 1.1.7.4
