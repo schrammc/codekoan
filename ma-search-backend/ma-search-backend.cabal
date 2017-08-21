@@ -32,7 +32,9 @@ library
                      , Thesis.CodeAnalysis.Language.Internal
                      , Thesis.CodeAnalysis.Language.Internal.StandardTokenBlockAnalysis
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
+                     , Thesis.CodeAnalysis.Mutation
                      , Thesis.CodeAnalysis.Mutation.Base
+                     , Thesis.CodeAnalysis.Mutation.IdentifierReplacement
                      , Thesis.CodeAnalysis.Semantic
                      , Thesis.CodeAnalysis.Semantic.BlockData
                      , Thesis.CodeAnalysis.Semantic.Blocks
