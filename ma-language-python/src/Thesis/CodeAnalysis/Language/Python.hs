@@ -1,5 +1,6 @@
 -- |
 -- Copyright: Christof Schramm 2016
+-- Description: Python language implementation
 -- License: All rights reserved
 --
 -- This module provides an implementation of the 'Langauge' datatype for the
@@ -15,35 +16,35 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedStrings#-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Thesis.CodeAnalysis.Language.Python ( python
                                            , Python
                                            , buildIndexForPython
                                            ) where
 
 import           Control.Applicative
-import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
-
 import           Data.Attoparsec.Text as AP
 import           Data.Char
 import           Data.Conduit (Source)
-import           Data.Maybe (fromJust, catMaybes)
+import           Data.Maybe (catMaybes)
 import qualified Data.Text as Text
-
-import           Thesis.Search.Index
-import           Thesis.Data.Stackoverflow.Answer
-
-import           Thesis.Search
 import           Thesis.CodeAnalysis.Language
 import           Thesis.CodeAnalysis.Language.CommonTokenParsers
 import           Thesis.CodeAnalysis.Language.Internal
-import           Thesis.CodeAnalysis.Language.Python.Internal.Tokens
 import           Thesis.CodeAnalysis.Language.Python.Internal.BlockAnalysis
+import           Thesis.CodeAnalysis.Language.Python.Internal.Tokens
+import           Thesis.CodeAnalysis.Mutation
+import           Thesis.CodeAnalysis.Mutation.Class
+import           Thesis.Data.Range
+import           Thesis.Data.Stackoverflow.Answer
+import           Thesis.Search.Index
 
-import Debug.Trace
+import           Thesis.CodeAnalysis.Mutation
+import           Debug.Trace
 
 data Python
 
@@ -55,6 +56,16 @@ python = Language{ languageFileExtension = ".py"
                  , removeComments = LanguageText
                  , languageGenBlockData = pythonBlockData
                  }
+
+instance MutableLanguage PyToken Python where
+  mutableBaseLanguage = python
+  isRelevantIndent = \_ t ->
+    case t of
+      PyTokenIndent -> Just GenericIndent
+      PyTokenUnindent -> Just GenericUndindent
+      _ -> Nothing
+  hasRelevantIndents = \_ -> True
+  statementRanges = \_ -> pythonStatements
 
 buildIndexForPython :: ( MonadIO m
                        , MonadLogger m) => 
@@ -114,30 +125,32 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
       Left _  -> Nothing
     
     parseCode :: Parser [(Int, Maybe PyToken)]
-    parseCode = evalStateT parsePy (ParserState [0] 0 0 0)
-
-    -- | Recursive parser that parses an entire file while strining along some
-    -- parser state. That state contains information on the depth of the current
-    -- code block. This parser assumes that it always starts at a fresh line.
-    --
-    parsePy :: StateT ParserState Parser [(Int, Maybe PyToken)]
-    parsePy = do
+    parseCode = fmap concat $ statefulLoglineParser
+-- | Recursive parser that parses an entire file while strining along some
+-- parser state. That state contains information on the depth of the current
+-- code block. This parser assumes that it always starts at a fresh line.
+--
+statefulLoglineParser  :: Parser [[(Int, Maybe PyToken)]]
+statefulLoglineParser =
+  evalStateT parseLoglines (ParserState [0] 0 0 0)
+  where
+    parseLoglines = do
       -- Generate indentation tokens if necessary
       indentBefore <- indentationLevel <$> get
-      (indentResult, spaces) <- getSpaces
-
+      (_ , spaces) <- getSpaces
+    
       -- This parser will parse the conent of a line. A line in this context is
       -- not just a text-line. A text-line can also be terminated with a
       -- backslash. In such a case the follwing text-line is interpreted as a
       -- continuation of the current line. The backslash is normalized away.
       let loglineP = do
             ts <- lift $ AP.many' lenParser
-
+    
             -- Adjust the parser state with the current braces, brackets and
             -- curly braces
             modify (adjustParens (catMaybes $ snd <$> ts))
             currentState <- get
-
+    
             case ts of
               [] -> return []
               _ | snd (last ts) == Just PyTokenBackslash -> do
@@ -152,15 +165,15 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
                     ts' <- loglineP
                     return $ ts ++ e:ts'
                 | otherwise -> return ts
-
+    
       -- Parse the line's contents
       tks <- loglineP
-
+    
       --  Parse a number of linebreaks after the content of the line
       lbs <- lift $ do
         isAtEnd <- atEnd
         if isAtEnd then return [] else (:[]) <$> eols
-
+    
       adjustedSpaces <- if (null . catMaybes $ snd <$>  tks)
                         then do
                           -- lines with nothing but space and comment don't
@@ -172,13 +185,13 @@ tokenizePy LanguageText{..} = buildTokenVector <$> parsedResult
                                                         , Just PyTokenUnindent])
                                    spaces
                         else return spaces
-
+    
       -- Parse either the end of input or further logical lines
-      rest <- (lift $ endOfInput *> pure []) <|> parsePy
-
+      rest <- (lift $ endOfInput *> pure []) <|> parseLoglines
+    
       case tks of
-        [] -> return $ (filter ((> 0) . fst) adjustedSpaces) ++ lbs ++ rest
-        _  -> return $ adjustedSpaces ++ tks ++ lbs ++ rest
+        [] -> return $ ((filter ((> 0) . fst) adjustedSpaces) ++ lbs):rest
+        _  -> return $ (adjustedSpaces ++ tks ++ lbs):rest
 
     -- | Parses tokens, comments and horizontal whitespace along with
     -- information on the length of the consumed string.
@@ -356,3 +369,28 @@ pyString4 :: LanguageText Python
 pyString4 = LanguageText "'''abc's \n   dr quux'''"
 
 xyz = Text.pack "class slist(list):\n    @property\n    def length(self):\n        return len(self)\n"
+
+logicalLines :: LanguageText Python -> [Range Text.Text]
+logicalLines t = case AP.parseOnly statefulLoglineParser (langText t) of
+  Left _ ->  []
+  Right ls -> buildRanges ls 0
+  where
+    buildRanges [] _ = []
+    buildRanges (l:ls) offset =
+      let offset' = offset + (sum $ fst <$> l)
+      in (Range offset offset'):(buildRanges ls offset')
+
+pythonStatements :: LanguageText Python -> [Range Text.Text]
+pythonStatements t =
+  case loglines of
+    [] -> []
+    x:[] -> x:[]
+    _ -> do
+      (rg, rgNext) <- zip loglines (tail loglines)
+      if indentAt (langText t) (TextPosition . fromIntegral  $ rangeStart rg) <
+         indentAt (langText t) (TextPosition . fromIntegral $ rangeStart rgNext)
+        then []
+        else return rg
+  where
+    loglines = logicalLines t
+  

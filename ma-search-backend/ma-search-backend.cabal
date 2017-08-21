@@ -34,6 +34,7 @@ library
                      , Thesis.CodeAnalysis.Language.CommonTokenParsers
                      , Thesis.CodeAnalysis.Mutation
                      , Thesis.CodeAnalysis.Mutation.Base
+                     , Thesis.CodeAnalysis.Mutation.Class
                      , Thesis.CodeAnalysis.Mutation.IdentifierReplacement
                      , Thesis.CodeAnalysis.Semantic
                      , Thesis.CodeAnalysis.Semantic.BlockData
