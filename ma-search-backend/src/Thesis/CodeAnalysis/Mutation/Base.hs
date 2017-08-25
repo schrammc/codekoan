@@ -9,6 +9,7 @@ module Thesis.CodeAnalysis.Mutation.Base where
 
 import           Control.Monad.Random.Strict
 import           Data.Char
+import qualified Data.List as List
 import           Data.Monoid
 import           Data.Set (Set)
 import qualified Data.Set as S
@@ -25,6 +26,9 @@ indentBy :: Int -> Text -> Text
 indentBy n = Text.unlines . fmap (mappend t) . Text.lines
   where
     t = Text.pack $ replicate n ' '
+
+indentTo :: Int -> Text -> Text
+indentTo n txt = indentBy n (unindentBy (minIndent txt) txt)
 
 unindentBy :: Int -> Text -> Text
 unindentBy n = Text.unlines . fmap (Text.drop n) . Text.lines
@@ -91,6 +95,11 @@ insertAtRandomPosition piece txt = do
   pos <- randomPosition txt
   return $ insertAt piece pos txt
 
+insertAtNextLineWithCurrentIndent :: Text -> TextPosition -> Text -> Text
+insertAtNextLineWithCurrentIndent piece pos txt = undefined
+  where
+    currentIndent = indentAt txt pos
+
 replaceAt :: Text -> Range Text -> Text -> Text
 replaceAt piece range txt =
   let (before, rest) = Text.splitAt (rangeStart range) txt
@@ -140,3 +149,25 @@ lineStartPositions txt = S.fromList $ go (Text.lines txt) 0
 underlyingText :: LanguageText l -> TokenWithRange t l -> LanguageText l
 underlyingText l t =
   LanguageText $ textInRange (coveredRange t) (langText l)
+
+-- | Shuffle a list of elements in random order
+randomShuffle :: MonadRandom m => [a] -> m [a]
+randomShuffle xs = do
+  rs <- replicateM (length xs) (getRandomR (0.0, 1.0 :: Double))
+  return $ fmap snd $ List.sortBy (\(a, _) (b, _) -> compare a b) (zip rs xs)
+
+-- | Get the text-range that contains the given position
+lineAt :: TextPosition -> Text -> Range Text
+lineAt pos txt = Range (posInt - startPos) (posInt+endPos)
+  where
+    posInt = fromIntegral $ posToInt pos
+    startPos = seek False (reverse before) 0
+    endPos   = seek True  (after         ) 0
+    seek _ [] k = k
+    seek withBreak ('\n':_ ) k
+      | withBreak = k+1
+      | otherwise = k
+    seek withBreak (_:xs) k = seek withBreak xs (k+1)
+
+    (before, after) = List.splitAt posInt (Text.unpack txt)
+
