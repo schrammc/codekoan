@@ -1,11 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings#-}
 module Thesis.CodeAnalysis.Mutation.Class where
 
-import Data.Text (Text)
-import Thesis.CodeAnalysis.Language
-import Thesis.Data.Range
-import Thesis.CodeAnalysis.Mutation.Base
-import Control.Monad.Random
+import           Control.Monad.Random
+import           Data.Text (Text)
+import qualified Data.Text as Text
+import           Thesis.CodeAnalysis.Language
+import           Thesis.CodeAnalysis.Mutation.Base
+import           Thesis.Data.Range
 
 data GenericIndentation = GenericIndent
                         | GenericUndindent
@@ -15,6 +17,44 @@ class MutableLanguage t l where
   statementRanges :: Language t l -> LanguageText l -> [Range Text]
   hasRelevantIndents :: Language t l -> Bool
   isRelevantIndent :: Language t l -> t -> Maybe GenericIndentation
+
+buildStatementCorpus :: (MutableLanguage t l)
+                        => Language t l
+                     -> [LanguageText l]
+                     -> [LanguageText l]
+buildStatementCorpus lang txts = fmap LanguageText $ do
+  txt <- txts
+  let ranges = (statementRanges lang txt)
+  textInRanges (langText txt) ranges
+
+insertRandomStatementFromCorpus :: (MutableLanguage t l, MonadRandom m)
+                                   => Language t l
+                                   -> [LanguageText l]
+                                   -> LanguageText l
+                                   -> m (LanguageText l)
+insertRandomStatementFromCorpus lang stmts txt = do
+  stmtMaybe <- pickRandom stmts
+  case stmtMaybe of
+    Nothing -> return txt
+    Just stmt -> insertAtRandomStatement lang stmt txt
+
+insertAtRandomStatement :: (MutableLanguage t l, MonadRandom m)
+                           => Language t l
+                           -> LanguageText l
+                           -> LanguageText l
+                           -> m (LanguageText l)
+insertAtRandomStatement lang piece txt = do
+  let stRanges = statementRanges lang txt
+  stMaybe <- pickRandom stRanges
+  case stMaybe of
+    Nothing -> -- Couldn't find a statement, we just append the code.
+      return $ LanguageText $ Text.append (langText txt) (langText piece)
+    Just (Range _ end) ->
+      let endPosition = TextPosition $ fromIntegral end
+          insertIndent = indentAt (langText txt) endPosition
+          insertText = Text.append "\n" (indentTo insertIndent (langText piece))
+      in return $ LanguageText $ insertAt insertText endPosition (langText txt)
+
 -- | Pick a random statement in the given source code and remove it. If the
 -- source code contains no identifiable statement the original source is
 -- returned.

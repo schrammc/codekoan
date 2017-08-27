@@ -29,6 +29,7 @@ executable ma-survey-exe
                , ma-messaging
                , ma-search-backend
                , monad-logger >= 0.3.19
+               , MonadRandom >= 0.5.1
                , postgresql-simple >= 0.5.2
                , statistics >= 0.13
                , text >= 1.2.2.1

@@ -27,8 +27,8 @@ indentBy n = Text.unlines . fmap (mappend t) . Text.lines
   where
     t = Text.pack $ replicate n ' '
 
-indentTo :: Int -> Text -> Text
-indentTo n txt = indentBy n (unindentBy (minIndent txt) txt)
+indentTo :: Word -> Text -> Text
+indentTo n txt = indentBy (fromIntegral n) (unindentBy (minIndent txt) txt)
 
 unindentBy :: Int -> Text -> Text
 unindentBy n = Text.unlines . fmap (Text.drop n) . Text.lines
@@ -150,6 +150,13 @@ underlyingText :: LanguageText l -> TokenWithRange t l -> LanguageText l
 underlyingText l t =
   LanguageText $ textInRange (coveredRange t) (langText l)
 
+pickRandom :: MonadRandom m => [a] -> m (Maybe a)
+pickRandom []     = return Nothing
+pickRandom (x:[]) = return $ Just x
+pickRandom xs = do
+  i <- getRandomR (0, length xs - 1)
+  return . Just $ xs !! i
+
 -- | Shuffle a list of elements in random order
 randomShuffle :: MonadRandom m => [a] -> m [a]
 randomShuffle xs = do
@@ -168,6 +175,5 @@ lineAt pos txt = Range (posInt - startPos) (posInt+endPos)
       | withBreak = k+1
       | otherwise = k
     seek withBreak (_:xs) k = seek withBreak xs (k+1)
-
     (before, after) = List.splitAt posInt (Text.unpack txt)
 

@@ -57,15 +57,31 @@ buildIndexFromAnswers ::( Eq t, Hashable t
                       -> Int -- ^ NGram size
                       -> m (SearchIndex t l AnswerFragmentMetaData)
 buildIndexFromAnswers lang src ngramSize =
-  buildIndex lang fragSource ngramSize
-  where
-    buildFragMeta = AnswerFragmentMetaData
-    fragSource = src
-                   =$= (CL.map $ \Answer{..} -> do
-                           (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]
-                           return $ ( buildFragMeta $ AnswerFragmentId answerId n
-                                    , LanguageText code))
-                   =$= CL.concat
+  buildIndex lang (src =$= toFragments) ngramSize
+
+toFragments :: MonadIO m
+            => Conduit Answer m (Int -> AnswerFragmentMetaData, LanguageText l)
+toFragments = (CL.map $ \Answer{..} -> do
+                      (code,n) <- zip (readCodeFromHTMLPost answerBody) [0 ..]
+                      return $ ( AnswerFragmentMetaData
+                                 $ AnswerFragmentId answerId n
+                               , LanguageText code))
+               =$= CL.concat
+
+fragmentsFromAnswers :: (MonadIO m, Foldable f)
+                     => Language t l
+                     -> f Answer
+                     -> m [(AnswerFragmentMetaData
+                           , LanguageText l
+                           , TokenVector t l)]
+fragmentsFromAnswers lang as = runConduit $
+  CL.sourceList (toList as) =$=
+  toFragments =$=
+  CL.map (\(f,frag) -> case tokenize lang frag of
+             Nothing -> Nothing
+             Just tks -> Just (f $ V.length tks,frag, tks)) =$=
+  CL.catMaybes =$=
+  CL.consume
 
 buildTestIndex :: ( Eq t, Hashable t
                   , MonadIO m, MonadLogger m, Foldable f) =>
@@ -120,4 +136,3 @@ buildIndex lang postSource ngramSize = do
 
   bf <- BloomFilter <$> (liftIO . stToIO $ BF.freeze mutableBF)
   return $ SearchIndex lang tr bf ngramSize
-

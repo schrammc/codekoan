@@ -59,7 +59,6 @@ removeLoopHeads v = V.fromList $ go 0 False 0
               | drop && (token current) == TokenLBrace -> go (i+1) False (parens+1)
               | drop -> go (i+1) True parens
               | otherwise -> current:(go (i+1) False parens)
-              
 
 javaStatementRanges :: LanguageText Java -> [Range Text]
 javaStatementRanges txt =

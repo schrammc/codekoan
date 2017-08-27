@@ -136,7 +136,8 @@ findMatches index@(SearchIndex{..}) !n !tokens !minMatchLength = do
       resultList = searchFor <$> relevantNGramTails
 
   $(logDebug) $ "Number of search starting points " <>
-                (Text.pack . show $ length relevantNGramTails)
+                (Text.pack . show $ length relevantNGramTails ) <>
+                "(" <> (Text.pack . show $ (length ngramsWithTails, length tokens) )<> ")"
 
   let searchResults = buildMap $ concat resultList
 

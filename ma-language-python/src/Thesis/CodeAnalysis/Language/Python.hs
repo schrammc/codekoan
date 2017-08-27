@@ -368,7 +368,11 @@ pyString3 = LanguageText "def conv2d_shape(op):\n\
 pyString4 :: LanguageText Python
 pyString4 = LanguageText "'''abc's \n   dr quux'''"
 
-xyz = Text.pack "class slist(list):\n    @property\n    def length(self):\n        return len(self)\n"
+xyz :: Text.Text
+xyz = Text.pack "class slist(list):\n\
+                \    @property\n\
+                \    def length(self):\n\
+                \        return len(self)\n"
 
 logicalLines :: LanguageText Python -> [Range Text.Text]
 logicalLines t = case AP.parseOnly statefulLoglineParser (langText t) of
