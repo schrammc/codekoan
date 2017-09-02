@@ -60,12 +60,12 @@ insertAtRandomStatement lang piece txt = do
 -- returned.
 removeRandomStatement :: (MutableLanguage t l, MonadRandom m)
                          => Language t l -> LanguageText l -> m (LanguageText l)
-removeRandomStatement lang txt =
+removeRandomStatement lang txt = do
   let rgs = statementRanges lang txt
-  in case rgs of
-    [] -> return txt
-    _  -> do
-      rg <- head <$> randomShuffle rgs
+  pickedMaybe <- randomPick rgs
+  case pickedMaybe of
+    Nothing -> return txt
+    Just rg -> do
       return . LanguageText $ deleteAt rg (langText txt)
 
 -- | Picks two random statements in the given source code and swaps them. If the

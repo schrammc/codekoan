@@ -4,6 +4,7 @@ module Thesis.CodeAnalysis.Mutation
        , module Thesis.CodeAnalysis.Mutation.IdentifierReplacement
 
        , mutateOnceAndSelfSearch
+       , mutateOnceAndSearchAgainst
        ) where
 
 import Thesis.CodeAnalysis.Mutation.IdentifierReplacement
@@ -32,17 +33,29 @@ mutateOnceAndSelfSearch :: (Hashable t, Eq t, NFData t
                     -> LanguageText l
                     -> m (Bool, LanguageText l)
 mutateOnceAndSelfSearch lang mutate analyzer settings txt = do
-  testIndex <- buildTestIndex lang [txt] 10
+  mutateOnceAndSearchAgainst lang mutate analyzer settings txt txt
+
+mutateOnceAndSearchAgainst :: (Hashable t, Eq t, NFData t
+                           , MonadIO m, MonadLogger m, MonadRandom m, MonadThrow m)
+                    => Language t l
+                    -> (LanguageText l -> m (LanguageText l))
+                    -> SemanticAnalyzer m a
+                    -> SearchSettings
+                    -> LanguageText l
+                    -> LanguageText l
+                    -> m (Bool, LanguageText l)
+mutateOnceAndSearchAgainst lang mutate analyzer settings query ind = do
+  testIndex <- buildTestIndex lang [ind] 10
   
-  mutatedText <- mutate txt
-  let tokensMaybe = (,) <$> tokenize lang txt <*> tokenize lang mutatedText
+  mutatedText <- mutate query
+  let tokensMaybe = (,) <$> tokenize lang ind <*> tokenize lang mutatedText
   
   case tokensMaybe of
-    Nothing -> error "tokenizer failure"
+    Nothing -> return (False, query) --error "tokenizer failure"
     Just (tokens, mutatedTokens)  -> do
       searchResult <- performCachedSearch testIndex
                                           lang
-                                          (\_ -> return (tokens, txt))
+                                          (\_ -> return (tokens, ind))
                                           settings
                                           (mutatedText, mutatedTokens)
                                           analyzer

@@ -163,6 +163,13 @@ randomShuffle xs = do
   rs <- replicateM (length xs) (getRandomR (0.0, 1.0 :: Double))
   return $ fmap snd $ List.sortBy (\(a, _) (b, _) -> compare a b) (zip rs xs)
 
+-- | Shuffle a list of elements in random order
+randomPick :: MonadRandom m => [a] -> m (Maybe a)
+randomPick [] = return Nothing
+randomPick xs = do
+  k <- getRandomR (0, length xs - 1)
+  return $! Just $! xs !! k
+
 -- | Get the text-range that contains the given position
 lineAt :: TextPosition -> Text -> Range Text
 lineAt pos txt = Range (posInt - startPos) (posInt+endPos)

@@ -50,8 +50,9 @@ import           Thesis.Survey.DirHelper
 import           Thesis.SurveySettings
 import           Thesis.Util.MonadUtils
 import Thesis.Survey.LocalWithIndex
+import Thesis.Survey.Mutation
 
-main = mainLocal
+main = mainMut
 
 --main = do
 --  args <- getArgs

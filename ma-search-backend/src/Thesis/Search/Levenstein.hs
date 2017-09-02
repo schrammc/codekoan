@@ -319,6 +319,11 @@ walkThroughZero aut (LevenState ((pos,val):[])) v !vectorLength =
 walkThroughZero _ _ _ _ =
   error "Levenshtein.walkThroughZero: unexpected case (dist /= 0)"
 
+--------------------------------------------------------------------------------
+--
+-- Alternative algorithm that overlays a suffix trie of the query over the
+-- suffix trie of the index instead of traversing common paths multiple time.
+
 lookupZero :: (Hashable a, Eq a, FragmentData d) =>
               Int 
            -> V.Vector a
