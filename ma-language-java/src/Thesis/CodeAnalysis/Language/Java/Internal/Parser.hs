@@ -152,6 +152,7 @@ modifier = ("public"
            <|> "private"
            <|> "protected"
            <|> "static"
+           <|> "final"
            <|> "volatile"
            ) *> pure TokenModifier
 
