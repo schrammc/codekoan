@@ -80,7 +80,7 @@ library
                  , directory                     >= 1.1
                  , warp                          >= 3.0        && < 3.3
                  , data-default
-                 , aeson                         >= 0.6        && < 1.1
+                 , aeson                         >= 0.6        && < 1.2
                  , conduit                       >= 1.0        && < 2.0
                  , monad-logger                  >= 0.3        && < 0.4
                  , postgresql-simple             >= 0.5.2      && < 0.6

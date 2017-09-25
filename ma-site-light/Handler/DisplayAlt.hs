@@ -7,6 +7,7 @@ import           Control.Monad.Logger
 import           Control.Monad.Trans.Maybe
 import           Data.Char (isDigit)
 import qualified Data.Map as M
+import qualified Data.Set as S
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Helper
@@ -21,7 +22,7 @@ import           Thesis.CodeAnalysis.Language.Haskell (haskell)
 import           Thesis.CodeAnalysis.Language.Java (java)
 import           Thesis.CodeAnalysis.Language.Python (python)
 import           Thesis.CodeAnalysis.Semantic.MonadicAnalyzer
-import           Thesis.Data.Range
+import           Thesis.Data.Range as Range
 import           Thesis.Data.Stackoverflow.Answer
 import           Thesis.Data.Stackoverflow.Dictionary as Dict
 import           Thesis.Data.Stackoverflow.Question
@@ -32,6 +33,8 @@ import           Thesis.PatternClustering
 import           Thesis.Search.FragmentData
 import           Thesis.Search.Settings (highSimilarityDef)
 import           Thesis.Util.LoggingUtils
+import           Thesis.Search.Settings as Settings
+
 
 getDisplayAltR :: Int -> Handler Html
 getDisplayAltR qInt = do
@@ -40,7 +43,13 @@ getDisplayAltR qInt = do
   case reply of
     Right resultSet' -> 
       defaultLayout $ do
-        resultSet <- assignClusters app resultSet'
+        clusteringMaybe <- lookupGetParam "clustering"
+        let clustering = case clusteringMaybe of
+              Just "true" -> True
+              _ -> False
+        resultSet <- if clustering
+                     then assignClusters app resultSet'
+                     else return resultSet'
         setTitle "CodeK\333an"
         $(widgetFile "display")
     Left errorMsg -> do
@@ -53,8 +62,8 @@ Query identifier: #{qInt}
   where
     queryId = QueryId qInt
 
-resultsW :: ResultSetMsg -> Widget
-resultsW resultSet@ResultSetMsg{..} = do
+resultsW :: ResultSetMsg -> Bool -> Widget
+resultsW resultSet@ResultSetMsg{..} clustering = do
   App{..} <- getYesod
   if null resultSetResultList
     then [whamlet|
@@ -65,13 +74,22 @@ resultsW resultSet@ResultSetMsg{..} = do
       let groups = resultGroups resultSet
       [whamlet|<h1 style="text-align:center">Code pattern reuse detected at #{length groups} sites:
               |]
+      when clustering $ do
+        let numberOfClusters = S.size
+                               $ S.fromList
+                               $ catMaybes
+                               $ fmap resultCluster
+                               $ resultSetResultList
+        [whamlet|<h3 style="text-align:center">#{numberOfClusters} distinct patterns were identified
+              |]
+
       let sortedGroups = reverse $ sortOn fst (rankGroups groups)
       forM_ sortedGroups $ \(rank, gr) ->
         [whamlet|
                 <div .row>
                   <div .col-lg-12>
 $#                    <b>#{rank}
-                    ^{resultGroupW gr}
+                    ^{resultGroupW gr clustering}
                 |]
   where
     reuses :: Text
@@ -115,12 +133,12 @@ resultGroups msg = do
 
 resultCoverage :: ResultMsg -> Double
 resultCoverage ResultMsg{..} =
-  coveragePercentage (Text.length resultFragmentText) ranges
+  Range.coveragePercentage (Text.length resultFragmentText) ranges
   where
     ranges = alignmentMatchPatternTextRange <$>resultAlignmentMatches
 
-resultGroupW :: ResultGroup -> Widget
-resultGroupW gr@(ResultGroup ranges msgs queryText) = do
+resultGroupW :: ResultGroup -> Bool -> Widget
+resultGroupW gr@(ResultGroup ranges msgs queryText) clustering = do
   let frac = groupAvgPatternCoverage gr
   [whamlet|
            <h3> <b>Site with reuse </b>
@@ -137,7 +155,7 @@ resultGroupW gr@(ResultGroup ranges msgs queryText) = do
                ^{queryPieces}
              <div .col-lg-6>
                <br>
-               <center> The relevant Stack Overflow code patterns:
+               <center> The relevant Stack Overflow code examples:
                <br>
                ^{fragGroups}
           <hr>
@@ -171,6 +189,9 @@ resultGroupW gr@(ResultGroup ranges msgs queryText) = do
   ^{forM_ restFrags renderFrag}
 |]
 
+    formatCluster (Just n) = show n
+    formatCluster Nothing  = "-"
+
     renderFrag ResultMsg{..} = do
       App{..} <- getYesod
       let (aIdTxt, rest) = Text.span isDigit resultSource
@@ -187,9 +208,10 @@ resultGroupW gr@(ResultGroup ranges msgs queryText) = do
                 <b><a target="_blank" href=#{link}>#{questionTitle parentQuestion}</a>
                 <br>
                 <br>
-                Cluster: #{show resultCluster}
-                <br>
-                <br>
+                $if clustering
+                  Cluster: #{formatCluster resultCluster}
+                  <br>
+                  <br>
                 <div .well>
                   <pre>
                     #{resultFragmentText}|]
@@ -294,7 +316,7 @@ assignClusters app res = do
       clusterPatterns lang
                       AnswerFragmentMetaData
                       remoteAnalyzer
-                      highSimilarityDef
+                      medSimilarityDef
                       (( \ (a, b) -> (a, LanguageText b)) <$> patterns)
     remoteAnalyzer = buildMonadicAnalyzer getSimilarity
     getSimilarity a b = do
@@ -327,3 +349,12 @@ clusterNumbers cs = M.fromList $ do
 writeFragId AnswerFragmentId{..} =
   (show $ answerIdInt fragmentAnswerId) ++ " (" ++ (show $ fragmentId) ++ ")"
 
+
+medSimilarityDef :: SearchSettings
+medSimilarityDef = SearchSettings { minMatchLength = 10
+                                  , levenshteinDistance = 0
+                                  , Settings.coveragePercentage = 0.7
+                                  , blockFiltering = True
+                                  , semanticThreshold = Just 0.4
+                                  , minSumResultLength = 20
+                                  }

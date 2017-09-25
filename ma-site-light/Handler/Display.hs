@@ -24,6 +24,7 @@ getDisplayR qInt = do
     Right resultSet -> 
       defaultLayout $ do
         setTitle "CodeK\333an"
+        let clustering = False
         $(widgetFile "display")
     Left errorMsg -> do
       defaultLayout $ [whamlet|
@@ -35,8 +36,8 @@ Query identifier: #{qInt}
   where
     queryId = QueryId qInt
 
-resultsW :: ResultSetMsg -> Widget
-resultsW resultSet@ResultSetMsg{..} = do
+resultsW :: ResultSetMsg -> Bool -> Widget
+resultsW resultSet@ResultSetMsg{..} clustering = do
   if null resultSetResultList
     then [whamlet|<h1>Your Search Yielded no Results
                  <br style="margin-bottom:10em">

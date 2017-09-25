@@ -7,7 +7,7 @@
   <div class="row">
     <div .col-md-1>
     <div .col-lg-12>
-      ^{resultsW resultSet}
+      ^{resultsW resultSet clustering}
 
 <div id="dialog-confirm" title="Rate this search result" style="display:none">
   <div .row>
