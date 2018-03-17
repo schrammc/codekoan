@@ -1,7 +1,7 @@
 # Settings pertaining to the RabbitMQ connection
 rabbitmq-settings:
-  rabbitmq-user: "kryo"
-  rabbitmq-pwd : "mnl07xs"
+  rabbitmq-user: "user"
+  rabbitmq-pwd : "password"
   rabbitmq-host: "localhost"
   rabbitmq-virtual-host: "/"
 

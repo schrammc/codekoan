@@ -82,13 +82,13 @@ search-question-tag: "java" // filter tag from StackOverflow to prevent search t
 search-answer-digits: [0,3,4,5] // the answer id from StackOverflow are chunked into 10 portions with modulo, the nummer presented here are the chunked index. We assume the post topic are uniformly distributed amount the chunks with this seperation method, which can be systematically proved with in a future work. 
 search-cluster-size: 4 // work arround for failing configuration service. This number is crucial, which should be identical for all works for one language, so that the reply cache serivce know how many response are pending. This number reflex on the number of workers for a dedicated language. 
 search-rabbitmq-settings: // this section describes the credential for rabbitmq (aka: Message Queueing Service)
- rabbitmq-user: "kryo"
- rabbitmq-pwd: "mnl07xs"
+ rabbitmq-user: "user"
+ rabbitmq-pwd: "password"
  rabbitmq-host: "localhost"
  rabbitmq-virtual-host: "/"
 search-postgres-database: // this section describes the credential for PostgreSQL DB 
- db-user: "kryo"
- db-pwd: "mnl07xs"
+ db-user: "user"
+ db-pwd: "password"
  db-name: "testdb"
  db-port: 5432
  db-host: "10.155.208.4"
@@ -120,8 +120,8 @@ Yaml config file
 <pre>
 # Settings pertaining to the RabbitMQ connection
 rabbitmq-settings:
- rabbitmq-user: "kryo"
- rabbitmq-pwd : "mnl07xs"
+ rabbitmq-user: "user"
+ rabbitmq-pwd : "password"
  rabbitmq-host: "localhost"
  rabbitmq-virtual-host: "/"
 
@@ -139,8 +139,8 @@ Yaml config file
 <pre>
 # Settings pertaining to the RabbitMQ connection
 rabbitmq-settings:
- rabbitmq-user: "kryo"
- rabbitmq-pwd : "mnl07xs"
+ rabbitmq-user: "user"
+ rabbitmq-pwd : "password"
  rabbitmq-host: "localhost"
  rabbitmq-virtual-host: "/"
 

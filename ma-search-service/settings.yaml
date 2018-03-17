@@ -9,8 +9,8 @@ search-rabbitmq-settings:
   rabbitmq-host: "localhost"
   rabbitmq-virtual-host: "/"
 search-postgres-database:
-  db-user: "kryo"
-  db-pwd: "mnl07xs"
+  db-user: "user"
+  db-pwd: "password"
   db-name: "testdb"
   db-port: 5432
   db-host: "localhost"
