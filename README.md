@@ -6,22 +6,6 @@
 
 The Codekoan search engine is easy to set up. Please see the [installation instructions](doc/install.md)
 
-## System Components Communication
-* StackOverflow Persistency: PostgreSQL DB on damar (PMS On-Premises) Port 5432, this port should be accessible from MWN to PMS DMZ
-
-* Message Queueing Service: RabbitMQ on damar Port 5672, this port should be accessible from MWN to PMS 
-
-* Message Monitor Service: RabbitMQ Web Monitor on damar Port 15672, this port should be accessible from MWN to PMS.
-
-* Semantic Service: Haskel RestService on damar Port 6366, this port should be accessible from MWN to PMS
-
-* TCP Service: Haskel TCP Backend Service on damar Port 6365 on damar, an appache proxy from 443 will be routed to 6365 for handling TCP request from the client. Port 6365 is local port, which should not be opened for MWN and Public Internet. The apache proxy port 443 should be open for MWN in the first stage of the project, and in the later stage, port 443 should be open for public internet.
-
-* ReplyCache Service: Haskel RestService on damar Port 6367, this port should be accessible from MWN to PMS. (debugging purpose, can be closed at production stage)
-
-* Message Query Injector Service: Haskel RestService for posting messages into RabbitMQ on damar Port 6368, this port should be accessible from MWN to PMS. (debugging purpose, can be closed at production stage)
-
-
 ## Overview
 
 This project is the complete implementation of my code pattern recognition
