@@ -24,11 +24,11 @@ copyright: Christof Schramm 2016
 #analytics: UA-YOURCODE
 postgres-connect-info:
   db-user: "postgres"
-  db-pwd: "analytics-pgs"
+  db-pwd: "password"
   db-name: "postgres"
   db-port: 5432
-  db-host: "damar.pms.ifi.lmu.de"
+  db-host: "dbhost"
 
-rmq-injector-url: "http://damar.pms.ifi.lmu.de:6368/submit"
-reply-cache-url: "http://damar.pms.ifi.lmu.de:6367/get/"
+rmq-injector-url: "http://the.host.to.run.on:6368/submit"
+reply-cache-url: "http://the.host.to.run.on:6367/get/"
 semantic-url: "http://localhost:6366/submit"

@@ -51,11 +51,11 @@ lowSimilarityDef = SearchSettings { minMatchLength = 10
 
 psqlConnectInfo =
   PSQL.defaultConnectInfo
-    { PSQL.connectHost = "damar.pms.ifi.lmu.de"
-    , PSQL.connectPassword="analytics-pgs"
+    { PSQL.connectHost = "the.host.to.run.on"
+    , PSQL.connectPassword="<the password>"
     }
 
-semanticURL = "http://damar.pms.ifi.lmu.de:6366/submit"
+semanticURL = "http://the.host.to.run.on:6366/submit"
 
 mainLocal :: IO ()
 mainLocal = do

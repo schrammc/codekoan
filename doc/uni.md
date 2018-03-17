@@ -1,5 +1,5 @@
 # RabbitMQ 
-Rabbitm management plugin [link](http://damar.pms.ifi.lmu.de:15672).
+Rabbitm management plugin [link](http://the.host.to.run.on:15672).
 
 Username: kryo
 

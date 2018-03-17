@@ -28,8 +28,8 @@ import           Graphics.Rendering.Chart.Easy
 
 
 defaultCi = PSQL.defaultConnectInfo
-              {PSQL.connectHost = "damar.pms.ifi.lmu.de"
-              , PSQL.connectPassword = "analytics-pgs"
+              { PSQL.connectHost = "the.host.to.run.on"
+              , PSQL.connectPassword="<the password>"
               }
 
 instance MonadRandom (LoggingT IO) where
@@ -103,7 +103,7 @@ mainMut = do
     getSimilarity a b = do
       let submitR = setRequestMethod "POST" $
                     setRequestBodyJSON (SemanticQuery a b) $ 
-                            parseRequest_ ("http://damar.pms.ifi.lmu.de:6366/submit")
+                            parseRequest_ ("http://the.host.to.run.on:6366/submit")
       resp <- httpJSON submitR
       return $ getResponseBody resp
 
