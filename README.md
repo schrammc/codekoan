@@ -1,5 +1,3 @@
-[LMU specific config](doc/uni.md)
-
 # The Codekoan search engine
 
 ## Overview
