@@ -14,7 +14,7 @@ engine including a web-application to acces it.
 It is structured as a multi-package [stack][] project.
 
 # Packages:
-## ma-search-backend
+## codekoan-search-backend
 
 This package contains a programming language-agnostic library that provides:
 
@@ -30,26 +30,26 @@ This package contains a programming language-agnostic library that provides:
   * Blocks analysis
   * Word similiarity analysis
 
-## ma-messaging
+## codekoan-messaging
 
 This package contains types that are used for communicating between
 microservices.
 
 ## Language Implementations
-### ma-language-java
-### ma-language-python
+### codekoan-language-java
+### codekoan-language-python
 
-## ma-postgres-indexer
+## codekoan-postgres-indexer
 
 This package provides an executable that writes data from a Stackoverflow
 posts-dump into a PostgreSQL database
 
-## ma-rmq-injector
+## codekoan-rmq-injector
 
 This package provides a webservice that takes JSON queries and puts them into
 RabbitMQ.
 
-## ma-search-service (Search Worker)
+## codekoan-search-service (Search Worker)
 
 This package contains an executable that takes data from RabbitMQ, performs
 searches and returns the results to RabbitMQ
@@ -78,15 +78,10 @@ search-semantic-url: "http://localhost:3666/submit" // the end-point of semantic
 </pre>
 
 
-
-## ma-site
-
-A legacy webinterface, that will soon be removed / reimplemented
-
 ## Installation instructions
 
 First get a working [stack][] installation. Then ```git clone``` the project
-into a directory and change into the ```ma-project/ma-site``` directory and use
+into a directory, change into the ```codekoan``` directory and use
 ```stack build && stack exec-ma-site``` to run the webapplication. The default
 port to reach the webapplication is ```3000```.
 
@@ -114,7 +109,7 @@ log-settings:
 # The port that the application is run on
 application-port: 6368
 </pre>
-* starting with `stack exec ma-rmq-injector`
+* starting with `stack exec codekoan-rmq-injector`
 
 ### Start Reply Cache Service
 Yaml config file
@@ -136,7 +131,7 @@ log-settings:
 # The port that the application is run on
 application-port: 6367
 </pre>
-* starting with `stack exec ma-reply-cache`
+* starting with `stack exec codekoan-reply-cache`
 
 # Start Semantic Service
 Yaml config file
@@ -155,7 +150,7 @@ log-settings:
 # The port that the application is run on
 application-port: 6366
 </pre>
-* starting with `start exec ma-semantic-service`
+* starting with `start exec codekoan-semantic-service`
 
 # Config RabbitMQ
 ## prerequisition 
@@ -172,13 +167,13 @@ application-port: 6366
 * Config reply exchange for receiving response messages and bind it to a queue.
 
 ## Starting Work instance
-* copy the ma-project folder to all the workers
-* `cd ma-project`
+* copy the codekoan-project folder to all the workers
+* `cd codekoan-project`
 * `stack build` to build the binary for the worker on each worker node
-* `stack exec ma-search-service <path-to-yaml>`, <path-to-yaml> is the path to the worker yaml config file (after starting the work, the surfix tree index will be build automatically)
+* `stack exec codekoan-search-service <path-to-yaml>`, <path-to-yaml> is the path to the worker yaml config file (after starting the work, the surfix tree index will be build automatically)
 
 ## Starting Web Application
-* `stack exec ma-site-light`, pwd out is ma-project
+* `stack exec codekoan-site-light`, pwd out is codekoan-project
 
 
 
