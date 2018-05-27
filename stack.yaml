@@ -36,19 +36,19 @@ resolver: lts-9.0
 # non-dependency (i.e. a user package), and its test suites and benchmarks
 # will not be run. This is useful for tweaking upstream packages.
 packages:
-- ./ma-search-backend
-- ./ma-messaging
-- ./ma-survey
-#- ./ma-site
-#- ./ma-site-light
-- ./ma-rmq-injector
-- ./ma-postgres-indexer
-- ./ma-language-haskell
-- ./ma-language-java
-- ./ma-language-python
-- ./ma-search-service
-- ./ma-reply-cache
-- ./ma-semantic-service
+- ./codekoan-search-backend
+- ./codekoan-messaging
+- ./codekoan-survey
+#- ./codekoan-site
+#- ./codekoan-site-light
+- ./codekoan-rmq-injector
+- ./codekoan-postgres-indexer
+- ./codekoan-language-haskell
+- ./codekoan-language-java
+- ./codekoan-language-python
+- ./codekoan-search-service
+- ./codekoan-reply-cache
+- ./codekoan-semantic-service
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
